@@ -31,7 +31,7 @@
     },
     update() {
       const p = P(), s = S(), ents = G.ents, eng = E();
-      const NOSLOW = {bean: 1, honeyshot: 1, heartfly: 1, roulette: 1, gadget: 1, cannon: 1, pookie: 1, milk: 1, coffee: 1, feather: 1};
+      const NOSLOW = {bean: 1, honeyshot: 1, heartfly: 1, roulette: 1, gadget: 1, cannon: 1, pookie: 1, milk: 1, coffee: 1, feather: 1, choco: 1};
       const slowFrame = s.honey > 0 && (s.frames % 5) >= 2;   /* Honigzeit: enemies only move on 2 of 5 frames */
       for (let i = ents.length - 1; i >= 0; i--) {
         const e = ents[i];
@@ -54,9 +54,10 @@
         else if (e.kind === 'honeyshot') { e.t -= 1 / 60; e.anim += 0.3; eng.moveX(e); if (e.hitWall || e.t <= 0) { e.alive = false; e.dieT = 10; eng.puff(e.x + 4, e.y + 4, 3, '#f5c242'); continue; } for (const o of ents) if (o !== e && o.alive && (o.stompable !== undefined || o.kind === 'boss') && eng.overlap(e, o)) { if (o.kind === 'boss') { if (o.inv <= 0 && o.active) M.bossHit(o, 1); } else if (o.look !== 'cannon') eng.kill(o, true, (o.points || 100)); e.alive = false; e.dieT = 10; A().sfx.honeyHit(); eng.puff(e.x + 4, e.y + 4, 4, '#f5c242'); break; } continue; }
         else if (e.kind === 'heartfly') { e.t += 1 / 60; const dx = p.x + 6 - (e.x + 4), dy = p.y + p.h / 2 - (e.y + 4), d = Math.max(1, Math.hypot(dx, dy)), sp = Math.min(7, 1.2 + e.t * 7); e.x += dx / d * sp; e.y += dy / d * sp; if (d < 8 || e.t > 3) { e.alive = false; e.dieT = 10; eng.collectHeart(Math.floor(e.x / T), Math.floor(e.y / T), false); } continue; }
         else if (e.kind === 'cannon') { if (e.fireT > 0) e.fireT -= 1 / 60; }
+        else if (e.kind === 'choco') { e.t -= 1 / 60; if (e.t <= 0) { e.alive = false; e.dieT = 10; if (s.frames % 4 === 0) A().sfx.melt(); for (let k = 0; k < 2; k++) G.parts.push({kind: 'splash', x: e.x + 4, y: e.y + 4, vx: (Math.random() - 0.5), vy: 0.5 + Math.random(), t: 0.5, col: '#5a2e14'}); } continue; }
         else if (e.kind === 'walker' || e.kind === 'spiky' || e.kind === 'milk' || e.kind === 'thrower') {
           if (e.rise > 0) { e.rise -= 0.5; e.y -= 0.5; if (e.rise <= 0 && e.kind === 'milk') e.vx = 1; continue; }
-          if (e.kind === 'thrower') { e.t -= 1 / 60; if (e.t <= 0) { e.t = e.period; M.throwAt(e, p, e.look === 'monkey' ? 'coconut' : (e.look === 'snowman' ? 'snowball' : 'cookieshot')); } e.vy = (e.vy || 0) + 0.42; eng.moveY(e, false); continue; }
+          if (e.kind === 'thrower') { e.t -= 1 / 60; if (e.t <= 0) { e.t = e.period; M.throwAt(e, p, e.look === 'monkey' ? 'coconut' : (e.look === 'snowman' ? 'snowball' : (e.look === 'robot' ? 'bolt' : 'cookieshot'))); } e.vy = (e.vy || 0) + 0.42; eng.moveY(e, false); continue; }
           if (e.turnsAtEdge && e.onGround && eng.edgeAhead(e)) e.vx = -e.vx;
           eng.moveX(e); if (e.hitWall) e.vx = (e.kind === 'milk' ? 1 : e.speed) * -Math.sign(e.lastVx || -1); if (e.vx) e.lastVx = e.vx;
           e.vy = (e.vy || 0) + 0.42; if (e.vy > 6) e.vy = 6; eng.moveY(e, false);

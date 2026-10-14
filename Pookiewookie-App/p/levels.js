@@ -11,9 +11,9 @@
   function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
   const empty = () => Array(H).fill('-');
 
-  function build(wi, li) {
-    const W = G.WORLDS[wi], d = wi * 4 + li, tower = li === 3;
-    const r = rng(9000 + wi * 311 + li * 97), cols = [];
+  function build(wi, li, seedExtra) {
+    const W = G.WORLDS[wi], d = Math.min(23, wi * 4 + li), tower = li === 3;
+    const r = rng(9000 + wi * 311 + li * 97 + (seedExtra || 0)), cols = [];
     const push = c => cols.push(c);
     const gapW = 2 + Math.min(3, Math.floor(d / 6));              // 2..5 columns
     const dens = 0.18 + d * 0.02;                                   // enemy density
@@ -108,6 +108,33 @@
     const bonusRoom = () => {    // appended after the level end; the camera is locked to this screen while inside
       const room = ROOMS[(wi + li) % ROOMS.length]; bonus.roomCol = cols.length;
       for (let x = 0; x < 40; x++) { const c = empty(); for (let y = 0; y < H; y++) { const ch = x < 30 ? room[y][x] : '#'; c[y] = ch === '.' ? '-' : ch; } push(c); }   /* 10 wall columns on the right: wide screens see rock, not the level */
+      bonus.roomEnd = cols.length;
+    };
+    /* puzzle room: four bells ('@') must be rung in the right order (a board '^' shows it, or the bells sing it), then the gate 'z' opens
+       and the chocolate coin ('$') waits behind it. Entered through a purple pipe ('&'). */
+    let puzzle = null;
+    const puzzlePipe = () => { ground(3, {hearts: true}); const col = cols.length; for (let k = 0; k < 2; k++) { const c = groundBase(); c[11] = '&'; c[12] = '|'; push(c); } puzzle = {pipeCol: col, pipeTop: 11, kind: G.PUZZLES[wi].kind}; ground(3); };
+    const PUZZLE_ROOM = [
+      '########################################',
+      '#.................................######',
+      '#.................................######',
+      '#.................................######',
+      '#.................................######',
+      '#.................................######',
+      '#.................................######',
+      '#.................................######',
+      '#.....@....@....@....@........o...######',
+      '#.........................z..ooo..######',
+      '#.........................z.o.$.o.######',
+      '#..^......................z..ooo.&&######',
+      '#.........................z...o..||######',
+      '########################################',
+      '########################################'];
+    const puzzleRoom = () => {
+      puzzle.roomCol = cols.length; puzzle.bells = []; puzzle.gateCol = -1;
+      for (let x = 0; x < 40; x++) { const c = empty(); for (let y = 0; y < H; y++) { const ch = PUZZLE_ROOM[y][x]; c[y] = ch === '.' ? '-' : ch; if (ch === '@') puzzle.bells.push(cols.length); if (ch === 'z') puzzle.gateCol = cols.length; if (ch === '^') puzzle.signCol = cols.length; } push(c); }
+      puzzle.roomEnd = cols.length;
+      const order = [0, 1, 2, 3]; for (let i = 3; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; } puzzle.order = order;
     };
     const arena = () => {        // boss arena: gate, flat floor, boss, locked gate, door
       ground(2); const g1 = groundBase(); for (let y = 9; y < 13; y++) g1[y] = '='; push(g1);
@@ -125,10 +152,13 @@
     kinds.push('capsule'); if (d >= 2) kinds.push('cannon');
     let lastKind = '', cannons = 0, capsules = 0;
     const pipeBeat = tower ? -1 : 1 + Math.floor(r() * Math.max(1, beats - 3));
+    const hasPuzzle = !tower && !seedExtra && G.PUZZLES[wi] && G.PUZZLES[wi].li === li;
+    let puzzleBeat = hasPuzzle ? Math.max(0, Math.min(beats - 1, pipeBeat + 2 + Math.floor(r() * 2))) : -1; if (puzzleBeat === pipeBeat) puzzleBeat = beats - 1;
     for (let b = 0; b < beats; b++) {
       let kind = kinds[Math.floor(r() * kinds.length)]; if (kind === lastKind) kind = kinds[Math.floor(r() * kinds.length)]; lastKind = kind;
       if (kind === 'cannon' && cannons >= 1) kind = 'run'; if (kind === 'capsule' && capsules >= 2) kind = 'run';
       if (b === pipeBeat) bonusPipe();
+      if (b === puzzleBeat) puzzlePipe();
       if (kind === 'capsule') { capsule(); capsules++; }
       else if (kind === 'cannon') { cannon(); cannons++; }
       else if (kind === 'boxes') { ground(4, {deco: true}); boxes(['?=?', d < 10 ? '?!?' : '?=?', '=?=?=', '?-?-?', '==?=='][Math.floor(r() * 5)]); ground(3, {enemies: dens}); }
@@ -176,8 +206,17 @@
       for (let k = 0; k < 80; k++) { const c = cols[base + k]; if (c && c[13] === '#' && c[12] === '-' && c[11] === '-' && c[10] === '-' && c[9] === '-' && c[8] === '-') { c[9] = 'g'; break; } }
     }
     if (bonus) bonusRoom();
-    return {cols, bonus};
+    if (puzzle) puzzleRoom();
+    return {cols, bonus, puzzle};
   }
+  /* the rocket flight level has no tiles to speak of: a short flat strip the engine can load; game.js runs the shooter on top */
+  function buildRocket() { const cols = []; for (let x = 0; x < 40; x++) { const c = empty(); c[13] = '#'; c[14] = '#'; cols.push(c); } cols[3][12] = 'R'; return {cols, bonus: null, puzzle: null}; }
   G.levelCount = () => G.WORLDS.length * 4;
-  G.buildLevel = (wi, li) => { const b = build(wi, li); return {world: wi, index: li, name: G.WORLDS[wi].name + ' ' + (li + 1), sub: G.WORLDS[wi].levels[li], par: 300 + (wi * 4 + li) * 10, tower: li === 3, cols: b.cols, bonus: b.bonus}; };
+  G.buildLevel = (wi, li, seedExtra) => {
+    const W = G.WORLDS[wi], b = (W.rocket && li === 0) ? buildRocket() : build(wi, li, seedExtra);
+    return {world: wi, index: li, name: W.name + ' ' + (li + 1), sub: W.levels[li], par: 300 + (wi * 4 + li) * 10, tower: li === 3, cols: b.cols, bonus: b.bonus, puzzle: b.puzzle, rocket: !!(W.rocket && li === 0)};
+  };
+  /* daily level: the date picks a world (not the tower, not space) and a fresh seed */
+  G.dailyKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  G.buildDaily = () => { const key = G.dailyKey(); let h = 7; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0; const wi = h % 6, li = 1 + (h >> 3) % 2; const lv = G.buildLevel(wi, li, 1000 + (h % 50000)); lv.daily = key; lv.name = 'Tageslevel'; lv.sub = key + ' · ' + G.WORLDS[wi].name; lv.par = 400; return lv; };
 })();

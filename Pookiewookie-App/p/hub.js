@@ -13,15 +13,21 @@
     t: 0, W: null, wi: 0, clouds: [], done: null, spin: 0,
     start(wi, done) {
       this.wi = wi; this.W = G.WORLDS[wi]; this.t = 0; this.done = done; this.spin = 0; S().outfit = this.W.key;
+      this.rocketMode = false; this.launching = !!this.W.rocket;
+      if (this.launching) { G.rocket.launch(wi, done); return; }   /* space: the rocket lifts off instead of the cloud dive */
       this.clouds = []; for (let i = 0; i < 26; i++) this.clouds.push({x: Math.random() * G.VW, y: Math.random() * VH * 1.4 - VH * 0.2, s: 0.5 + Math.random() * 1.2, z: 0.4 + Math.random() * 0.9, w: 40 + Math.random() * 60});
       if (A()) { A().sfx.dive(); } G.flow.speak('Here I come, Pookie!', {happy: true});
     },
     update() {
+      if (this.rocketMode) { G.rocket.update(); return; }
+      if (this.launching) { G.rocket.launchUpdate(); return; }
       this.t += 1 / 60; const sp = 3 + Math.min(6, this.t * 2.5);
       for (const c of this.clouds) { c.y -= sp * c.z; if (c.y < -60) { c.y = VH + 40 + Math.random() * 40; c.x = Math.random() * G.VW; } }
       if (this.t >= 2.6 && this.done) { const d = this.done; this.done = null; d(); }
     },
     frame(ctx) {
+      if (this.rocketMode) { G.rocket.frame(ctx); return; }
+      if (this.launching) { G.rocket.launchFrame(ctx); return; }
       const W = this.W, t = this.t, k = Math.min(1, t / 2.6);
       const g = ctx.createLinearGradient(0, 0, 0, VH); g.addColorStop(0, W.sky[0]); g.addColorStop(0.6, W.sky[1]); g.addColorStop(1, W.sky[2]); ctx.fillStyle = g; ctx.fillRect(0, 0, G.VW, VH);
       /* sun and far clouds */
@@ -55,16 +61,17 @@
       const W = G.WORLDS[wi], cols = [], empty = () => Array(MH).fill('-');
       const deco = ['p', 'h', 'd', 'h', 'p', 'd'];
       for (let x = 0; x < 52; x++) { const c = empty(); c[13] = '#'; c[14] = '#'; cols.push(c); }
-      cols[3][12] = 'R'; cols[1][12] = 'Q';
+      cols[3][12] = 'R'; cols[1][12] = 'Q'; cols[6][12] = 'Y';   /* Pookie's mailbox */
       this.signCols = [10, 20, 30, 40]; this.signCols.forEach((cx, i) => { cols[cx][12] = String(i + 1); });
-      let di = 0; for (let x = 6; x < 50; x += 3) { if (this.signCols.some(s => Math.abs(s - x) < 2) || x === 46) continue; if ((x * 7) % 5 < 3) cols[x][12] = deco[di++ % deco.length]; }
+      let di = 0; for (let x = 8; x < 50; x += 3) { if (this.signCols.some(s => Math.abs(s - x) < 2) || x === 46) continue; if ((x * 7) % 5 < 3) cols[x][12] = deco[di++ % deco.length]; }
       cols[46][12] = 'U';
       return {world: wi, index: 0, name: 'Hub ' + W.name, sub: W.name, par: 999, tower: false, cols, bonus: null, hub: true};
     },
     enter(wi, fromSky) {
       this.wi = wi; this.near = -1; this.landed = !fromSky; this.labelT = 0;
-      const S0 = S(); S0.wi = wi; S0.outfit = G.WORLDS[wi].key;
-      E().load(wi, 0, false, this.build(wi)); S0.mode = 'hub'; S0.time = 999;
+      const S0 = S(); S0.wi = wi; const W = G.WORLDS[wi];
+      if (W.rocket && fromSky) { fromSky = false; this.landed = true; G.flow.banner('Welt ' + (wi + 1) + ' · ' + W.name, 2.4, 'Raumstation: Schild 1 startet die Rakete'); }
+      E().load(wi, 0, false, this.build(wi)); S0.mode = 'hub'; S0.time = 999; S0.outfit = S0.outfitOverride || W.key;
       const p = P(); if (fromSky) { p.x = 3 * T + 2; p.y = -70; p.vy = 2.5; p.skydive = true; } else { p.skydive = false; }
       S0.cam = 0; if (A()) { A().setWorld(G.WORLDS[wi].music); A().startMusic(); }
     },
@@ -77,6 +84,10 @@
       /* a ground pound onto the signpost starts the level (↑ on a keyboard works too) */
       const pounded = this.wasPound && !p.pound && p.onGround; this.wasPound = p.pound;
       if (near >= 0 && this.onStart && (pounded || (input.up && !input.touchMode))) { const idx = this.wi * 4 + near; input.up = false; input.jump = false; input.jumpEdge = false; input.jumpKeyEdge = false; this.onStart(idx); }
+      /* the mailbox: read Pookie's letter */
+      const nearMail = Math.abs(p.x + 6 - (6 * T + 8)) < 14 && p.onGround; this.nearMail = nearMail;
+      if (nearMail && this.onLetter && (pounded || (input.up && !input.touchMode)) && !this.mailCd) { this.mailCd = 30; input.up = false; this.onLetter(this.wi); }
+      if (this.mailCd > 0) this.mailCd--;
     },
     tile(ctx, ch, cx, cy, x, y, fr) {
       const i = +ch - 1; if (!(i >= 0 && i < 4)) return false;
@@ -100,7 +111,8 @@
         rr(ctx, G.VW / 2 - 100, ty + 28, 200, 30, 10); ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill(); ctx.strokeStyle = '#ff9eb0'; ctx.lineWidth = 1.5; ctx.stroke();
         font(ctx, 10); ctx.textAlign = 'center'; ctx.fillStyle = '#7a3b57'; ctx.fillText((this.near + 1) + '. ' + name + (done ? '  ✓' : ''), G.VW / 2, ty + 37);
         font(ctx, 7.5); ctx.fillStyle = '#b06a85'; ctx.fillText(G.input.touchMode ? 'Springen, dann ▼ Stampfer auf das Schild' : '↑ oder Stampfer (Sprung + ↓) auf das Schild', G.VW / 2, ty + 49);
-      } else if (this.landed) { const h = G.input.touchMode ? '◀ ▶ laufen · auf ein Schild stampfen = Level' : '← → laufen · Schild = Level · Esc = Globus'; font(ctx, 7.5); ctx.textAlign = 'center'; ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(74,34,58,.7)'; ctx.strokeText(h, G.VW / 2, ty + 34); ctx.fillStyle = '#fff'; ctx.fillText(h, G.VW / 2, ty + 34); }
+      } else if (this.nearMail) { rr(ctx, G.VW / 2 - 90, ty + 28, 180, 24, 10); ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill(); ctx.strokeStyle = '#ff9eb0'; ctx.lineWidth = 1.5; ctx.stroke(); font(ctx, 9); ctx.textAlign = 'center'; ctx.fillStyle = '#7a3b57'; ctx.fillText('Pookies Brief: ' + (G.input.touchMode ? 'springen + ▼ stampfen' : '↑ oder stampfen'), G.VW / 2, ty + 40); }
+      else if (this.landed) { const h = G.input.touchMode ? '◀ ▶ laufen · auf ein Schild stampfen = Level' : '← → laufen · Schild = Level · Esc = Globus'; font(ctx, 7.5); ctx.textAlign = 'center'; ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(74,34,58,.7)'; ctx.strokeText(h, G.VW / 2, ty + 34); ctx.fillStyle = '#fff'; ctx.fillText(h, G.VW / 2, ty + 34); }
     },
   };
 })();

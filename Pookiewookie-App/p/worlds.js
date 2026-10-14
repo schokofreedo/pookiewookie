@@ -64,10 +64,41 @@
       pipe: {a: '#d8ccf5', b: '#ffffff', c: '#a893e0', style: 'cloud'}, liquid: {a: '#2b1a4a', b: '#6a4ab0', c: '#3f2a6a', name: 'Abgrund'}, slow: {a: '#ffe9a8', b: '#fff6d0', c: '#e6c76a'},
       decor: ['star', 'balloon', 'bush', 'sign'], weather: 'stars', wind: true, vertical: true,
       ents: {E: 'cloudling', G: 'bat', M: 'thunderball', S: 'storm', C: 'cloud', V: 'cloud', T: null, J: null, D: 'thwomp'},
-      boss: {name: 'Wolkenkönig', kind: 'flyer', a: '#8a8ab0', b: '#4a4a7a', hp: 5, final: true},
+      boss: {name: 'Wolkenkönig', kind: 'flyer', a: '#8a8ab0', b: '#4a4a7a', hp: 5},
+      doorLine: 'They took Pookie to space!',
       music: {bpm: 112, pattern: 2, transpose: 4, lead: 'flute', bass: 'sine', perc: 1},
       lines: ['Pookie! I can see your tower!', "I'm coming, Pookie!", 'Where is my Pookie?', 'Pookie, hold on!'],
     },
+    {
+      key: 'weltraum', name: 'Weltraum', levels: ['Raketenflug', 'Mond', 'Mars', 'Saturn-Gefängnis'], rocket: true,
+      sky: ['#05030f', '#0b0a2a', '#1a1038'], sun: '#ffffff', hills: ['#2a2a4a', '#1a1a33'], far: 'space',
+      ground: {top: '#c9c9d9', edge: '#8e8ea8', dirt: '#6e6e86', dot: '#55556e', dot2: '#ffffff'}, block: {a: '#6e6e86', b: '#9a9ab4', c: '#3a3a4e'},
+      pipe: {a: '#8e8ea8', b: '#d0d0e0', c: '#5a5a72', style: 'metal'}, liquid: {a: '#3b1e6b', b: '#8a5cff', c: '#5a36b0', name: 'Plasma'}, slow: {a: '#9a9ab0', b: '#c0c0d0', c: '#6a6a80'},
+      decor: ['flag', 'crater', 'rover', 'sign'], weather: 'stars',
+      ents: {E: 'alien', G: 'ufo', M: 'meteor', S: 'plasma', C: 'hover', V: 'hover', T: 'robot', J: null, D: 'laserfall'},
+      boss: {name: 'Sternenpirat', kind: 'flyer', a: '#6a4ab0', b: '#2a1a50', hp: 6, final: true},
+      music: {bpm: 126, pattern: 1, transpose: -4, lead: 'synth', bass: 'square', perc: 2},
+      lines: ['Pookie, I am in space!', 'Low gravity! I can jump so high!', 'Pookie, I can see Saturn!', 'Where is my Pookie?'],
+      /* per-level skins: the hub is the station, then the planets; gravity drops on the moon */
+      skins: [
+        {skin: 'station', grav: 1},
+        {skin: 'mond', grav: 0.55, ground: {top: '#d8d8e6', edge: '#9a9ab4', dirt: '#7a7a92', dot: '#5c5c74', dot2: '#ffffff'}, sky: ['#000008', '#05051a', '#101030']},
+        {skin: 'mars', grav: 0.8, ground: {top: '#e07a3a', edge: '#a8521f', dirt: '#8a3f18', dot: '#6a2e10', dot2: '#ffb27a'}, block: {a: '#8a3f18', b: '#b8602a', c: '#4a2008'}, sky: ['#2a0f0a', '#7a2f18', '#e8a070'], hills: ['#9a4a22', '#6a2e14'], slow: {a: '#c97a4a', b: '#e8a070', c: '#8a4a22'}},
+        {skin: 'saturn', grav: 0.9, ground: {top: '#b48cf0', edge: '#7a56c0', dirt: '#4e3488', dot: '#3a2666', dot2: '#ffe9a8'}, block: {a: '#5a3a9a', b: '#8a66c8', c: '#2a1850'}, sky: ['#120826', '#2a1458', '#6a3a9a'], hills: ['#3a2270', '#241448']},
+      ],
+    },
   ];
   G.SAD = ['Where is my Pookie...', 'Ouch... I need my Pookie.', 'Pookie... I have a problem.', 'Oh no... Pookie...'];
+  /* Pookie's letters: one per world, read at the mailbox in the hub; each hints at the puzzle room of that world */
+  G.LETTERS = [
+    {title: 'Brief 1', text: 'Lieber Wookie, ich bin im Turm und zähle die Wolken. Der Wolkenkönig hat ein Geheimnis in deiner Wiese versteckt: Im zweiten Level, hinter einer LILA Röhre, warten vier Glocken. Läute sie so, wie die Tafel es zeigt, dann gehört dir die erste Schokomünze. Ich vermisse dich. Deine Pookie'},
+    {title: 'Brief 2', text: 'Lieber Wookie, hier riecht es nach Kokosnuss, also bist du auf der Insel? Suche im dritten Level die lila Röhre. Diesmal gibt es keine Tafel: Die Glocken singen dir eine Melodie vor. Merk sie dir und spiel sie nach! Deine Pookie'},
+    {title: 'Brief 3', text: 'Lieber Wookie, die Affen haben gelacht, als sie die lila Röhre im ersten Dschungel-Level versteckt haben. Die Reihenfolge steht auf der Tafel. Bring mir die Schokomünze, ich habe Hunger! Deine Pookie'},
+    {title: 'Brief 4', text: 'Lieber Wookie, im Schnee friert sogar meine Tinte. Im zweiten Level von Schneeland klingen die Glocken wie Eiszapfen. Hör gut zu, sie spielen die Melodie zweimal, wenn du dich auf den Stein stellst. Deine Pookie'},
+    {title: 'Brief 5', text: 'Lieber Wookie, der Lavaklops bewacht die lila Röhre im dritten Lavalevel. Die Tafel dort ist halb verbrannt, aber die Farben kann man noch lesen. Pass auf deine Pfoten auf! Deine Pookie'},
+    {title: 'Brief 6', text: 'Lieber Wookie, der Wolkenkönig ist nicht der Boss, er bekommt Befehle vom Sternenpiraten! Im ersten Wolkenlevel steht eine lila Röhre mit einer Melodie. Danach sieh zum Himmel: Dort geht es weiter. Deine Pookie'},
+    {title: 'Brief 7', text: 'Wookie!!! Ich bin auf dem Saturn, in einem Käfig des Sternenpiraten. Auf dem Mars, im dritten Level, hat er eine lila Röhre mit vier Glocken vergessen. Die Tafel zeigt die Reihenfolge. Und dann: Komm und hol mich! Deine Pookie'},
+  ];
+  /* which level of each world holds the puzzle room and how the order is told: 'sign' (a board shows it) or 'melody' (the bells play it) */
+  G.PUZZLES = [{li: 1, kind: 'sign'}, {li: 2, kind: 'melody'}, {li: 0, kind: 'sign'}, {li: 1, kind: 'melody'}, {li: 2, kind: 'sign'}, {li: 0, kind: 'melody'}, {li: 2, kind: 'sign'}];
 })();

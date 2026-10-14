@@ -102,6 +102,22 @@
       brandBell(i) { A.bell([523, 659, 784, 1047, 1319][i % 5], 0.6, 0.14, 0); },
       brandShine() { A.noise(0.7, {type: 'bandpass', freq: 1500, freqTo: 6000, q: 1.2, gain: 0.08}); [1568, 2093, 2637].forEach((f, k) => A.bell(f, 0.5, 0.08, k * 0.07)); },
       brandChord() { [131, 262, 330, 392, 523].forEach((f, k) => A.tone(f, 2.2, {type: k ? 'triangle' : 'sine', gain: k ? 0.07 : 0.16, attack: 0.08})); },
+      /* puzzles, coins, chocolate pen */
+      bell(i) { const f = [523, 659, 784, 1047][i % 4]; A.bell(f, 0.7, 0.16, 0); A.tone(f * 2, 0.3, {gain: 0.05}); },
+      wrong() { A.tone(220, 0.25, {type: 'square', slide: 160, gain: 0.08}); A.tone(165, 0.3, {type: 'square', slide: 120, gain: 0.08, delay: 0.15}); },
+      puzzleSolved() { [523, 659, 784, 1047, 1319, 1568, 2093].forEach((f, i) => A.bell(f, 0.5, 0.13, i * 0.09)); A.noise(0.6, {type: 'highpass', freq: 3000, gain: 0.05, delay: 0.3}); },
+      coin() { [1319, 1760, 2217, 2637].forEach((f, i) => A.tone(f, 0.25, {type: 'square', gain: 0.07, delay: i * 0.06})); A.bell(2637, 0.6, 0.12, 0.25); },
+      choco() { A.tone(600 + Math.random() * 300, 0.05, {type: 'sine', gain: 0.04}); },
+      melt() { A.noise(0.2, {type: 'lowpass', freq: 500, freqTo: 150, gain: 0.05}); },
+      /* rocket flight */
+      laser() { A.tone(1400, 0.08, {type: 'square', slide: 500, gain: 0.05}); },
+      boom() { A.noise(0.35, {type: 'lowpass', freq: 1200, freqTo: 100, gain: 0.3}); A.tone(90, 0.3, {type: 'sawtooth', slide: 30, gain: 0.12}); },
+      smallBoom() { A.noise(0.15, {type: 'bandpass', freq: 800, q: 0.8, gain: 0.15}); },
+      rocketHit() { A.tone(300, 0.3, {type: 'square', slide: 80, gain: 0.14}); A.noise(0.25, {type: 'lowpass', freq: 600, gain: 0.2}); },
+      thrust() { A.noise(0.14, {type: 'lowpass', freq: 400 + Math.random() * 200, gain: 0.05}); },
+      liftoff() { A.noise(2.5, {type: 'lowpass', freq: 200, freqTo: 1200, gain: 0.3}); A.tone(60, 2.5, {type: 'sawtooth', slide: 140, gain: 0.12}); },
+      landing() { A.noise(1.2, {type: 'lowpass', freq: 900, freqTo: 150, gain: 0.18}); [392, 523, 659].forEach((f, i) => A.bell(f, 0.4, 0.1, 0.8 + i * 0.12)); },
+      powerup() { [784, 1047, 1319].forEach((f, i) => A.tone(f, 0.15, {type: 'square', gain: 0.06, delay: i * 0.05})); },
       /* globe, dive and hub */
       globeGo() { A.tone(300, 1.4, {type: 'triangle', slide: 1800, slideDur: 1.3, gain: 0.1}); A.noise(1.5, {type: 'bandpass', freq: 400, freqTo: 3000, q: 0.7, gain: 0.12}); [523, 659, 784, 1047].forEach((f, i) => A.bell(f, 0.3, 0.1, 0.2 + i * 0.12)); },
       dive() { A.noise(2.6, {type: 'bandpass', freq: 300, freqTo: 1400, q: 0.5, gain: 0.16}); A.noise(2.6, {type: 'highpass', freq: 2500, gain: 0.04, delay: 0.3}); },

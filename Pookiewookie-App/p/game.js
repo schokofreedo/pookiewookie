@@ -6,11 +6,12 @@
   const N = G.levelCount();
   let cardT = 0, mapSel = 0, resetArmed = false, pausedFrom = 'play', assist = false;
   try { assist = localStorage.getItem('pookie-assist') === '1'; } catch (e) {}
-  let save = {unlocked: 0, stars: {}, best: {}, done: {}};
+  let save = {unlocked: 0, stars: {}, best: {}, done: {}, coins: {}, letters: {}, ach: {}, daily: {}, streak: 0, dailyLast: '', costume: '', gad: 0};
   try { save = Object.assign(save, JSON.parse(localStorage.getItem('pookie-save') || '{}') || {}); } catch (e) {}
+  for (const k of ['stars', 'best', 'done', 'coins', 'letters', 'ach', 'daily']) if (!save[k] || typeof save[k] !== 'object') save[k] = {};
   const persist = () => { try { localStorage.setItem('pookie-save', JSON.stringify(save)); } catch (e) {} };
   const key = (wi, li) => wi + '-' + li;
-  const OVERLAYS = ['title', 'map', 'card', 'clear', 'over', 'win', 'pause'];
+  const OVERLAYS = ['title', 'map', 'card', 'clear', 'over', 'win', 'pause', 'letter', 'keks'];
   const GLOBE_MUSIC = {bpm: 84, pattern: 2, transpose: 2, lead: 'bell', bass: 'sine', perc: 0};
   const globeOk = G.globe && G.globe.init($('#globe'), $('#globeUI'));
   /* touch devices get the on-screen pad, landscape prompt and fullscreen on start */
@@ -42,33 +43,71 @@
     },
     levelClear() {
       S.mode = 'clear'; const bonus = Math.ceil(S.time) * 10; S.score += bonus; A().sfx.clear(); A().fast = false; A().slow = false;
-      const idx = S.wi * 4 + S.li, k = key(S.wi, S.li);
+      const idx = S.wi * 4 + S.li, k = key(S.wi, S.li), L = G.L;
+      if (L.daily) {
+        /* the daily level: best time of the day, streak, no world progress */
+        const used = Math.max(0, L.par - S.time), prevBest = save.daily[L.daily];
+        if (prevBest === undefined || used < prevBest) save.daily[L.daily] = used;
+        if (save.dailyLast !== L.daily) { const y = new Date(Date.now() - 864e5); const yk = y.getFullYear() + '-' + String(y.getMonth() + 1).padStart(2, '0') + '-' + String(y.getDate()).padStart(2, '0'); save.streak = save.dailyLast === yk ? (save.streak || 0) + 1 : 1; save.dailyLast = L.daily; }
+        persist(); achieve('daily');
+        $('#clear').hidden = false; $('#clear-title').textContent = 'Tageslevel geschafft'; $('#clear-stars').textContent = S.stars.map(b => b ? '★' : '☆').join(' ');
+        $('#clear-stats').innerHTML = `<div class="row"><dt>Zeit</dt><dd>${used}s</dd></div><div class="row"><dt>Tagesbestzeit</dt><dd>${save.daily[L.daily]}s</dd></div><div class="row"><dt>Serie</dt><dd>${save.streak} Tag${save.streak === 1 ? '' : 'e'}</dd></div><div class="row"><dt>Punkte</dt><dd>${S.score.toLocaleString('de-DE')}</dd></div>`;
+        $('#clear-next').hidden = true; G.flow.speak('Yay! I did it!', {happy: true}); return;
+      }
       save.unlocked = Math.max(save.unlocked, idx + 1); save.done[k] = true;
       const prev = save.stars[k] || [false, false, false]; save.stars[k] = prev.map((b, i) => b || S.stars[i]);
       save.best[k] = Math.max(save.best[k] || 0, S.score); persist();
-      const L = G.L;
+      achieve('first'); if (S.stars.every(Boolean)) achieve('stars3'); if (worldProgress(S.wi).done >= 4) achieve('world'); if (!S.hits) achieve('nohit');
       if (L.world.boss.final && L.rescued) { win(); return; }
-      $('#clear').hidden = false; $('#clear-title').textContent = (L.tower ? 'Turm geschafft' : L.sub + ' geschafft');
-      $('#clear-stars').textContent = S.stars.map(b => b ? '★' : '☆').join(' ');
+      $('#clear').hidden = false; $('#clear-title').textContent = (L.rocket ? 'Flug geschafft' : (L.tower ? 'Turm geschafft' : L.sub + ' geschafft'));
+      $('#clear-stars').textContent = L.rocket ? '🚀' : S.stars.map(b => b ? '★' : '☆').join(' ');
       $('#clear-stats').innerHTML = `<div class="row"><dt>Zeitbonus</dt><dd>${bonus}</dd></div><div class="row"><dt>Punkte</dt><dd>${S.score.toLocaleString('de-DE')}</dd></div><div class="row"><dt>Herzen</dt><dd>${S.hearts}</dd></div><div class="row"><dt>Leben</dt><dd>${S.lives}</dd></div>`;
       $('#clear-next').hidden = idx + 1 >= N; $('#clear-next').textContent = S.li === 3 ? 'Nächste Welt' : 'Nächstes Level';
       mapSel = Math.min(N - 1, idx + 1);
       G.flow.speak('Yay! I did it!', {happy: true});
     },
+    coin(wi) { save.coins[wi] = true; persist(); achieve('coin'); refreshCostumes(); },
+    achieve(id) { achieve(id); },
   };
+  /* ---------------- Keksdose (achievements), coins and costumes ---------------- */
+  const ACH = {first: 'Erstes Level geschafft', stars3: 'Alle drei Sternkekse in einem Level', world: 'Eine ganze Welt geschafft', combo5: 'Fünffach-Combo', nohit: 'Ein Level ohne einen Treffer', gadgets10: 'Zehn Gadgets gezogen', puzzle: 'Eine Rätselkammer gelöst', coin: 'Eine Schokomünze gefunden', bonus: 'Einen Bonusraum entdeckt', pirate: 'Den Sternenpiraten abgeschossen', rescue: 'Pookie gerettet', daily: 'Ein Tageslevel geschafft'};
+  function achieve(id) { if (!ACH[id] || save.ach[id]) return; save.ach[id] = true; persist(); A().sfx.gadget(); E.toast('Keksdose: ' + ACH[id]); if (globeOk) G.globe.refreshMarkers(); }
+  function renderKeks() { const n = Object.keys(save.ach).length; $('#keks-list').innerHTML = Object.entries(ACH).map(([id, t]) => `<li class="${save.ach[id] ? 'done' : ''}"><b>${save.ach[id] ? '🍪' : '○'}</b>${t}</li>`).join(''); $('#keks-count').textContent = n + ' von ' + Object.keys(ACH).length + ' Keksen'; }
+  const COSTUMES = [['', 'Welt-Outfit (Standard)', 0], ['wiese', 'Roter Schal', 1], ['insel', 'Strohhut & Sonnenbrille', 2], ['dschungel', 'Tropenhelm', 3], ['schnee', 'Bommelmütze', 4], ['lava', 'Grubenhelm', 5], ['himmel', 'Fliegerkappe & Cape', 6], ['gold', 'Goldener Wookie', 7]];
+  function refreshCostumes() { const coins = Object.keys(save.coins).length, sel = $('#selCostume'); sel.innerHTML = COSTUMES.map(([v, t, n]) => `<option value="${v}" ${n > coins ? 'disabled' : ''}>${t}${n > coins ? ' (🍫 ' + n + ')' : ''}</option>`).join(''); sel.value = COSTUMES.some(c => c[0] === (save.costume || '') && c[2] <= coins) ? (save.costume || '') : ''; applyCostume(); $('#coinCount').textContent = coins + ' von 7 Schokomünzen'; }
+  function applyCostume() { const c = save.costume || ''; S.costume = c === 'gold' ? 'gold' : ''; S.outfitOverride = (c && c !== 'gold') ? c : null; if (S.outfitOverride) S.outfit = S.outfitOverride; else if (G.L) S.outfit = G.L.world.key; }
+  function showLetter(wi) { const L = G.LETTERS[wi]; if (!L) return; $('#letter-title').textContent = L.title + ' von Pookie'; $('#letter-text').textContent = L.text; $('#letter').hidden = false; save.letters[wi] = true; persist(); if (G.hub) G.hub.letterRead = true; G.flow.speak('A letter from Pookie!', {happy: true}); }
 
   /* ---------------- level, hub, globe flow ---------------- */
-  function startLevel(idx) {
-    S.wi = Math.floor(idx / 4); S.li = idx % 4; mapSel = idx;
-    E.load(S.wi, S.li, false); S.mode = 'card'; cardT = 0; if (assist) G.gad.give('bubble', true);
+  function startLevel(idx, custom) {
+    S.wi = Math.floor(idx / 4); S.li = idx % 4; mapSel = idx; S.hits = 0;
     const W = G.WORLDS[S.wi];
-    $('#card').hidden = false; $('#card-world').textContent = 'Welt ' + (S.wi + 1) + ' · ' + W.name; $('#card-title').textContent = (S.li + 1) + '. ' + W.levels[S.li]; $('#card-lives').textContent = 'Wookie × ' + S.lives;
+    /* space: the first level is the rocket flight, Mars and Saturn begin with a short flight from the previous planet */
+    if (W.rocket && !custom && (S.li === 0 || S.li >= 2) && !G.rocket.skipFlight) { startFlight(idx); return; }
+    G.rocket.skipFlight = false;
+    E.load(S.wi, S.li, false, custom); S.mode = 'card'; cardT = 0; if (assist) G.gad.give('bubble', true); applyCostume();
+    $('#card').hidden = false; $('#card-world').textContent = custom && custom.daily ? 'Tageslevel · ' + custom.daily : 'Welt ' + (S.wi + 1) + ' · ' + W.name; $('#card-title').textContent = custom && custom.daily ? custom.sub : (S.li + 1) + '. ' + W.levels[S.li]; $('#card-lives').textContent = 'Wookie × ' + S.lives;
     $('#card').style.background = `linear-gradient(${W.sky[0]}, ${W.sky[1]})`;
     hideAll(['card']); A().stopMusic(); $('#btnPause').textContent = 'Pause';
   }
+  function startFlight(idx) {
+    S.wi = Math.floor(idx / 4); S.li = idx % 4; mapSel = idx;
+    const li = idx % 4, full = li === 0, from = ['erde', 'erde', 'mond', 'mars'][li], target = ['mond', 'mond', 'mars', 'saturn'][li];
+    E.load(S.wi, li, false); hideAll(); A().stopMusic(); A().setWorld(G.WORLDS[S.wi].music); A().startMusic(); $('#btnPause').textContent = 'Pause';
+    S.mode = 'dive'; G.dive.rocketMode = true; G.dive.launching = false;
+    G.rocket.start({full, from, target, title: full ? 'Raketenflug' : 'Weiterflug', done: res => {
+      G.dive.rocketMode = false;
+      if (res === 'dead') { S.lives--; if (S.lives <= 0) { gameOver(); return; } startFlight(idx); return; }
+      S.score += G.rocket.score;
+      if (full) { S.time = Math.max(0, S.time - Math.round(G.rocket.t)); G.flow.levelClear(); }
+      else { G.rocket.skipFlight = true; startLevel(idx); }
+    }});
+  }
+  function startDaily() { const lv = G.buildDaily(); hideAll(); startLevel(lv.world * 4 + lv.index, lv); }
+  function refreshDaily() { const k = G.dailyKey(), best = save.daily[k]; $('#btnDaily').textContent = 'Tageslevel ' + (best !== undefined ? '✓ ' + best + 's' : '(' + k.slice(5) + ')') + (save.streak > 1 ? ' · Serie ' + save.streak : ''); }
   function beginPlay() { $('#card').hidden = true; S.mode = 'play'; A().startMusic(); S.voiceT = 1.2; }
   function gameOver() { S.mode = 'over'; S.lives = 4; $('#over').hidden = false; $('#over-score').textContent = S.score.toLocaleString('de-DE') + ' Punkte'; A().stopMusic(); }
-  function win() { S.mode = 'win'; const total = Object.values(save.stars).reduce((a, s) => a + s.filter(Boolean).length, 0); $('#win').hidden = false; $('#win-score').textContent = S.score.toLocaleString('de-DE') + ' Punkte · ' + total + ' von ' + (N * 3) + ' Sternkeksen'; A().stopMusic(); A().sfx.rescue(); }
+  function win() { S.mode = 'win'; achieve('rescue'); const total = Object.values(save.stars).reduce((a, s) => a + s.filter(Boolean).length, 0); $('#win').hidden = false; $('#win-score').textContent = S.score.toLocaleString('de-DE') + ' Punkte · ' + total + ' von ' + (N * 3) + ' Sternkeksen'; A().stopMusic(); A().sfx.rescue(); }
   function hideAll(except) { for (const id of OVERLAYS) $('#' + id).hidden = !(except || []).includes(id); if (globeOk && !(except || []).includes('globe')) G.globe.hide(); }
   function showTitle() { S.mode = 'title'; hideAll(['title']); A().stopMusic(); A().fast = false; A().slow = false; }
   function worldProgress(wi) { let done = 0, stars = 0; for (let li = 0; li < 4; li++) { const k = key(wi, li); if (save.done[k]) done++; stars += (save.stars[k] || []).filter(Boolean).length; } return {done, stars}; }
@@ -76,12 +115,17 @@
     if (!globeOk) { showMap(); return; }
     S.mode = 'globe'; hideAll(['globe']); G.globe.show(wi !== undefined ? wi : S.wi);
     const totalStars = Object.values(save.stars).reduce((a, s) => a + s.filter(Boolean).length, 0);
-    $('#gprog').textContent = `${Object.keys(save.done).length} von ${N} Leveln geschafft · ${totalStars} von ${N * 3} Sternkeksen`;
+    $('#gprog').textContent = `${Object.keys(save.done).length} von ${N} Leveln geschafft · ${totalStars} von ${N * 3} Sternkeksen · ${Object.keys(save.coins).length}/7 🍫`;
+    refreshDaily();
     A().stopMusic(); A().fast = false; A().slow = false; A().setWorld(GLOBE_MUSIC); A().setBoss(false); A().startMusic();
   }
-  function showHub(wi, fromSky) { hideAll(); A().stopMusic(); G.hub.enter(wi, fromSky); $('#btnPause').textContent = 'Globus'; }
+  function showHub(wi, fromSky) {
+    hideAll(); A().stopMusic(); G.hub.letterRead = !!save.letters[wi]; G.hub.enter(wi, fromSky); applyCostume(); $('#btnPause').textContent = 'Globus';
+    if (!save.letters[wi]) setTimeout(() => { if (S.mode === 'hub' && S.wi === wi && $('#letter').hidden) showLetter(wi); }, fromSky ? 2600 : 700);
+  }
   if (globeOk) { G.globe.progress = worldProgress; G.globe.onPick = wi => { S.mode = 'dive'; A().stopMusic(); G.dive.start(wi, () => showHub(wi, true)); }; }
   G.hub.onStart = idx => { A().sfx.select(); G.flow.speak("Let's go!", {happy: true}); startLevel(idx); };
+  G.hub.onLetter = wi => showLetter(wi);
   G.hub.starsFor = idx => save.stars[key(Math.floor(idx / 4), idx % 4)] || [false, false, false];
   G.hub.doneFor = idx => !!save.done[key(Math.floor(idx / 4), idx % 4)];
 
@@ -112,7 +156,7 @@
 
   /* ---------------- pause and fullscreen ---------------- */
   function pauseGame() {
-    if (S.mode !== 'play' && S.mode !== 'card') return;
+    if (S.mode !== 'play' && S.mode !== 'card' && !(S.mode === 'dive' && G.dive.rocketMode)) return;
     pausedFrom = S.mode; S.mode = 'pause'; A().stopMusic(); A().sfx.pause(); resetInput();
     $('#pause-level').textContent = 'Welt ' + (S.wi + 1) + '-' + (S.li + 1) + ' · ' + G.WORLDS[S.wi].levels[S.li];
     $('#pause').hidden = false; $('#btnResume').focus(); $('#btnPause').textContent = 'Weiter';
@@ -145,7 +189,8 @@
     S.frames++;
     if (S.mode === 'card') { cardT += 1 / 60; if (cardT > 2) beginPlay(); return; }
     if (S.mode === 'brand') { G.brand.update(); return; }
-    if (S.mode === 'dive') { G.dive.update(); return; }
+    if (S.mode === 'dive') { G.dive.update(); input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false; return; }
+    if (S.mode === 'hub' || S.mode === 'play') { if (P.combo >= 5) achieve('combo5'); if (S.room === 1) achieve('bonus'); }
     if (S.mode === 'hub') { E.updatePlayer(); E.updateParts(); E.updateCamera(); G.hub.update(); input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false; return; }
     if (S.mode !== 'play') return;
     if (G.goalSeq) E.updateGoal(); else E.updatePlayer();
@@ -171,13 +216,15 @@
   }
   document.addEventListener('keydown', e => {
     if (e.target && (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT')) return;
-    const n = KEYMAP[e.code]; if (n && (S.mode === 'play' || S.mode === 'card' || S.mode === 'hub')) { press(n, true); e.preventDefault(); }
+    const n = KEYMAP[e.code]; if (n && (S.mode === 'play' || S.mode === 'card' || S.mode === 'hub' || (S.mode === 'dive' && G.dive.rocketMode))) { press(n, true); e.preventDefault(); }
+    if (!$('#letter').hidden && (e.code === 'Enter' || e.code === 'Escape' || e.code === 'Space')) { $('#letter').hidden = true; return; }
+    if (!$('#keks').hidden && (e.code === 'Enter' || e.code === 'Escape')) { $('#keks').hidden = true; return; }
     if (e.repeat) return;
     if (S.mode === 'boot') { startBrand(); return; }
     if (S.mode === 'brand') { G.brand.skip(); return; }
     if (e.code === 'KeyF') { toggleFull(); return; }
     if (S.mode === 'globe') { if (e.code === 'ArrowLeft' || e.code === 'KeyA' || e.code === 'ArrowUp') G.globe.move(-1); else if (e.code === 'ArrowRight' || e.code === 'KeyD' || e.code === 'ArrowDown') G.globe.move(1); else if (e.code === 'Enter' || e.code === 'Space') { A().init(); G.globe.pick(); } else if (e.code === 'Escape') showTitle(); e.preventDefault(); return; }
-    if (S.mode === 'dive') { if (e.code === 'Enter' || e.code === 'Space') G.dive.t = Math.max(G.dive.t, 2.15); return; }
+    if (S.mode === 'dive') { if (G.dive.rocketMode) { if (e.code === 'Escape' || e.code === 'KeyP') pauseGame(); return; } if (G.dive.launching) { if (e.code === 'Enter' || e.code === 'Space') G.rocket.lt = Math.max(G.rocket.lt, 3.0); return; } if (e.code === 'Enter' || e.code === 'Space') G.dive.t = Math.max(G.dive.t, 2.15); return; }
     if (S.mode === 'hub') { if (e.code === 'Escape') showGlobe(S.wi); return; }
     if (S.mode === 'map') { if (e.code === 'ArrowLeft' || e.code === 'KeyA') mapMove(-1); else if (e.code === 'ArrowRight' || e.code === 'KeyD') mapMove(1); else if (e.code === 'ArrowUp' || e.code === 'KeyW') mapMove(-4); else if (e.code === 'ArrowDown' || e.code === 'KeyS') mapMove(4); else if (e.code === 'Enter' || e.code === 'Space') { A().sfx.select(); startLevel(mapSel); } else if (e.code === 'Escape') showTitle(); return; }
     if (S.mode === 'pause') { if (e.code === 'Escape' || e.code === 'KeyP' || e.code === 'Enter') resumeGame(); return; }
@@ -192,12 +239,12 @@
   function advance() {
     if (S.mode === 'title') { A().init(); hideAll(); showGlobe(); if (isTouch) goFullscreen(); }
     else if (S.mode === 'card' && cardT > 0.4) beginPlay();
-    else if (S.mode === 'clear') { $('#clear').hidden = true; const idx = S.wi * 4 + S.li + 1; if (S.li === 3) showGlobe(Math.min(G.WORLDS.length - 1, S.wi + 1)); else if (idx < N) startLevel(idx); else showGlobe(); }
+    else if (S.mode === 'clear') { $('#clear').hidden = true; const idx = S.wi * 4 + S.li + 1; if (G.L && G.L.daily) showGlobe(); else if (S.li === 3) showGlobe(Math.min(G.WORLDS.length - 1, S.wi + 1)); else if (idx < N) startLevel(idx); else showGlobe(); }
     else if (S.mode === 'over' || S.mode === 'win') { $('#over').hidden = true; $('#win').hidden = true; showGlobe(); }
   }
   $('#btnStart').addEventListener('click', advance);
   $('#clear-next').addEventListener('click', advance);
-  $('#clear-map').addEventListener('click', () => { $('#clear').hidden = true; showHub(S.wi, false); });
+  $('#clear-map').addEventListener('click', () => { $('#clear').hidden = true; if (G.L && G.L.daily) showGlobe(); else showHub(S.wi, false); });
   $('#btnOver').addEventListener('click', advance);
   $('#btnWin').addEventListener('click', advance);
   $('#btnMapBack').addEventListener('click', showTitle);
@@ -212,6 +259,19 @@
   $('#btnPauseGlobe').addEventListener('click', () => { $('#pause').hidden = true; showGlobe(S.wi); });
   $('#btnPauseTitle').addEventListener('click', () => { $('#pause').hidden = true; showTitle(); });
   $('#btnPauseMute').addEventListener('click', () => { $('#btnMute').click(); $('#btnPauseMute').textContent = A().muted ? 'Ton an' : 'Ton aus'; });
+  $('#btnDaily').addEventListener('click', () => { A().init(); A().sfx.select(); startDaily(); });
+  $('#btnKeks').addEventListener('click', () => { renderKeks(); $('#keks').hidden = false; });
+  $('#btnKeksClose').addEventListener('click', () => { $('#keks').hidden = true; });
+  $('#btnLetterClose').addEventListener('click', () => { $('#letter').hidden = true; });
+  $('#selCostume').addEventListener('change', e => { save.costume = e.target.value; persist(); applyCostume(); });
+  refreshCostumes();
+  /* gadget counter for the Keksdose */
+  { const give0 = G.gad.give.bind(G.gad); G.gad.give = (id, quiet) => { give0(id, quiet); if (!quiet) { save.gad = (save.gad || 0) + 1; persist(); if (save.gad >= 10) achieve('gadgets10'); } }; }
+  /* chocolate pen: drawing on the stage (mouse or a second finger) lays down chocolate platforms */
+  { let drawing = false; const toWorld = e => { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * G.VW + S.cam, (e.clientY - r.top) / r.height * VH - G.OFFY]; };
+    $('#stage').addEventListener('pointerdown', e => { if (S.mode === 'play' && P.gadget === 'choco') { drawing = true; const [x, y] = toWorld(e); G.gad.draw(x, y, 'start'); } });
+    $('#stage').addEventListener('pointermove', e => { if (drawing && S.mode === 'play' && P.gadget === 'choco') { const [x, y] = toWorld(e); G.gad.draw(x, y, 'move'); } });
+    const stop = () => { if (drawing) { drawing = false; G.gad.draw(0, 0, 'end'); } }; $('#stage').addEventListener('pointerup', stop); $('#stage').addEventListener('pointercancel', stop); $('#stage').addEventListener('pointerleave', stop); }
   document.querySelectorAll('.btnFull').forEach(b => b.addEventListener('click', toggleFull));
 
   /* ---------------- loop and sizing ---------------- */
@@ -245,6 +305,15 @@
     const brandM = /^#brand(?:=([\d.]+))?$/.exec(HASH);
     if (brandM) { S.mode = 'boot'; startBrand(); const n = Math.round((+brandM[1] || 0) * 60); for (let i = 0; i < n; i++) step(); }   /* headless: step the intro synchronously to a time point */
     if (HASH === '#title') showTitle();
+    const rocketM = /^#rocket(?:=([\d.]+))?(i)?$/.exec(HASH);
+    if (rocketM) { S.lives = 4; startFlight(24); const n = Math.round((+rocketM[1] || 0) * 60); for (let i = 0; i < n; i++) { if (rocketM[2] && G.rocket.ship) G.rocket.ship.inv = 9; step(); } console.log('ROCKET_BOOT t=' + G.rocket.t.toFixed(1) + ' phase=' + G.rocket.phase + ' enemies=' + G.rocket.enemies.length + ' hp=' + G.rocket.ship.hp); }
+    const launchM = /^#launch(?:=([\d.]+))?$/.exec(HASH);
+    if (launchM) { S.mode = 'dive'; G.dive.start(6, () => showHub(6, true)); const n = Math.round((+launchM[1] || 0) * 60); for (let i = 0; i < n; i++) step(); }
+    if (HASH === '#daily') { startDaily(); console.log('DAILY_BOOT ' + G.L.sub + ' w=' + G.L.w); }
+    if (HASH === '#letter') { showHub(0, false); showLetter(0); }
+    if (HASH === '#keks') { save.ach.first = true; save.ach.coin = true; hideAll(); showGlobe(0); renderKeks(); $('#keks').hidden = false; }
+    const puzzleM = /^#puzzle(\d+)(solve)?$/.exec(HASH);
+    if (puzzleM) { const idx = +puzzleM[1] - 1; S.wi = Math.floor(idx / 4); S.li = idx % 4; hideAll(); S.lives = 4; E.load(S.wi, S.li, false); S.mode = 'play'; if (G.L.puzzle) { E.enterRoom(2); if (puzzleM[2]) { for (const b of G.L.puzzle.order) E.ringBell(G.L.puzzle.bells[b]); } } console.log('PUZZLE_BOOT puzzle=' + (G.L.puzzle ? G.L.puzzle.kind + ' order=' + G.L.puzzle.order.join('') + ' bells=' + G.L.puzzle.bells.join(',') + ' solved=' + G.L.puzzle.solved : 'none')); }
     const simM = /^#sim(\d+)([tex]*)$/.exec(HASH), testM = /^#(test|end|room)(\d+)(?:g=(\w+))?(?:x=(\d+))?$/.exec(HASH);
     if (testM || simM) {
       const idx = Math.max(0, Math.min(N - 1, +(testM ? testM[2] : simM[1]) - 1));
@@ -265,8 +334,8 @@
     const globeM = /^#globe(\d+)?$/.exec(HASH);
     if (globeM) { save.stars['0-0'] = [true, true, false]; save.done['0-0'] = true; save.done['0-1'] = true; save.done['0-2'] = true; save.done['0-3'] = true; hideAll(); showGlobe(globeM[1] ? +globeM[1] - 1 : 0); console.log('GLOBE_BOOT ok=' + globeOk); }
     const diveM = /^#dive(\d+)$/.exec(HASH), hubM = /^#hub(\d+)(land)?$/.exec(HASH);
-    if (diveM) { const wi = Math.max(0, Math.min(5, +diveM[1] - 1)); hideAll(); S.mode = 'dive'; G.dive.start(wi, () => showHub(wi, true)); }
-    if (hubM) { const wi = Math.max(0, Math.min(5, +hubM[1] - 1)); save.done['0-0'] = true; save.stars['0-0'] = [true, false, true]; hideAll(); showHub(wi, !!hubM[2]); if (!hubM[2]) { P.x = 10 * T + 2; S.cam = 0; } console.log('HUB_BOOT w=' + G.L.w + ' hub=' + G.L.hub + ' mode=' + S.mode); }
+    if (diveM) { const wi = Math.max(0, Math.min(G.WORLDS.length - 1, +diveM[1] - 1)); hideAll(); S.mode = 'dive'; G.dive.start(wi, () => showHub(wi, true)); }
+    if (hubM) { const wi = Math.max(0, Math.min(G.WORLDS.length - 1, +hubM[1] - 1)); save.done['0-0'] = true; save.stars['0-0'] = [true, false, true]; hideAll(); showHub(wi, !!hubM[2]); if (!hubM[2]) { P.x = 10 * T + 2; S.cam = 0; } console.log('HUB_BOOT w=' + G.L.w + ' hub=' + G.L.hub + ' mode=' + S.mode); }
     if (HASH === '#pause') { S.wi = 0; S.li = 1; hideAll(); E.load(0, 1, false); S.mode = 'play'; pauseGame(); }
     if (HASH === '#voicetest') { A().init(); A().voiceCfg.on = true; const files = Object.values(G.VOICE_FILES || {}); Promise.all(files.map(f => A().loadVoice(f))).then(bufs => { const ok = bufs.filter(Boolean).length; console.log('VOICE_TEST decoded=' + ok + '/' + files.length + ' dur=' + bufs.filter(Boolean).reduce((a, b) => a + b.duration, 0).toFixed(1) + 's'); }); }
     (document.fonts ? document.fonts.load('bold 10px "Fredoka"').catch(() => {}) : Promise.resolve()).then(() => requestAnimationFrame(frame));

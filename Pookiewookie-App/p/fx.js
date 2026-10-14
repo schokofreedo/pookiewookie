@@ -2,7 +2,7 @@
    what Wookie wears per gadget, the Honigzeit tint, the pipe flash and the gadget HUD slot. draw.js calls these hooks. */
 (function () {
   const G = window.PW = window.PW || {}, T = 16, VH = 270;
-  const S = () => G.S, P = () => G.P, L = () => G.L;
+  const S = () => G.S, P = () => G.P, L = () => G.L, E = () => G.eng;
   const TAU = Math.PI * 2;
   function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
   function circle(ctx, x, y, r, col) { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fillStyle = col; ctx.fill(); }
@@ -29,6 +29,45 @@
     icon,
     tile(ctx, ch, cx, cy, x, y, fr) {
       if (ch >= '1' && ch <= '4' && G.hub) return G.hub.tile(ctx, ch, cx, cy, x, y, fr);
+      const pz = L() && L().puzzle;
+      if (ch === '@') {
+        /* bell block: stone block with a golden bell; lights up when rung */
+        const idx = pz ? pz.bells.indexOf(cx) : 0, lit = pz ? pz.lit[Math.max(0, idx)] : 0, col = ['#ff6f9c', '#8fd3ff', '#9be7a5', '#ffd84a'][Math.max(0, idx) % 4];
+        rr(ctx, x + 0.5, y + 0.5, 15, 15, 3); ctx.fillStyle = '#5a4a6a'; ctx.fill(); ctx.strokeStyle = '#2a1a3a'; ctx.lineWidth = 1; ctx.stroke();
+        if (lit > 0) { ctx.beginPath(); ctx.arc(x + 8, y + 8, 12 + lit * 6, 0, TAU); ctx.fillStyle = col + '66'; ctx.fill(); }
+        ctx.beginPath(); ctx.moveTo(x + 4, y + 11); ctx.quadraticCurveTo(x + 4, y + 4, x + 8, y + 3.5); ctx.quadraticCurveTo(x + 12, y + 4, x + 12, y + 11); ctx.closePath(); ctx.fillStyle = lit > 0 ? '#fff6c0' : '#ffd84a'; ctx.fill(); ctx.strokeStyle = '#a0741a'; ctx.stroke();
+        ctx.fillStyle = '#a0741a'; ctx.fillRect(x + 3, y + 11, 10, 1.5); circle(ctx, x + 8, y + 13, 1.3, '#a0741a'); circle(ctx, x + 8, y + 2.5, 1.2, col);
+        return true;
+      }
+      if (ch === '^') {
+        /* hint board: the ring order as coloured dots, or a music stone for melody rooms */
+        ctx.fillStyle = '#8a5a2b'; ctx.fillRect(x + 7, y + 6, 2, 10);
+        rr(ctx, x - 4, y - 6, 24, 13, 3); ctx.fillStyle = '#fff1dc'; ctx.fill(); ctx.strokeStyle = '#7a3b57'; ctx.lineWidth = 1; ctx.stroke();
+        if (pz && pz.kind === 'sign') { pz.order.forEach((b, i) => { circle(ctx, x + 1 + i * 5.5, y + 0.5, 2, ['#ff6f9c', '#8fd3ff', '#9be7a5', '#ffd84a'][b]); }); }
+        else { font(ctx, 9); ctx.textAlign = 'center'; ctx.fillStyle = '#7a3b57'; ctx.fillText('♪', x + 8, y + 1); }
+        return true;
+      }
+      if (ch === '$') {
+        /* chocolate coin, spinning */
+        const sx = Math.abs(Math.cos(fr * 0.08 + cx)); ctx.save(); ctx.translate(x + 8, y + 8 + Math.sin(fr * 0.1) * 1.5); ctx.scale(Math.max(0.15, sx), 1);
+        ctx.beginPath(); ctx.arc(0, 0, 7, 0, TAU); ctx.fillStyle = '#3a1c0c'; ctx.fill(); ctx.beginPath(); ctx.arc(0, 0, 5.5, 0, TAU); ctx.fillStyle = '#5a2e14'; ctx.fill();
+        font(ctx, 8); ctx.textAlign = 'center'; ctx.fillStyle = '#ffd84a'; ctx.fillText('S', 0, 0.5); ctx.restore();
+        if ((fr >> 2) % 4 === 0) { starPath(ctx, x + 13, y + 2, 2); ctx.fillStyle = '#fff'; ctx.fill(); }
+        return true;
+      }
+      if (ch === '&' || ch === 'z') {
+        if (ch === '&') { /* purple puzzle pipe rim */ const left = E().tileAt(cx - 1, cy) !== '&'; rr(ctx, x + (left ? 0 : -1), y, 17, 16, 2); ctx.fillStyle = '#8a5cff'; ctx.fill(); ctx.fillStyle = '#c9a0ff'; ctx.fillRect(x, y, 16, 3); ctx.fillStyle = '#5a36b0'; ctx.fillRect(x, y + 13, 16, 3); if (left) { ctx.fillStyle = '#c9a0ff'; ctx.fillRect(x, y, 2, 16); } if (!left) { font(ctx, 9); ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText('?', x - 0, y - 7 + Math.sin(fr * 0.1) * 1.5); } return true; }
+        /* puzzle gate: violet bars */
+        ctx.fillStyle = '#2a1a4a'; ctx.fillRect(x, y, 16, 16); ctx.fillStyle = '#8a66c8'; for (let i = 0; i < 3; i++) ctx.fillRect(x + 2 + i * 5, y, 2.5, 16); ctx.fillStyle = '#c9a0ff'; ctx.fillRect(x, y + 7, 16, 2); return true;
+      }
+      if (ch === 'Y') {
+        /* mailbox with a letter: Pookie writes to Wookie */
+        ctx.fillStyle = '#8a5a2b'; ctx.fillRect(x + 7, y + 4, 2, 12);
+        rr(ctx, x + 1, y - 6, 14, 11, 4); ctx.fillStyle = '#ff6f9c'; ctx.fill(); ctx.strokeStyle = '#7a3b57'; ctx.lineWidth = 1; ctx.stroke();
+        rr(ctx, x + 3, y - 3, 10, 6, 1.5); ctx.fillStyle = '#fff1dc'; ctx.fill(); ctx.strokeStyle = '#b06a85'; ctx.beginPath(); ctx.moveTo(x + 3, y - 3); ctx.lineTo(x + 8, y + 1); ctx.lineTo(x + 13, y - 3); ctx.stroke();
+        if (!(G.hub && G.hub.letterRead)) { heartPath(ctx, x + 14, y - 8 + Math.sin(fr * 0.15) * 1.5, 2.5); ctx.fillStyle = '#ff6f9c'; ctx.fill(); }
+        return true;
+      }
       if (ch !== 'g') return false;
       /* gadget capsule: a pastel gift block with a ribbon and a twinkling star */
       const bob = Math.sin(fr * 0.1 + cx) * 0.8;
@@ -65,6 +104,13 @@
         circle(ctx, x + 4, y + 4, 4.2, '#e3a92a'); circle(ctx, x + 4, y + 4, 3.3, '#f5c242'); circle(ctx, x + 2.8, y + 2.8, 1.2, '#fff6d0');
         return true;
       }
+      if (e.kind === 'choco') {
+        /* a drawn chocolate segment; thins out and drips as it melts */
+        const k = Math.min(1, e.t / 1.5), h = 3 + 2 * k;
+        rr(ctx, e.x - 1, e.y, e.w + 2, h, 2); ctx.fillStyle = '#5a2e14'; ctx.fill(); ctx.fillStyle = 'rgba(255,220,180,.35)'; ctx.fillRect(e.x, e.y + 0.8, e.w, 1.2);
+        if (k < 1 && (fr + Math.floor(e.anim * 10)) % 20 < 8) { ctx.beginPath(); ctx.arc(e.x + 4, e.y + h + 2 + (1 - k) * 4, 1.3, 0, TAU); ctx.fillStyle = '#5a2e14'; ctx.fill(); }
+        return true;
+      }
       if (e.kind === 'heartfly') { heartPath(ctx, x + 4, y + 4, 4); ctx.fillStyle = '#ff6f9c'; ctx.fill(); ctx.strokeStyle = '#e0457b'; ctx.lineWidth = 0.8; ctx.stroke(); circle(ctx, x + 2.5, y + 2.5, 0.9, '#fff'); return true; }
       if (e.kind === 'cannon') {
         const loaded = P().cannon === e, wob = loaded ? Math.sin(fr * 1.5) * 1.2 : 0, rec = e.fireT > 0 ? e.fireT * 6 : 0;
@@ -89,7 +135,7 @@
       return false;
     },
     palette(p, fr) {
-      if (p.gadget !== 'star') return null;
+      if (p.gadget !== 'star') { if (S().costume === 'gold') return {fur: '#f0c040', dark: '#b8860b', belly: '#fff2b0', ear: '#ffe9a8', outline: '#6b4a00'}; return null; }
       const h = (fr * 14) % 360;
       return {fur: `hsl(${h},95%,68%)`, dark: `hsl(${h},70%,48%)`, belly: `hsl(${(h + 40) % 360},100%,88%)`, ear: `hsl(${(h + 300) % 360},100%,80%)`, outline: `hsl(${h},60%,30%)`};
     },

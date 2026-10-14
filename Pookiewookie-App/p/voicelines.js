@@ -18,7 +18,7 @@
 "Where is my Pookie...": "p/voice/v15.mp3",
 "Ouch... I need my Pookie.": "p/voice/v16.mp3",
 "Pookie... I have a problem.": "p/voice/v17.mp3",
-"Oh no... Pookie...": "p/voice/v18.mp3",
+"Oh no... Pookie...": "p/voice/v46.mp3",
 "Star power! Nothing can stop me!": "p/voice/v19.mp3",
 "A jetpack! Wheee!": "p/voice/v20.mp3",
 "Bouncy boots! Boing, boing!": "p/voice/v21.mp3",
@@ -34,5 +34,16 @@
 "Let's go!": "p/voice/v31.mp3",
 "Yay! I did it!": "p/voice/v32.mp3",
 "Hello! I am Wookie.": "p/voice/v33.mp3",
-"Honey time!": "p/voice/v34.mp3"
+"Honey time!": "p/voice/v34.mp3",
+"They took Pookie to space!": "p/voice/v35.mp3",
+"Rocket time! To the moon!": "p/voice/v36.mp3",
+"Next planet, Pookie!": "p/voice/v37.mp3",
+"Pookie, I am in space!": "p/voice/v38.mp3",
+"Low gravity! I can jump so high!": "p/voice/v39.mp3",
+"Pookie, I can see Saturn!": "p/voice/v40.mp3",
+"A puzzle! Let me think...": "p/voice/v41.mp3",
+"I solved it!": "p/voice/v42.mp3",
+"Chocolate!": "p/voice/v43.mp3",
+"A chocolate pen! I can draw!": "p/voice/v44.mp3",
+"A letter from Pookie!": "p/voice/v45.mp3"
 }; })();

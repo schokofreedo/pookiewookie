@@ -109,6 +109,14 @@ body.touch #globeUI .gfoot p{display:none}
 #rotate span{display:block;font-size:64px;animation:turn 1.6s ease-in-out infinite alternate}
 @keyframes turn{from{transform:rotate(0)}to{transform:rotate(90deg)}}
 @media(orientation:portrait){body.touch #rotate{display:grid}}
+.card.letter{background:#fff7ea;color:#5a3a2a;border-color:#ff9eb0;font-family:var(--font)}
+.card.letter h2{color:#e0457b}
+.card.letter p{font:500 15px/1.6 var(--font);text-align:left;white-space:pre-line;background:rgba(255,158,176,.12);border-radius:14px;padding:12px 14px}
+.keks{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:6px;text-align:left;max-height:50vh;overflow:auto}
+.keks li{display:flex;gap:10px;align-items:center;padding:6px 10px;border-radius:10px;background:rgba(0,0,0,.2);color:var(--muted);font:600 13px/1.3 var(--font)}
+.keks li.done{color:#fff;background:rgba(255,216,74,.18)}
+.keks li b{font-size:16px;width:22px;text-align:center}
+.wm.space b{background:#3b2a6a;font-size:1em}
 #pause{background:rgba(43,29,51,.72);backdrop-filter:blur(3px)}
 #pause .card{max-width:380px}
 #pause .menu{display:grid;gap:10px;margin:0 0 8px}
@@ -143,7 +151,7 @@ body.touch #globeUI .gfoot p{display:none}
   <div id="globeUI" hidden>
     <div class="ghead"><h2>Wähle eine Welt</h2><p id="gprog"></p></div>
     <div id="markers"></div>
-    <div class="gfoot"><button id="btnGlobeBack" class="btn ghost" type="button">Hauptmenü</button><button id="btnReset" class="btn ghost" type="button">Spielstand löschen</button><p>Ziehen = drehen · ← → wählen · Enter oder Klick = reinfliegen</p></div>
+    <div class="gfoot"><button id="btnDaily" class="btn" type="button">Tageslevel</button><button id="btnKeks" class="btn ghost" type="button">Keksdose</button><button id="btnGlobeBack" class="btn ghost" type="button">Hauptmenü</button><button id="btnReset" class="btn ghost" type="button">Spielstand löschen</button><p>Ziehen = drehen · ← → wählen · Enter oder Klick = reinfliegen</p></div>
   </div>
 </div>
 <div id="bubble">Where is my Pookie?</div>
@@ -152,8 +160,8 @@ body.touch #globeUI .gfoot p{display:none}
 <div id="title" class="ov">
   <div class="card">
     <h1>Pookiewookie</h1>
-    <p class="sub">Wookie sucht seine Pookie · 6 Welten · 24 Level · 8 Gadgets</p>
-    <p>Pookie, die weiße Bärin, sitzt im Turm des Wolkenkönigs. Wookie muss durch Zuckerwattewiese, Kokosinsel, Dschungel, Schneeland, Lavawelt und Wolkenschloss. Wähle eine Welt auf dem Globus, spring durch die Wolken, sammle Herzen und Sternkekse, zieh Gadgets aus den Kapseln und besiege den Boss im Turm.</p>
+    <p class="sub">Wookie sucht seine Pookie · 7 Welten · 28 Level · 9 Gadgets · Rätselkammern · Raketenflug</p>
+    <p>Pookie, die weiße Bärin, wurde vom Sternenpiraten entführt. Wookie muss durch Zuckerwattewiese, Kokosinsel, Dschungel, Schneeland, Lavawelt und Wolkenschloss und fliegt zuletzt mit der Rakete zum Mond, zum Mars und zum Saturn-Gefängnis. Lies Pookies Briefe im Hub, finde die lila Rätselröhren, läute die Glocken in der richtigen Reihenfolge und sammle die Schokomünzen für neue Kostüme.</p>
     <div class="keys">
       <span><b>← →</b> laufen · <b>↑</b> klettern / springen</span><span><b>Leer</b> / <b>K</b> springen · in der Luft nochmal = Doppelsprung</span>
       <span><b>Shift</b> / <b>X</b> rennen · schießen (Kaffee, Honigschleuder)</span><span><b>↓</b> in der Luft = Stampfer · auf Gold-Röhre = Bonusraum</span>
@@ -165,6 +173,7 @@ body.touch #globeUI .gfoot p{display:none}
       <div class="settings">
         <label class="chk"><input type="checkbox" id="chkVoice" checked> Wookie spricht (echte Sprachaufnahmen)</label>
         <label class="chk"><input type="checkbox" id="chkAssist"> Hilfe-Modus: Wookie startet jedes Level mit Schutzblase</label>
+        <label class="chk">Kostüm <select id="selCostume" style="margin-left:8px;padding:6px 10px;border-radius:10px;border:2px solid var(--line);background:#3b2543;color:var(--fg);font:600 13px/1.2 var(--font)"></select> <small id="coinCount" style="margin-left:8px"></small></label>
         <label class="chk">Wookies Look <select id="selStyle" style="margin-left:8px;padding:6px 10px;border-radius:10px;border:2px solid var(--line);background:#3b2543;color:var(--fg);font:600 13px/1.2 var(--font)"><option value="cool">Cool (neu)</option><option value="abenteurer">Abenteurer</option></select></label>
         <small>Ton und Stimme starten nach dem ersten Klick. Die Buttons unten rechts schalten Ton und Vollbild.</small>
       </div>
@@ -207,6 +216,23 @@ body.touch #globeUI .gfoot p{display:none}
       <button id="btnPauseMute" class="btn ghost" type="button">Ton aus</button>
     </div>
     <p class="sub" style="margin:0">Esc oder P: weiterspielen</p>
+  </div>
+</div>
+
+<div id="letter" class="ov" hidden>
+  <div class="card letter">
+    <h2 id="letter-title">Brief von Pookie</h2>
+    <p id="letter-text"></p>
+    <button id="btnLetterClose" class="btn" type="button">Alles klar, Pookie!</button>
+  </div>
+</div>
+
+<div id="keks" class="ov" hidden>
+  <div class="card">
+    <h2>Keksdose</h2>
+    <p class="sub" id="keks-count"></p>
+    <ul id="keks-list" class="keks"></ul>
+    <button id="btnKeksClose" class="btn" type="button">Schließen</button>
   </div>
 </div>
 
@@ -256,6 +282,7 @@ body.touch #globeUI .gfoot p{display:none}
 <script src="p/fx.js"></script>
 <script src="p/globe.js"></script>
 <script src="p/hub.js"></script>
+<script src="p/rocket.js"></script>
 <script src="p/brand.js"></script>
 <script src="p/game.js"></script>
 <script>

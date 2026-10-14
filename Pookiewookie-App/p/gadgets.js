@@ -13,8 +13,10 @@
     magnet: {name: 'Herzmagnet',     hint: 'Alle Herzen in der Nähe fliegen zu dir.',           col: '#e0457b', line: 'All the hearts come to me!'},
     bubble: {name: 'Schutzblase',    hint: 'Fängt einen Treffer ab.',                           col: '#8fd3ff', line: 'A bubble! I feel so safe.'},
     honey:  {name: 'Honigzeit',      hint: 'Alle Gegner werden ganz langsam.',                  col: '#e3a92a', timed: 12, line: 'Everything is sooo slow!'},
+    choco:  {name: 'Schokomalstift', hint: 'Zieh mit Finger oder Maus eine Linie: Sie wird zur Schokoplattform (schmilzt nach kurzer Zeit).', col: '#5a2e14', line: 'A chocolate pen! I can draw!'},
   };
   const IDS = G.GADGET_IDS = Object.keys(DEFS);
+  const s_frames = () => S().frames;
   const COMBO = [100, 200, 400, 800, 1000, 2000, 4000, 8000];
 
   const gad = G.gad = {
@@ -81,9 +83,31 @@
       if (n > 1) A().sfx.combo(n);
       return COMBO[Math.min(n - 1, COMBO.length - 1)];
     },
+    /* chocolate pen: drag on the screen to lay down short chocolate segments that act as platforms and melt after a while */
+    INK: 160, ink: 160, last: null,
+    draw(wx, wy, phase) {
+      const p = P(); if (p.gadget !== 'choco' || S().mode !== 'play') return false;
+      if (phase === 'start') { this.last = {x: wx, y: wy}; return true; }
+      if (phase === 'end') { this.last = null; return true; }
+      if (!this.last) { this.last = {x: wx, y: wy}; return true; }
+      const dx = wx - this.last.x, dy = wy - this.last.y, dist = Math.hypot(dx, dy);
+      if (dist < 7) return true;
+      const n = Math.min(6, Math.floor(dist / 7));
+      for (let i = 1; i <= n; i++) {
+        if (this.ink < 7) { this.last = {x: wx, y: wy}; return true; }
+        const x = this.last.x + dx * i / n, y = this.last.y + dy * i / n;
+        if (Math.abs(x - (p.x + 6)) < 10 && Math.abs(y - (p.y + p.h / 2)) < 14) continue;   /* not through Wookie himself */
+        const cx = Math.floor(x / 16), cy = Math.floor(y / 16); if (E().solidAt(cx, cy)) continue;
+        G.ents.push({kind: 'choco', x: x - 4, y: y - 2, w: 8, h: 5, alive: true, t: 7 + Math.random(), anim: Math.random() * 6});
+        this.ink -= 7; if (s_frames() % 3 === 0) A().sfx.choco();
+      }
+      const live = G.ents.filter(e => e.kind === 'choco' && e.alive); if (live.length > 70) { live[0].alive = false; live[0].dieT = 10; }
+      this.last = {x: wx, y: wy}; return true;
+    },
     hud() {
       const p = P(), s = S(); if (!p.gadget) return null; const d = DEFS[p.gadget];
-      const frac = p.gadget === 'star' ? p.gadT / d.timed : (p.gadget === 'honey' ? s.honey / d.timed : (p.gadget === 'jet' ? p.fuel / d.fuel : null));
+      if (p.gadget === 'choco' && this.ink < this.INK) this.ink = Math.min(this.INK, this.ink + 0.12);
+      const frac = p.gadget === 'star' ? p.gadT / d.timed : (p.gadget === 'honey' ? s.honey / d.timed : (p.gadget === 'jet' ? p.fuel / d.fuel : (p.gadget === 'choco' ? this.ink / this.INK : null)));
       return {id: p.gadget, name: d.name, col: d.col, frac};
     },
   };

@@ -2,7 +2,7 @@
 (function () {
   const G = window.PW = window.PW || {}, A = () => G.audio;
   const T = G.T = 16, VH = G.VH = 270, MH = G.MH = 15; G.VW = G.VW || 480; G.OFFY = VH - MH * T;
-  const SOLID = new Set(['#', '=', '?', '!', 'X', 'n', '|', 's', 'i', 'b', 'c', 'Z', 'g', 'P']);
+  const SOLID = new Set(['#', '=', '?', '!', 'X', 'n', '|', 's', 'i', 'b', 'c', 'Z', 'g', 'P', '@', '&', 'z']);
   const S = G.S = {mode: 'title', wi: 0, li: 0, lives: 4, score: 0, hearts: 0, time: 300, timeAcc: 0, cam: 0, frames: 0, shake: 0, voiceT: 8, stars: [false, false, false], checkpoint: null, bossActive: false, gateOpen: false, wind: 0, camLock: null, room: 0, honey: 0, flash: 0};
   const P = G.P = {x: 0, y: 0, vx: 0, vy: 0, w: 12, h: 14, big: false, coffee: false, wings: false, onGround: false, facing: 1, inv: 0, dead: false, deathT: 0, anim: 0, throwT: 0, ground: 'meadow', coyote: 0, jumpBuf: 0, climbing: false, sx: 1, sy: 1, gliding: false, wasGround: false,
     gadget: null, gadT: 0, fuel: 0, jetting: false, wallSlide: false, wallDir: 0, wallCoyote: 0, wallJumpT: 0, pound: false, poundT: 0, poundLand: false, launch: 0, cannon: null, cannonCd: 0, combo: 0, pipeCd: 0, hidden: false};
@@ -13,8 +13,10 @@
   const E = G.eng = {
     load(wi, li, fromCheckpoint, custom) {
       const src = custom || G.buildLevel(wi, li);
-      L = G.L = {w: src.cols.length, wi, li, world: G.WORLDS[wi], tower: src.tower, name: src.name, sub: src.sub, par: src.par, cols: src.cols.map(c => c.slice()), rescued: false, starXs: [], bonus: src.bonus || null, mainW: src.bonus ? src.bonus.roomCol : src.cols.length, hub: !!src.hub};
-      P.skydive = false; P.victory = false; S.outfit = G.WORLDS[wi].key;
+      const W0 = G.WORLDS[wi], skin = W0.skins ? (W0.skins[src.hub || src.rocket ? 0 : li] || null) : null;
+      const world = skin ? Object.assign({}, W0, skin) : W0;   /* planets: own palette, sky and gravity on top of the world */
+      L = G.L = {w: src.cols.length, wi, li, world, tower: src.tower, name: src.name, sub: src.sub, par: src.par, cols: src.cols.map(c => c.slice()), rescued: false, starXs: [], bonus: src.bonus || null, puzzle: src.puzzle ? Object.assign({progress: 0, solved: false, lit: [0, 0, 0, 0], demo: null, demoCd: 0}, src.puzzle) : null, mainW: src.bonus ? src.bonus.roomCol : (src.puzzle ? src.puzzle.roomCol : src.cols.length), hub: !!src.hub, rocket: !!src.rocket, daily: src.daily || null, grav: (skin && skin.grav) || 1};
+      P.skydive = false; P.victory = false; S.outfit = S.outfitOverride || W0.key;
       G.ents = []; G.parts = []; G.bumps = []; G.crumbles = []; G.goalSeq = null;
       S.bossActive = false; S.gateOpen = false; S.camLock = null; S.wind = 0; S.room = 0; S.honey = 0; S.flash = 0;
       if (G.gad) G.gad.clear(true); A().fast = false; A().slow = false;
@@ -78,6 +80,7 @@
       if (ch === '?') { E.setTile(cx, cy, 'X'); G.bumps.push({cx, cy, t: 0}); E.collectHeart(cx, cy, true); }
       else if (ch === '!') { E.setTile(cx, cy, 'X'); G.bumps.push({cx, cy, t: 0}); A().sfx.appear(); const kind = !P.big ? 'milk' : (Math.random() < 0.5 || P.coffee ? 'feather' : 'coffee'); G.ents.push({kind, x: cx * T + 1, y: cy * T - 2, w: 14, h: 14, vx: 0, alive: true, rise: 16}); }
       else if (ch === 'g') { E.setTile(cx, cy, 'X'); G.bumps.push({cx, cy, t: 0}); A().sfx.appear(); G.ents.push({kind: 'roulette', x: cx * T + 1, y: cy * T - 4, baseY: cy * T - 22, w: 14, h: 14, vx: 0, alive: true, t: 0, idx: Math.floor(Math.random() * 8), id: null, anim: 0}); S.score += 200; }
+      else if (ch === '@') { G.bumps.push({cx, cy, t: 0}); E.ringBell(cx); }
       else if (ch === '=') { if (P.big) { E.setTile(cx, cy, '-'); A().sfx.pop(); for (let i = 0; i < 4; i++) G.parts.push({kind: 'crumb', x: cx * T + 4 + (i % 2) * 8, y: cy * T + 4 + Math.floor(i / 2) * 8, vx: (i % 2 ? 1 : -1) * (1 + Math.random()), vy: -3 - Math.random() * 2, t: 1.2}); S.score += 50; } else { G.bumps.push({cx, cy, t: 0}); A().sfx.bump(); } }
       else A().sfx.bump();
       for (const e of G.ents) if (e.alive && e.stompable !== undefined && Math.floor((e.y + e.h + 1) / T) === cy && Math.floor((e.x + e.w / 2) / T) === cx) E.kill(e, true);
@@ -100,6 +103,7 @@
     /* ---------- Wookie ---------- */
     hurt(by) {
       if (P.inv > 0 || P.dead || G.goalSeq || P.gadget === 'star' || P.launch > 0 || P.cannon) return;
+      S.hits = (S.hits || 0) + 1;
       if (G.gad && G.gad.absorbHit()) return;
       if (P.big) { P.big = false; P.coffee = false; P.wings = false; P.h = 14; P.y += 10; P.inv = 1.6; A().sfx.hurt(); S.shake = 4; }
       else E.die('enemy:' + (by || '?'));
@@ -121,11 +125,27 @@
       for (const e of G.ents) if (e.alive && e.stompable !== undefined && e.kind !== 'boss' && Math.abs(e.x + e.w / 2 - (P.x + 6)) < 34 && Math.abs(e.y + e.h - (P.y + P.h)) < 20) E.kill(e, true, e.points || 100);
     },
     /* bonus rooms: enter via a golden pipe ('P'), the room lives at the far right of the level */
+    room(n) { return n === 1 ? L.bonus : (n === 2 ? L.puzzle : null); },
     enterRoom(n) {
-      const b = L.bonus; if (!b) return;
+      const rm = E.room(n || S.room); if (!rm) return;
       S.room = n; P.vx = 0; P.vy = 0; P.pipeCd = 40; S.flash = 1; A().sfx.pipe(); P.climbing = false; P.pound = false;
-      if (n === 1) { P.x = (b.roomCol + 2) * T + 2; P.y = 13 * T - P.h; S.cam = b.roomCol * T; E.toast('Bonusraum!'); }
-      else { P.x = b.pipeCol * T + 2; P.y = b.pipeTop * T - P.h; S.cam = Math.max(0, Math.min(L.mainW * T - G.VW, P.x - G.VW * 0.42)); }
+      if (n) { P.x = (rm.roomCol + 2) * T + 2; P.y = 13 * T - P.h; S.cam = rm.roomCol * T; E.toast(n === 2 ? 'Rätselkammer!' : 'Bonusraum!'); if (n === 2) { G.flow.speak('A puzzle! Let me think...', {happy: true}); if (L.puzzle.kind === 'melody' && !L.puzzle.solved) E.puzzleDemo(); } }
+      else { P.x = rm.pipeCol * T + 2; P.y = rm.pipeTop * T - P.h; S.cam = Math.max(0, Math.min(L.mainW * T - G.VW, P.x - G.VW * 0.42)); }
+    },
+    /* ---------- puzzle room: ring the four bells in the right order ---------- */
+    ringBell(cx) {
+      const pz = L.puzzle; if (!pz) return; const idx = pz.bells.indexOf(cx); if (idx < 0) return;
+      pz.lit[idx] = 0.7; A().sfx.bell(idx);
+      if (pz.solved || pz.demo) return;
+      if (pz.order[pz.progress] === idx) { pz.progress++; if (pz.progress >= pz.order.length) E.solvePuzzle(); }
+      else { pz.progress = 0; A().sfx.wrong(); S.shake = 2; E.toast('Falsch... nochmal!'); for (let i = 0; i < 4; i++) pz.lit[i] = 0.25; }
+    },
+    puzzleDemo() { const pz = L.puzzle; if (!pz || pz.demo) return; pz.demo = {t: -0.6, i: 0}; pz.progress = 0; },
+    solvePuzzle() {
+      const pz = L.puzzle; pz.solved = true; A().sfx.puzzleSolved(); S.score += 1500; E.toast('Gelöst!'); G.flow.speak('I solved it!', {happy: true});
+      for (let i = 0; i < 4; i++) pz.lit[i] = 2;
+      for (let cx = 0; cx < L.w; cx++) for (let cy = 0; cy < MH; cy++) if (L.cols[cx][cy] === 'z') { L.cols[cx][cy] = '-'; for (let i = 0; i < 3; i++) G.parts.push({kind: 'spark', x: cx * T + 8, y: cy * T + 4 + i * 4, vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2, t: 0.8, col: '#c9a0ff'}); }
+      if (G.flow.achieve) G.flow.achieve('puzzle');
     },
     fireCannon(e) {
       P.cannon = null; P.hidden = false; P.launch = 40; P.cannonCd = 50; P.x = e.x + 4; P.y = e.y - 8; P.vx = 5.6; P.vy = -6.2; P.facing = 1; P.sx = 1.5; P.sy = 0.7;
@@ -193,11 +213,11 @@
       } else P.wallCoyote = 0;
       P.gliding = P.wings && !P.onGround && P.vy > 0 && input.jump && !P.jetting;
       if (P.bounceT > 0) P.bounceT -= 1 / 60;
-      P.vy += P.vy < 0 ? 0.28 : 0.42; if (P.vy > 6.5) P.vy = 6.5; if (P.gliding && P.vy > 1.1) P.vy = 1.1; if (P.wallSlide && P.vy > 1.0) P.vy = 1.0;
+      P.vy += (P.vy < 0 ? 0.28 : 0.42) * (L.grav || 1); if (P.vy > 6.5) P.vy = 6.5; if (P.gliding && P.vy > 1.1) P.vy = 1.1; if (P.wallSlide && P.vy > 1.0) P.vy = 1.0;
       if (G.gad) G.gad.jet(input);
       E.moveX(P); E.moveY(P, true);
       /* moving platforms carry Wookie */
-      for (const e of G.ents) if ((e.kind === 'platformH' || e.kind === 'platformV') && e.alive) { const top = e.y, onIt = P.x + P.w > e.x + 2 && P.x < e.x + e.w - 2 && P.y + P.h >= top - 1 && P.y + P.h <= top + 6 + Math.max(0, e.dy || 0) && P.vy >= 0; if (onIt) { P.y = top - P.h; P.vy = 0; P.onGround = true; P.x += e.dx || 0; P.coyote = 6; } }
+      for (const e of G.ents) if ((e.kind === 'platformH' || e.kind === 'platformV' || e.kind === 'choco') && e.alive) { const top = e.y, onIt = P.x + P.w > e.x + 2 && P.x < e.x + e.w - 2 && P.y + P.h >= top - 1 && P.y + P.h <= top + 6 + Math.max(0, e.dy || 0) && P.vy >= 0; if (onIt) { P.y = top - P.h; P.vy = 0; P.onGround = true; P.x += e.dx || 0; P.coyote = 6; } }
       E.afterMove();
     },
     afterMove() {
@@ -208,6 +228,8 @@
       for (let cx = x0; cx <= x1; cx++) for (let cy = y0; cy <= y1; cy++) {
         const ch = E.tileAt(cx, cy);
         if (ch === 'o') { E.setTile(cx, cy, '-'); E.collectHeart(cx, cy, false); }
+        else if (ch === '$') { E.setTile(cx, cy, '-'); S.score += 3000; A().sfx.coin(); E.toast('Schokomünze!'); G.flow.speak('Chocolate!', {happy: true}); for (let i = 0; i < 14; i++) G.parts.push({kind: 'spark', x: cx * T + 8, y: cy * T + 8, vx: (Math.random() - 0.5) * 4, vy: -1 - Math.random() * 3, t: 0.9, col: i % 2 ? '#5a2e14' : '#ffd84a'}); if (G.flow.coin) G.flow.coin(L.wi); }
+        else if (ch === '^' && L.puzzle && L.puzzle.kind === 'melody' && !L.puzzle.solved && L.puzzle.demoCd <= 0 && P.onGround) { L.puzzle.demoCd = 4; E.puzzleDemo(); }
         else if (ch === '*') { E.setTile(cx, cy, '-'); E.collectStar(cx, cy); }
         else if (ch === 'K') { E.setTile(cx, cy, 'k'); S.checkpoint = {x: cx * T + 2, y: cy * T + T - 14, cx}; A().sfx.checkpoint(); E.toast('Checkpoint!'); }
         else if (ch === '~' && P.y + P.h > cy * T + 6) { for (let i = 0; i < 8; i++) G.parts.push({kind: 'splash', x: P.x + 6, y: cy * T + 4, vx: (Math.random() - 0.5) * 3, vy: -2 - Math.random() * 2, t: 0.7, col: L.world.liquid.b}); A().sfx.splash(); E.die('liquid'); return; }
@@ -221,7 +243,7 @@
         if (L.doorX && S.gateOpen && P.x + P.w / 2 >= L.doorX + 6) E.startDoor();
       }
       /* golden pipes lead into and out of the bonus room */
-      if (L.bonus && input.down && P.onGround && P.pipeCd <= 0 && !P.pound) { const pc = Math.floor((P.x + P.w / 2) / T), pr = Math.floor((P.y + P.h + 1) / T); if (E.tileAt(pc, pr) === 'P') { E.enterRoom(S.room ? 0 : 1); return; } }
+      if ((L.bonus || L.puzzle) && input.down && P.onGround && P.pipeCd <= 0 && !P.pound) { const pc = Math.floor((P.x + P.w / 2) / T), pr = Math.floor((P.y + P.h + 1) / T), ch = E.tileAt(pc, pr); if (ch === 'P' && L.bonus) { E.enterRoom(S.room ? 0 : 1); return; } if (ch === '&' && L.puzzle) { E.enterRoom(S.room ? 0 : 2); return; } }
       if (P.throwT > 0) P.throwT -= 1 / 60;
       if (P.coffee && input.runEdge && P.throwT <= 0 && G.ents.filter(e => e.kind === 'bean' && e.alive).length < 2) { P.throwT = 0.25; A().sfx.throwBean(); G.ents.push({kind: 'bean', x: P.x + (P.facing > 0 ? P.w : -6), y: P.y + 6, w: 6, h: 6, vx: P.facing * 3.8, vy: -1, alive: true, t: 3}); }
       if (P.gadget === 'sling' && input.runEdge && P.throwT <= 0 && G.ents.filter(e => e.kind === 'honeyshot' && e.alive).length < 2) { P.throwT = 0.22; A().sfx.shoot(); P.sx = 1.2; G.ents.push({kind: 'honeyshot', x: P.x + (P.facing > 0 ? P.w : -8), y: P.y + (P.big ? 10 : 4), w: 8, h: 8, vx: P.facing * 4.6, vy: 0, alive: true, t: 1.1, anim: 0}); }
@@ -237,7 +259,7 @@
       G.goalSeq = {t: 0, phase: L.world.boss.final ? 'rescue' : 'door'}; P.vx = 0; P.vy = 0; A().stopMusic();
       for (const e of G.ents) e.frozen = true;
       if (L.world.boss.final) { A().sfx.rescue(); L.rescued = true; G.ents.push({kind: 'pookie', x: L.doorX + 20, y: 13 * T - 14, w: 12, h: 14, alive: true, anim: 0, vx: 0}); G.flow.speak('Pookie!', {pitch: 1.9, rate: 0.9}); setTimeout(() => { if (G.goalSeq) G.flow.speak('Wookie!', {pitch: 2.0, rate: 0.95}); }, 1400); }
-      else { A().sfx.flag(); G.flow.speak('Pookie is in another tower...', {pitch: 1.7, rate: 0.8, sad: true}); }
+      else { A().sfx.flag(); G.flow.speak(L.world.doorLine || 'Pookie is in another tower...', {sad: !L.world.doorLine}); }
     },
     updateGoal() {
       const g = G.goalSeq; g.t += 1 / 60;
@@ -264,11 +286,18 @@
         if (c.t > 5) { if (E.tileAt(c.cx, c.cy) === '-') E.setTile(c.cx, c.cy, 'c'); G.crumbles.splice(i, 1); }
       }
       if (S.shake > 0) S.shake = Math.max(0, S.shake - 0.3);
+      /* puzzle bells: lights fade; the melody demo plays the order */
+      const pz = L.puzzle;
+      if (pz) {
+        for (let i = 0; i < 4; i++) if (pz.lit[i] > 0) pz.lit[i] = Math.max(0, pz.lit[i] - 1 / 60);
+        if (pz.demoCd > 0) pz.demoCd -= 1 / 60;
+        if (pz.demo) { pz.demo.t += 1 / 60; if (pz.demo.t >= 0.55) { pz.demo.t = 0; const idx = pz.order[pz.demo.i]; pz.lit[idx] = 0.5; A().sfx.bell(idx); G.bumps.push({cx: pz.bells[idx], cy: 8, t: 0}); pz.demo.i++; if (pz.demo.i >= pz.order.length) pz.demo = null; } }
+      }
     },
     updateCamera() {
       let target = P.x + P.facing * 20 - G.VW * 0.42;
       if (S.camLock) target = S.camLock;
-      const minX = S.room && L.bonus ? L.bonus.roomCol * T : 0, maxX = S.room ? L.w * T - G.VW : L.mainW * T - G.VW;
+      const rm = E.room(S.room), minX = rm ? rm.roomCol * T : 0, maxX = rm ? (rm.roomEnd || L.w) * T - G.VW : L.mainW * T - G.VW;
       S.cam += (Math.max(minX, Math.min(maxX, target)) - S.cam) * 0.12;
       if (S.flash > 0) S.flash = Math.max(0, S.flash - 0.04);
     },

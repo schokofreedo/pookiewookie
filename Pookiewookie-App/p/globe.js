@@ -102,6 +102,11 @@ void main(){
   const rotY = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return [c * v[0] + s * v[2], v[1], -s * v[0] + c * v[2]]; };
   const rotX = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return [v[0], c * v[1] - s * v[2], s * v[1] + c * v[2]]; };
   function project(key) {
+    if (!POS[key]) {   /* space: a rocket orbiting the globe */
+      const a = (performance.now() - startT) / 1000 * 0.45, r = (st.zoom / Math.sqrt(D * D - 1)) * cssH / 2;
+      const facing = 0.5 + 0.5 * Math.sin(a + 1.2);
+      return {x: cssW / 2 + Math.cos(a) * r * 1.6, y: cssH / 2 + Math.sin(a) * r * 0.42 - r * 0.9, facing: 0.3 + facing * 0.7};
+    }
     const [lon, lat] = POS[key], l = [Math.cos(rad(lat)) * Math.sin(rad(lon)), Math.sin(rad(lat)), Math.cos(rad(lat)) * Math.cos(rad(lon))];
     const w = rotX(rotY(l, st.yaw), st.pitch), v = [w[0], w[1], w[2] + D], asp = cssW / cssH;
     const nx = v[0] / v[2] * st.zoom / asp, ny = v[1] / v[2] * st.zoom;
@@ -109,7 +114,7 @@ void main(){
     const facing = (w[0] * toCam[0] + w[1] * toCam[1] + w[2] * toCam[2]) / len;
     return {x: (nx + 1) / 2 * cssW, y: (1 - ny) / 2 * cssH, facing};
   }
-  const targetFor = key => ({yaw: Math.PI - rad(POS[key][0]), pitch: -rad(POS[key][1])});
+  const targetFor = key => POS[key] ? ({yaw: Math.PI - rad(POS[key][0]), pitch: -rad(POS[key][1])}) : ({yaw: st.yaw, pitch: st.pitch});
   const wrap = a => { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; };
 
   function compile(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error('GLOBE shader: ' + gl.getShaderInfoLog(s)); return null; } return s; }
@@ -131,7 +136,7 @@ void main(){
       const tx = paint(); texture(tx.color, 0); texture(tx.mask, 1); gl.uniform1i(uni.uTex, 0); gl.uniform1i(uni.uMask, 1);
       /* markers */
       const mk = ui.querySelector('#markers') || ui; mk.innerHTML = '';
-      markers = G.WORLDS.map((W, wi) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'wm'; b.innerHTML = `<b>${wi + 1}</b><span>${W.name}</span><i></i>`; b.addEventListener('click', e => { e.stopPropagation(); if (st.dragged) return; globe.select(wi); globe.pick(); }); b.addEventListener('mouseenter', () => { if (!st.fly) globe.select(wi, true); }); mk.appendChild(b); return b; });
+      markers = G.WORLDS.map((W, wi) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'wm' + (POS[W.key] ? '' : ' space'); b.innerHTML = `<b>${POS[W.key] ? wi + 1 : '🚀'}</b><span>${W.name}</span><i></i>`; b.addEventListener('click', e => { e.stopPropagation(); if (st.dragged) return; globe.select(wi); globe.pick(); }); b.addEventListener('mouseenter', () => { if (!st.fly) globe.select(wi, true); }); mk.appendChild(b); return b; });
       /* drag to turn */
       cv.addEventListener('pointerdown', e => { st.drag = {x: e.clientX, y: e.clientY, yaw: st.yaw, pitch: st.pitch}; st.dragged = false; st.auto = false; cv.setPointerCapture(e.pointerId); });
       cv.addEventListener('pointermove', e => { if (!st.drag || st.fly) return; const dx = e.clientX - st.drag.x, dy = e.clientY - st.drag.y; if (Math.abs(dx) + Math.abs(dy) > 4) st.dragged = true; st.yaw = st.drag.yaw + dx * 0.008; st.pitch = Math.max(-1.3, Math.min(1.3, st.drag.pitch + dy * 0.008)); });
@@ -146,8 +151,8 @@ void main(){
     select(wi, soft) { st.sel = (wi + G.WORLDS.length) % G.WORLDS.length; if (!soft) { const t = targetFor(G.WORLDS[st.sel].key); st.fly = {yaw0: st.yaw, pitch0: st.pitch, yaw1: st.yaw + wrap(t.yaw - st.yaw), pitch1: t.pitch * 0.7, zoom0: st.zoom, zoom1: 1.55, t: 0, dur: 0.7, pick: false}; } if (G.audio) G.audio.sfx.select(); },
     move(d) { this.select(st.sel + d); },
     pick() {
-      if (st.fly && st.fly.pick) return; const key = G.WORLDS[st.sel].key, t = targetFor(key);
-      st.fly = {yaw0: st.yaw, pitch0: st.pitch, yaw1: st.yaw + wrap(t.yaw - st.yaw), pitch1: t.pitch, zoom0: st.zoom, zoom1: 5.0, t: 0, dur: 1.6, pick: true};
+      if (st.fly && st.fly.pick) return; const key = G.WORLDS[st.sel].key, t = targetFor(key), space = !POS[key];
+      st.fly = {yaw0: st.yaw, pitch0: st.pitch, yaw1: st.yaw + wrap(t.yaw - st.yaw), pitch1: t.pitch, zoom0: st.zoom, zoom1: space ? 0.9 : 5.0, t: 0, dur: space ? 1.1 : 1.6, pick: true};
       if (G.audio) G.audio.sfx.globeGo();
     },
     selected() { return st.sel; },
@@ -164,7 +169,7 @@ void main(){
       gl.useProgram(prog);
       gl.uniform2f(uni.uRes, canvas.width, canvas.height); gl.uniform1f(uni.uTime, now); gl.uniform1f(uni.uZoom, st.zoom); gl.uniform1f(uni.uFlash, st.flash);
       gl.uniform2f(uni.uRot, st.yaw, st.pitch);
-      const sp = POS[G.WORLDS[st.sel].key]; gl.uniform3f(uni.uSel, rad(sp[0]), rad(sp[1]), st.fly && st.fly.pick ? 0 : 1);
+      const sp = POS[G.WORLDS[st.sel].key] || [0, 0]; gl.uniform3f(uni.uSel, rad(sp[0]), rad(sp[1]), (st.fly && st.fly.pick) || !POS[G.WORLDS[st.sel].key] ? 0 : 1);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       /* markers follow their worlds */
       const rect = canvas.getBoundingClientRect(), uiRect = ui.getBoundingClientRect();
