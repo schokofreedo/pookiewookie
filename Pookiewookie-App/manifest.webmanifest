@@ -1,0 +1,17 @@
+{
+  "name": "Pookiewookie",
+  "short_name": "Pookiewookie",
+  "description": "Wookie rettet Pookie: Jump'n'Run von Schokofreedo Games",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#2b1d33",
+  "theme_color": "#2b1d33",
+  "lang": "de",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

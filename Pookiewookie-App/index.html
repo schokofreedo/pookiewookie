@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2b1d33">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pookiewookie">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Pookiewookie</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap">
+<style>
+/* Layout: an HD canvas with the 480x270 logical world scaled to fit, a WebGL globe stacked on top for the world menu, soft rounded overlays. Pastel bakery palette. */
+:root{
+  --bg:#2b1d33; --fg:#fff7ef; --muted:#e6c9d6; --pink:#ff9eb0; --rose:#ff6f9c; --mint:#9be7a5; --sky:#8fd3ff; --cream:#fff4e0; --gold:#ffd84a; --plum:#7a3b57;
+  --panel:rgba(74,34,58,.9); --line:rgba(255,158,176,.5);
+  --font:'Fredoka',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);overflow:hidden;display:grid;place-items:center;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#stage{position:relative;touch-action:none}
+#c{background:#ffc9dc;display:block;border-radius:6px}
+#globe{position:absolute;inset:0;display:block;border-radius:6px;cursor:grab;touch-action:none}
+#globe:active{cursor:grabbing}
+:fullscreen #c,:fullscreen #globe{border-radius:0}
+#globeUI{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#globeUI .ghead{position:absolute;left:0;right:0;top:4%;text-align:center}
+#globeUI h2{margin:0;font:700 clamp(18px,4.5vw,40px)/1.1 var(--font);color:#fff;text-shadow:3px 3px 0 var(--plum),0 0 30px rgba(143,211,255,.6)}
+#globeUI #gprog{margin:4px 0 0;font:600 clamp(10px,1.8vw,15px)/1.3 var(--font);color:var(--muted);text-shadow:1px 1px 0 var(--plum)}
+#globeUI .gfoot{position:absolute;left:2%;right:30%;bottom:3%;display:flex;gap:8px;justify-content:flex-start;align-items:center;flex-wrap:wrap}
+#globeUI .gfoot p{margin:0;font:600 clamp(9px,1.6vw,13px)/1.3 var(--font);color:var(--muted);text-shadow:1px 1px 0 var(--plum)}
+#globeUI .gfoot .btn{pointer-events:auto;padding:8px 14px;font-size:13px;margin:0}
+.wm{position:absolute;left:0;top:0;pointer-events:auto;display:grid;justify-items:center;gap:2px;padding:4px 8px 6px;background:rgba(255,255,255,.9);border:2px solid rgba(122,59,87,.35);border-radius:14px;color:var(--plum);font:600 clamp(9px,1.6vw,13px)/1.2 var(--font);cursor:pointer;transition:opacity .15s;will-change:transform;white-space:nowrap}
+.wm b{width:1.9em;height:1.9em;border-radius:50%;background:var(--rose);color:#fff;display:grid;place-items:center;font-weight:700;box-shadow:0 2px 0 var(--plum)}
+.wm i{font-style:normal;font-size:.85em;color:#b06a85}
+.wm.done b{background:var(--mint);color:var(--plum)}
+.wm.sel{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,216,74,.55),0 0 22px rgba(255,216,74,.5)}
+.wm::after{content:"";position:absolute;left:50%;bottom:-9px;margin-left:-6px;border:6px solid transparent;border-top-color:rgba(255,255,255,.9)}
+.ov{position:fixed;inset:0;z-index:3;display:grid;place-items:center;padding:16px;background:rgba(43,29,51,.55);overflow:auto}
+.card{max-width:560px;width:100%;box-sizing:border-box;padding:26px 24px;background:var(--panel);border:4px solid var(--pink);border-radius:26px;box-shadow:0 10px 0 rgba(0,0,0,.25);text-align:center}
+h1{margin:0 0 6px;font:700 clamp(34px,8vw,64px)/1.1 var(--font);color:var(--pink);text-shadow:4px 4px 0 var(--plum);letter-spacing:.02em}
+h2{margin:0 0 10px;font:700 clamp(22px,5vw,32px)/1.2 var(--font);color:var(--pink)}
+.sub{margin:0 0 14px;font:600 14px/1.5 var(--font);color:var(--muted)}
+p{margin:0 0 14px;font:400 15px/1.55 var(--font)}
+.keys{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px;margin:0 0 16px;font:400 13px/1.6 var(--font);color:var(--muted);text-align:left}
+.keys b{color:var(--fg);font-weight:600;padding:1px 6px;border:1px solid var(--line);border-radius:6px;margin-right:3px}
+.btn{background:var(--rose);color:#fff;border:0;padding:12px 22px;border-radius:999px;font:700 16px/1 var(--font);cursor:pointer;box-shadow:0 5px 0 var(--plum)}
+.btn:hover{transform:translateY(1px);box-shadow:0 4px 0 var(--plum)}
+.btn.ghost{background:transparent;color:var(--fg);border:2px solid var(--line);box-shadow:none;margin-left:8px;padding:10px 16px}
+.btn.ghost:hover{transform:none;background:rgba(255,158,176,.15)}
+:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+.btnrow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 0 6px}
+.btnrow .btn{margin:0}
+details{margin:0 0 16px;text-align:left;border:2px solid var(--line);border-radius:16px;padding:10px 14px;background:rgba(0,0,0,.15)}
+summary{cursor:pointer;font:700 14px/1.4 var(--font);color:var(--pink)}
+.settings{display:grid;gap:8px 12px;align-items:center;margin-top:10px;font:600 13px/1.4 var(--font);color:var(--muted)}
+.settings label.chk{display:flex;gap:8px;align-items:center;color:var(--fg)}
+.settings input[type=checkbox]{width:18px;height:18px;accent-color:var(--rose)}
+.settings small{font:400 12px/1.4 var(--font);color:var(--muted)}
+#card{background:#ffc9dc}
+#card .card{background:rgba(74,34,58,.92)}
+#card-world{margin:0 0 4px;font:600 13px/1.4 var(--font);letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+#card-lives{color:var(--muted);font-size:15px}
+#clear-stars{font-size:30px;color:var(--gold);margin:0 0 8px;letter-spacing:.2em}
+#clear-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin:0 0 18px;text-align:left}
+.row{display:flex;flex-direction:column;gap:2px}.row dt{font-size:12px;color:var(--muted)}.row dd{margin:0;font-size:20px;font-weight:700;color:var(--pink)}
+#bubble{position:fixed;left:50%;top:12%;transform:translateX(-50%) scale(1);z-index:4;max-width:min(80vw,520px);padding:12px 20px;background:#fff;color:var(--plum);border:4px solid var(--pink);border-radius:22px;font:700 clamp(15px,3.2vw,26px)/1.25 var(--font);text-align:center;opacity:0;pointer-events:none;transition:opacity .2s}
+#bubble::after{content:"";position:absolute;left:50%;bottom:-18px;margin-left:-10px;border:10px solid transparent;border-top-color:var(--pink)}
+#bubble.on{opacity:1;animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+#bubble.sad{border-color:var(--sky);color:#3b5a7a}#bubble.sad::after{border-top-color:var(--sky)}
+@keyframes pop{0%{transform:translateX(-50%) scale(.5)}100%{transform:translateX(-50%) scale(1)}}
+#banner{position:fixed;left:50%;top:34%;transform:translateX(-50%);z-index:4;text-align:center;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw}
+#banner.on{opacity:1}
+#banner div{font:700 clamp(26px,5vw,48px)/1.1 var(--font);color:var(--gold);text-shadow:3px 3px 0 var(--plum),0 0 24px rgba(0,0,0,.5)}
+#banner small{display:block;margin-top:6px;font:600 15px/1.3 var(--font);color:#fff;text-shadow:2px 2px 0 var(--plum)}
+#corner{position:fixed;right:10px;bottom:10px;z-index:5;display:flex;gap:6px}
+#corner button{background:rgba(74,34,58,.75);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:8px 12px;font:600 12px/1 var(--font);cursor:pointer}
+#corner button:hover{color:#fff;border-color:var(--pink)}
+#touch{position:fixed;inset:auto 0 0 0;z-index:4;display:none;justify-content:space-between;padding:0 max(12px,env(safe-area-inset-left,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-right,0px));pointer-events:none}
+#touch div{display:flex;gap:8px;align-items:flex-end}
+#touch button{pointer-events:auto;width:62px;height:62px;border-radius:50%;background:rgba(74,34,58,.55);border:2px solid var(--line);color:var(--fg);font:700 20px/1 var(--font);touch-action:none;-webkit-user-select:none;user-select:none}
+#touch button small{display:block;font:600 9px/1 var(--font);color:var(--muted);margin-top:2px}
+#touch button:active{background:var(--rose)}
+#touch .big{width:72px;height:72px}
+/* touch devices: on-screen pad, corner buttons at the top, short help, landscape only */
+body.touch #touch{display:none}
+body.touch.playing #touch{display:flex}
+body.touch #corner{display:none;bottom:auto;top:max(6px,env(safe-area-inset-top,0px));right:auto;left:50%;transform:translateX(-50%)}
+body.touch.playing #corner,body.touch.onglobe #corner{display:flex}
+body.touch.sidebars #corner{flex-direction:column;left:auto;right:max(6px,env(safe-area-inset-right,0px));transform:none;align-items:stretch}
+body.touch #corner button{padding:6px 8px;font-size:11px}
+#rotate div{width:min(84vw,460px);overflow-wrap:anywhere}
+body.touch .keys{display:none}
+body.touch .touchhelp{display:block}
+.touchhelp{display:none;margin:0 0 14px;font:600 13px/1.5 var(--font);color:var(--muted)}
+body.touch .card{padding:16px 14px}
+body.touch h1{font-size:clamp(28px,9vw,48px)}
+body.touch #bubble{top:16%;font-size:clamp(13px,3.5vw,20px)}
+body.touch #globeUI .gfoot p{display:none}
+#rotate{display:none;position:fixed;inset:0;z-index:9;place-items:center;background:var(--bg);text-align:center;font:700 clamp(16px,5vw,24px)/1.4 var(--font);color:var(--pink)}
+#rotate span{display:block;font-size:64px;animation:turn 1.6s ease-in-out infinite alternate}
+@keyframes turn{from{transform:rotate(0)}to{transform:rotate(90deg)}}
+@media(orientation:portrait){body.touch #rotate{display:grid}}
+#pause{background:rgba(43,29,51,.72);backdrop-filter:blur(3px)}
+#pause .card{max-width:380px}
+#pause .menu{display:grid;gap:10px;margin:0 0 8px}
+#pause .menu .btn{margin:0;width:100%}
+#pause-level{margin:0 0 16px;color:var(--gold);font-weight:600;letter-spacing:.06em}
+/* fallback world map (no WebGL) */
+#map{align-content:start;padding:18px 16px calc(24px + env(safe-area-inset-bottom,0px))}
+#map .head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;max-width:900px;width:100%;margin:0 auto 12px}
+#map h2{margin:0}
+#map-progress{margin:0;font:600 13px/1.4 var(--font);color:var(--muted)}
+#worlds{display:grid;gap:12px;max-width:900px;width:100%;margin:0 auto}
+.world{border-radius:22px;padding:14px 16px;border:3px solid rgba(255,255,255,.55);box-shadow:0 6px 0 rgba(0,0,0,.2)}
+.world h3{margin:0 0 10px;font:700 20px/1.2 var(--font);color:var(--plum);text-shadow:1px 1px 0 #fff}
+.world h3 span{display:inline-block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;background:var(--plum);color:#fff;border-radius:999px;padding:3px 10px;margin-right:10px;vertical-align:middle;text-shadow:none}
+.nodes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;position:relative}
+.node{position:relative;z-index:1;display:grid;justify-items:center;gap:4px;padding:8px 6px 10px;background:rgba(255,255,255,.72);border:3px solid rgba(122,59,87,.25);border-radius:18px;color:var(--plum);font:600 12px/1.2 var(--font);cursor:pointer;min-width:0}
+.node b{width:40px;height:40px;border-radius:50%;background:var(--rose);color:#fff;display:grid;place-items:center;font:700 18px/1 var(--font);box-shadow:0 4px 0 var(--plum)}
+.node.tower b{background:var(--plum);box-shadow:0 4px 0 #3a1a2a}
+.node span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.node i{font-style:normal;color:var(--gold);text-shadow:1px 1px 0 var(--plum);letter-spacing:.1em;font-size:13px}
+.node.done b{background:var(--mint);color:var(--plum)}
+.node.sel{border-color:var(--gold);box-shadow:0 0 0 4px rgba(255,216,74,.5);transform:translateY(-3px)}
+#map .foot{display:flex;gap:8px;justify-content:center;margin:16px auto 0;max-width:900px;flex-wrap:wrap}
+@media(max-width:640px){.card{padding:18px 16px;border-radius:18px}.keys{grid-template-columns:1fr}.nodes{grid-template-columns:repeat(2,minmax(0,1fr))}.node span{font-size:11px}}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="c" width="480" height="270"></canvas>
+  <canvas id="globe" hidden></canvas>
+  <div id="globeUI" hidden>
+    <div class="ghead"><h2>Wähle eine Welt</h2><p id="gprog"></p></div>
+    <div id="markers"></div>
+    <div class="gfoot"><button id="btnGlobeBack" class="btn ghost" type="button">Hauptmenü</button><button id="btnReset" class="btn ghost" type="button">Spielstand löschen</button><p>Ziehen = drehen · ← → wählen · Enter oder Klick = reinfliegen</p></div>
+  </div>
+</div>
+<div id="bubble">Where is my Pookie?</div>
+<div id="banner"></div>
+
+<div id="title" class="ov">
+  <div class="card">
+    <h1>Pookiewookie</h1>
+    <p class="sub">Wookie sucht seine Pookie · 6 Welten · 24 Level · 8 Gadgets</p>
+    <p>Pookie, die weiße Bärin, sitzt im Turm des Wolkenkönigs. Wookie muss durch Zuckerwattewiese, Kokosinsel, Dschungel, Schneeland, Lavawelt und Wolkenschloss. Wähle eine Welt auf dem Globus, spring durch die Wolken, sammle Herzen und Sternkekse, zieh Gadgets aus den Kapseln und besiege den Boss im Turm.</p>
+    <div class="keys">
+      <span><b>← →</b> laufen · <b>↑</b> klettern / springen</span><span><b>Leer</b> / <b>K</b> springen · in der Luft nochmal = Doppelsprung</span>
+      <span><b>Shift</b> / <b>X</b> rennen · schießen (Kaffee, Honigschleuder)</span><span><b>↓</b> in der Luft = Stampfer · auf Gold-Röhre = Bonusraum</span>
+      <span><b>Esc</b> / <b>P</b> Pause · <b>F</b> Vollbild</span><span>Kapsel anstoßen = Gadget ziehen · Honigkanone = reinlaufen</span>
+    </div>
+    <p class="touchhelp">Handy quer halten. Links: ◀ ▶ laufen, ▲ springen / klettern / Level am Schild starten, ▼ Stampfer in der Luft und Bonus-Röhren. Rechts: A springen (halten = höher), B rennen und schießen. Auf dem Globus: Welt antippen.</p>
+    <details>
+      <summary>Einstellungen</summary>
+      <div class="settings">
+        <label class="chk"><input type="checkbox" id="chkVoice" checked> Wookie spricht (echte Sprachaufnahmen)</label>
+        <label class="chk"><input type="checkbox" id="chkAssist"> Hilfe-Modus: Wookie startet jedes Level mit Schutzblase</label>
+        <label class="chk">Wookies Look <select id="selStyle" style="margin-left:8px;padding:6px 10px;border-radius:10px;border:2px solid var(--line);background:#3b2543;color:var(--fg);font:600 13px/1.2 var(--font)"><option value="cool">Cool (neu)</option><option value="abenteurer">Abenteurer</option></select></label>
+        <small>Ton und Stimme starten nach dem ersten Klick. Die Buttons unten rechts schalten Ton und Vollbild.</small>
+      </div>
+    </details>
+    <div class="btnrow">
+      <button id="btnStart" class="btn" type="button">Zum Globus</button>
+      <button id="btnVoice" class="btn ghost" type="button">Stimme testen</button>
+      <button class="btn ghost btnFull" type="button">Vollbild</button>
+    </div>
+    <p class="sub" style="margin:12px 0 0;font-size:12px">ein Schokofreedo Games Spiel · A = Sprung, in der Luft nochmal A = Doppelsprung</p>
+  </div>
+</div>
+
+<div id="map" class="ov" hidden>
+  <div class="head"><div><h2>Weltkarte</h2><p id="map-progress"></p></div><p class="sub" style="margin:0">Pfeile wählen · Enter startet</p></div>
+  <div id="worlds"></div>
+  <div class="foot"><button id="btnMapBack" class="btn ghost" type="button" style="margin:0">Hauptmenü</button></div>
+</div>
+
+<div id="card" class="ov" hidden>
+  <div class="card">
+    <p id="card-world">Welt 1 · Zuckerwattewiese</p>
+    <h2 id="card-title">1. Erste Hüpfer</h2>
+    <p id="card-lives">Wookie × 4</p>
+  </div>
+</div>
+
+<div id="pause" class="ov" hidden>
+  <div class="card">
+    <h2>Pause</h2>
+    <p id="pause-level">Welt 1-1</p>
+    <div class="menu">
+      <button id="btnResume" class="btn" type="button">Fortsetzen</button>
+      <button id="btnRestart" class="btn ghost" type="button">Level neu starten</button>
+      <button id="btnPauseMap" class="btn ghost" type="button">Zurück zur Welt</button>
+      <button id="btnPauseGlobe" class="btn ghost" type="button">Zum Globus</button>
+      <button id="btnPauseTitle" class="btn ghost" type="button">Hauptmenü</button>
+      <button class="btn ghost btnFull" type="button">Vollbild</button>
+      <button class="btn ghost btnVoiceToggle" type="button">Stimme aus</button>
+    </div>
+    <p class="sub" style="margin:0">Esc oder P: weiterspielen</p>
+  </div>
+</div>
+
+<div id="clear" class="ov" hidden>
+  <div class="card">
+    <h2 id="clear-title">Level geschafft</h2>
+    <p id="clear-stars">☆ ☆ ☆</p>
+    <dl id="clear-stats"></dl>
+    <button id="clear-next" class="btn" type="button">Nächstes Level</button>
+    <button id="clear-map" class="btn ghost" type="button">Zurück zur Welt</button>
+  </div>
+</div>
+
+<div id="over" class="ov" hidden>
+  <div class="card">
+    <h2>Wookie ist traurig</h2>
+    <p class="sub">Pookie wartet immer noch. Dein Fortschritt bleibt gespeichert.</p>
+    <p id="over-score"></p>
+    <button id="btnOver" class="btn" type="button">Zum Globus</button>
+  </div>
+</div>
+
+<div id="win" class="ov" hidden>
+  <div class="card">
+    <h2>Pookie ist gerettet!</h2>
+    <p class="sub">Wookie und Pookie sind wieder zusammen. ♥ Alle Sternkekse gesammelt? Der Globus zeigt es dir.</p>
+    <p id="win-score"></p>
+    <button id="btnWin" class="btn" type="button">Zum Globus</button>
+  </div>
+</div>
+
+<div id="touch">
+  <div><button type="button" data-k="left" aria-label="Links">◀</button><button type="button" data-k="right" aria-label="Rechts">▶</button><button type="button" data-k="up" aria-label="Hoch">▲<small>Hoch</small></button><button type="button" data-k="run" aria-label="Schuss">B<small>Schuss</small></button></div>
+  <div><button type="button" data-k="down" aria-label="Stampfer">▼<small>Stampf</small></button><button type="button" class="big" data-k="jumpkey" aria-label="Springen">A<small>Sprung</small></button></div>
+</div>
+<div id="rotate"><div><span>📱</span>Bitte das Handy quer halten, dann geht's los.</div></div>
+<div id="corner"><button id="btnPause" type="button">Pause</button><button class="btnFull" type="button">Vollbild</button><button id="btnMute" type="button">Ton aus</button></div>
+
+<script src="p/worlds.js"></script>
+<script src="p/audio.js"></script>
+<script src="p/voicelines.js"></script>
+<script src="p/levels.js"></script>
+<script src="p/gadgets.js"></script>
+<script src="p/engine.js"></script>
+<script src="p/entities.js"></script>
+<script src="p/draw.js"></script>
+<script src="p/fx.js"></script>
+<script src="p/globe.js"></script>
+<script src="p/hub.js"></script>
+<script src="p/brand.js"></script>
+<script src="p/game.js"></script>
+<script>
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); }); }
+</script>
+</body>
+</html>
