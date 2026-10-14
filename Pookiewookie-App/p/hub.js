@@ -1,7 +1,7 @@
 /* Pookiewookie: after picking a world on the globe, Wookie skydives through the clouds (the dive) and lands in that world's hub,
    a small themed scene with four signposts; walk to a sign and press up to start the level. */
 (function () {
-  const G = window.PW = window.PW || {}, T = 16, VW = 480, VH = 270, MH = 15;
+  const G = window.PW = window.PW || {}, T = 16, VH = 270, MH = 15;
   const S = () => G.S, P = () => G.P, A = () => G.audio, E = () => G.eng;
   const TAU = Math.PI * 2;
   function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
@@ -13,17 +13,17 @@
     t: 0, W: null, wi: 0, clouds: [], done: null, spin: 0,
     start(wi, done) {
       this.wi = wi; this.W = G.WORLDS[wi]; this.t = 0; this.done = done; this.spin = 0; S().outfit = this.W.key;
-      this.clouds = []; for (let i = 0; i < 26; i++) this.clouds.push({x: Math.random() * VW, y: Math.random() * VH * 1.4 - VH * 0.2, s: 0.5 + Math.random() * 1.2, z: 0.4 + Math.random() * 0.9, w: 40 + Math.random() * 60});
+      this.clouds = []; for (let i = 0; i < 26; i++) this.clouds.push({x: Math.random() * G.VW, y: Math.random() * VH * 1.4 - VH * 0.2, s: 0.5 + Math.random() * 1.2, z: 0.4 + Math.random() * 0.9, w: 40 + Math.random() * 60});
       if (A()) { A().sfx.dive(); } G.flow.speak('Here I come, Pookie!', {happy: true});
     },
     update() {
       this.t += 1 / 60; const sp = 3 + Math.min(6, this.t * 2.5);
-      for (const c of this.clouds) { c.y -= sp * c.z; if (c.y < -60) { c.y = VH + 40 + Math.random() * 40; c.x = Math.random() * VW; } }
+      for (const c of this.clouds) { c.y -= sp * c.z; if (c.y < -60) { c.y = VH + 40 + Math.random() * 40; c.x = Math.random() * G.VW; } }
       if (this.t >= 2.6 && this.done) { const d = this.done; this.done = null; d(); }
     },
     frame(ctx) {
       const W = this.W, t = this.t, k = Math.min(1, t / 2.6);
-      const g = ctx.createLinearGradient(0, 0, 0, VH); g.addColorStop(0, W.sky[0]); g.addColorStop(0.6, W.sky[1]); g.addColorStop(1, W.sky[2]); ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
+      const g = ctx.createLinearGradient(0, 0, 0, VH); g.addColorStop(0, W.sky[0]); g.addColorStop(0.6, W.sky[1]); g.addColorStop(1, W.sky[2]); ctx.fillStyle = g; ctx.fillRect(0, 0, G.VW, VH);
       /* sun and far clouds */
       ctx.beginPath(); ctx.arc(400, 46 + k * 120, 22, 0, TAU); ctx.fillStyle = W.sun; ctx.fill(); ctx.beginPath(); ctx.arc(400, 46 + k * 120, 34, 0, TAU); ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fill();
       ctx.fillStyle = 'rgba(255,255,255,.85)';
@@ -31,10 +31,10 @@
       ctx.globalAlpha = 1;
       /* speed lines */
       ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1.2;
-      for (let i = 0; i < 14; i++) { const x = (i * 97 + Math.floor(t * 400 * (1 + i % 3)) % 1000) % VW, y0 = ((i * 53 + t * 900) % (VH + 80)) - 40; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y0 + 18 + (i % 3) * 8); ctx.stroke(); }
+      for (let i = 0; i < 14; i++) { const x = (i * 97 + Math.floor(t * 400 * (1 + i % 3)) % 1000) % G.VW, y0 = ((i * 53 + t * 900) % (VH + 80)) - 40; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y0 + 18 + (i % 3) * 8); ctx.stroke(); }
       /* Wookie, big, belly down, scarf streaming up; slight sway and spin */
       const sway = Math.sin(t * 3) * 6, rot = Math.sin(t * 1.7) * 0.12;
-      ctx.save(); ctx.translate(VW / 2 + sway, VH * 0.5 + Math.sin(t * 2.2) * 4); ctx.rotate(rot);
+      ctx.save(); ctx.translate(G.VW / 2 + sway, VH * 0.5 + Math.sin(t * 2.2) * 4); ctx.rotate(rot);
       ctx.beginPath(); ctx.ellipse(0, 54, 30, 8, 0, 0, TAU); ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.fill();
       if (G.draw && G.draw.drawBearAt) G.draw.drawBearAt(ctx, 0, 36, {scale: 3.4, facing: 1, frame: t * 8, pose: 'skydive', outfit: W.key, t});
       else { ctx.fillStyle = '#b07c44'; ctx.fillRect(-20, -10, 40, 46); }
@@ -43,8 +43,8 @@
       ctx.fillStyle = 'rgba(255,255,255,.92)';
       for (const c of this.clouds) { if (c.z <= 0.9) continue; ctx.beginPath(); ctx.ellipse(c.x, c.y, c.w * c.s * 0.7, 14 * c.s, 0, 0, TAU); ctx.ellipse(c.x - c.w * 0.3, c.y + 4, c.w * c.s * 0.4, 11 * c.s, 0, 0, TAU); ctx.ellipse(c.x + c.w * 0.3, c.y + 3, c.w * c.s * 0.42, 12 * c.s, 0, 0, TAU); ctx.fill(); }
       /* title and fade-out */
-      outlined(ctx, 'Welt ' + (this.wi + 1), VW / 2, VH - 48, 15, '#ffd84a'); outlined(ctx, W.name, VW / 2, VH - 28, 12, '#fff');
-      const fade = Math.max(0, (t - 2.15) / 0.45); if (fade > 0) { ctx.fillStyle = 'rgba(255,255,255,' + Math.min(1, fade) + ')'; ctx.fillRect(0, 0, VW, VH); }
+      outlined(ctx, 'Welt ' + (this.wi + 1), G.VW / 2, VH - 48, 15, '#ffd84a'); outlined(ctx, W.name, G.VW / 2, VH - 28, 12, '#fff');
+      const fade = Math.max(0, (t - 2.15) / 0.45); if (fade > 0) { ctx.fillStyle = 'rgba(255,255,255,' + Math.min(1, fade) + ')'; ctx.fillRect(0, 0, G.VW, VH); }
     },
   };
 
@@ -72,9 +72,11 @@
       const p = P(), s = S(), input = G.input;
       if (p.skydive) { if (p.onGround) { p.skydive = false; s.shake = 4; A().sfx.land(); E().puff(p.x + 6, p.y + p.h, 10, '#fff'); this.landed = true; G.flow.banner('Welt ' + (this.wi + 1) + ' · ' + G.WORLDS[this.wi].name, 2.2, 'Lauf zu einem Schild und drück ↑'); } return; }
       this.labelT += 1 / 60;
-      let near = -1; this.signCols.forEach((cx, i) => { if (Math.abs(p.x + 6 - (cx * T + 8)) < 14 && p.onGround) near = i; });
-      if (near !== this.near) { this.near = near; if (near >= 0) A().sfx.tick(); }
-      if (near >= 0 && (input.up || input.jumpKeyEdge) && this.onStart) { const idx = this.wi * 4 + near; input.up = false; input.jump = false; input.jumpEdge = false; input.jumpKeyEdge = false; this.onStart(idx); }
+      let near = -1; this.signCols.forEach((cx, i) => { if (Math.abs(p.x + 6 - (cx * T + 8)) < 16 && (p.onGround || p.pound)) near = i; });
+      if (near !== this.near) { this.near = near; if (near >= 0 && p.onGround) A().sfx.tick(); }
+      /* a ground pound onto the signpost starts the level (↑ on a keyboard works too) */
+      const pounded = this.wasPound && !p.pound && p.onGround; this.wasPound = p.pound;
+      if (near >= 0 && this.onStart && (pounded || (input.up && !input.touchMode))) { const idx = this.wi * 4 + near; input.up = false; input.jump = false; input.jumpEdge = false; input.jumpKeyEdge = false; this.onStart(idx); }
     },
     tile(ctx, ch, cx, cy, x, y, fr) {
       const i = +ch - 1; if (!(i >= 0 && i < 4)) return false;
@@ -90,14 +92,15 @@
     },
     hud(ctx, fr) {
       const W = G.WORLDS[this.wi];
-      rr(ctx, VW / 2 - 110, 6, 220, 22, 11); ctx.fillStyle = 'rgba(74,34,58,.72)'; ctx.fill();
-      outlined(ctx, 'Welt ' + (this.wi + 1) + ' · ' + W.name, VW / 2, 17, 11, '#ffd84a');
+      const ty = G.input.touchMode ? 30 : 6;   /* below the pause button on phones */
+      rr(ctx, G.VW / 2 - 110, ty, 220, 22, 11); ctx.fillStyle = 'rgba(74,34,58,.72)'; ctx.fill();
+      outlined(ctx, 'Welt ' + (this.wi + 1) + ' · ' + W.name, G.VW / 2, ty + 11, 11, '#ffd84a');
       if (this.near >= 0) {
         const name = W.levels[this.near], done = hub.doneFor ? hub.doneFor(this.wi * 4 + this.near) : false;
-        rr(ctx, VW / 2 - 100, 34, 200, 30, 10); ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill(); ctx.strokeStyle = '#ff9eb0'; ctx.lineWidth = 1.5; ctx.stroke();
-        font(ctx, 10); ctx.textAlign = 'center'; ctx.fillStyle = '#7a3b57'; ctx.fillText((this.near + 1) + '. ' + name + (done ? '  ✓' : ''), VW / 2, 43);
-        font(ctx, 7.5); ctx.fillStyle = '#b06a85'; ctx.fillText('↑ oder Springen = starten', VW / 2, 55);
-      } else if (this.landed) { font(ctx, 7.5); ctx.textAlign = 'center'; ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(74,34,58,.7)'; ctx.strokeText('← → laufen · Schild = Level · Esc = Globus', VW / 2, 40); ctx.fillStyle = '#fff'; ctx.fillText('← → laufen · Schild = Level · Esc = Globus', VW / 2, 40); }
+        rr(ctx, G.VW / 2 - 100, ty + 28, 200, 30, 10); ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill(); ctx.strokeStyle = '#ff9eb0'; ctx.lineWidth = 1.5; ctx.stroke();
+        font(ctx, 10); ctx.textAlign = 'center'; ctx.fillStyle = '#7a3b57'; ctx.fillText((this.near + 1) + '. ' + name + (done ? '  ✓' : ''), G.VW / 2, ty + 37);
+        font(ctx, 7.5); ctx.fillStyle = '#b06a85'; ctx.fillText(G.input.touchMode ? 'Springen, dann ▼ Stampfer auf das Schild' : '↑ oder Stampfer (Sprung + ↓) auf das Schild', G.VW / 2, ty + 49);
+      } else if (this.landed) { const h = G.input.touchMode ? '◀ ▶ laufen · auf ein Schild stampfen = Level' : '← → laufen · Schild = Level · Esc = Globus'; font(ctx, 7.5); ctx.textAlign = 'center'; ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(74,34,58,.7)'; ctx.strokeText(h, G.VW / 2, ty + 34); ctx.fillStyle = '#fff'; ctx.fillText(h, G.VW / 2, ty + 34); }
     },
   };
 })();

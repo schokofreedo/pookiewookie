@@ -1,7 +1,7 @@
 /* Pookiewookie: gadget visuals. Icons, the capsule block and roulette, honey shots, flying hearts, the honey cannon,
    what Wookie wears per gadget, the Honigzeit tint, the pipe flash and the gadget HUD slot. draw.js calls these hooks. */
 (function () {
-  const G = window.PW = window.PW || {}, T = 16, VW = 480, VH = 270;
+  const G = window.PW = window.PW || {}, T = 16, VH = 270;
   const S = () => G.S, P = () => G.P, L = () => G.L;
   const TAU = Math.PI * 2;
   function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
@@ -125,11 +125,11 @@
     overlay(ctx, fr) {
       const s = S();
       if (s.honey > 0) {
-        const a = Math.min(1, s.honey / 1.5) * 0.2; ctx.fillStyle = 'rgba(255,186,60,' + a + ')'; ctx.fillRect(0, 0, VW, VH);
+        const a = Math.min(1, s.honey / 1.5) * 0.2; ctx.fillStyle = 'rgba(255,186,60,' + a + ')'; ctx.fillRect(0, 0, G.VW, VH);
         ctx.fillStyle = 'rgba(227,169,42,' + a * 3 + ')';
         for (let i = 0; i < 9; i++) { const x = i * 56 + 20, len = 10 + ((fr * 0.3 + i * 37) % 60); ctx.beginPath(); ctx.moveTo(x - 5, 0); ctx.lineTo(x + 5, 0); ctx.lineTo(x + 3, len); ctx.arc(x, len, 3, 0, Math.PI); ctx.lineTo(x - 3, len); ctx.closePath(); ctx.fill(); }
       }
-      if (s.flash > 0) { ctx.fillStyle = 'rgba(255,255,255,' + s.flash + ')'; ctx.fillRect(0, 0, VW, VH); }
+      if (s.flash > 0) { ctx.fillStyle = 'rgba(255,255,255,' + s.flash + ')'; ctx.fillRect(0, 0, G.VW, VH); }
     },
     hud(ctx, fr) {
       if (S().mode === 'hub' && G.hub) { G.hub.hud(ctx, fr); return; }
@@ -143,7 +143,7 @@
         if (h.frac !== null) { rr(ctx, x + 36, y + 20, 46, 7, 3.5); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill(); if (h.frac > 0) { rr(ctx, x + 36, y + 20, Math.max(7, 46 * Math.max(0, Math.min(1, h.frac))), 7, 3.5); ctx.fillStyle = h.frac < 0.25 && (fr >> 3) % 2 ? '#ff6f9c' : h.col; ctx.fill(); } }
         else { font(ctx, 7); ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.fillText(h.id === 'sling' ? 'Shift/X: schießen' : (h.id === 'claws' ? 'Wand + Springen' : (h.id === 'bubble' ? '1 Treffer frei' : (h.id === 'boots' ? 'Riesensprünge' : 'zieht Herzen an'))), x + 36, y + 24); }
       }
-      if (p.combo > 1 && !p.onGround) { font(ctx, 11); ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#7a3b57'; ctx.lineJoin = 'round'; const t = 'Combo ×' + p.combo; ctx.strokeText(t, VW / 2, 60); ctx.fillStyle = p.combo >= 8 ? '#ffd84a' : '#fff'; ctx.fillText(t, VW / 2, 60); }
+      if (p.combo > 1 && !p.onGround) { font(ctx, 11); ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#7a3b57'; ctx.lineJoin = 'round'; const t = 'Combo ×' + p.combo; ctx.strokeText(t, G.VW / 2, 60); ctx.fillStyle = p.combo >= 8 ? '#ffd84a' : '#fff'; ctx.fillText(t, G.VW / 2, 60); }
     },
   };
 })();

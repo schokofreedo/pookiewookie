@@ -1,6 +1,6 @@
 /* Pookiewookie: game flow (title → globe → dive → hub → level), saving, input, pause menu, fullscreen, settings, overlays, main loop. */
 (function () {
-  const G = window.PW, $ = s => document.querySelector(s), A = () => G.audio, S = G.S, P = G.P, E = G.eng, input = G.input, VW = G.VW, VH = G.VH, T = G.T;
+  const G = window.PW, $ = s => document.querySelector(s), A = () => G.audio, S = G.S, P = G.P, E = G.eng, input = G.input, VH = G.VH, T = G.T;
   const HASH = location.hash.replace('&mobile', ''), MOBILE = location.hash.includes('mobile');
   const canvas = $('#c'); G.draw.init(canvas);
   const N = G.levelCount();
@@ -15,8 +15,8 @@
   const globeOk = G.globe && G.globe.init($('#globe'), $('#globeUI'));
   /* touch devices get the on-screen pad, landscape prompt and fullscreen on start */
   const isTouch = MOBILE || (navigator.maxTouchPoints > 0 && matchMedia('(pointer: coarse)').matches) || matchMedia('(hover: none) and (pointer: coarse)').matches;
-  if (isTouch) { document.body.classList.add('touch'); input.run = true; }   /* on touch Wookie always runs; B only shoots */
-  const resetInput = () => { for (const k in input) input[k] = false; input.run = isTouch; };
+  if (isTouch) { document.body.classList.add('touch'); input.run = true; input.touchMode = true; }   /* on touch Wookie always runs; B only shoots; A also climbs */
+  const resetInput = () => { for (const k in input) input[k] = false; input.run = isTouch; input.touchMode = isTouch; };
   function goFullscreen() {
     if (document.fullscreenElement) return;
     try { const el = document.documentElement, p = (el.requestFullscreen || el.webkitRequestFullscreen).call(el, {navigationUI: 'hide'}); if (p && p.then) p.then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) {} fit(); }).catch(() => {}); } catch (e) {}
@@ -211,6 +211,7 @@
   $('#btnPauseMap').addEventListener('click', () => { $('#pause').hidden = true; showHub(S.wi, false); });
   $('#btnPauseGlobe').addEventListener('click', () => { $('#pause').hidden = true; showGlobe(S.wi); });
   $('#btnPauseTitle').addEventListener('click', () => { $('#pause').hidden = true; showTitle(); });
+  $('#btnPauseMute').addEventListener('click', () => { $('#btnMute').click(); $('#btnPauseMute').textContent = A().muted ? 'Ton an' : 'Ton aus'; });
   document.querySelectorAll('.btnFull').forEach(b => b.addEventListener('click', toggleFull));
 
   /* ---------------- loop and sizing ---------------- */
@@ -218,8 +219,10 @@
   function fit() {
     const hd = !!G.draw.resize, vv = window.visualViewport;
     const availW = Math.floor(vv ? vv.width : innerWidth), availH = Math.floor(vv ? vv.height : innerHeight);
-    let s = Math.min(availW / VW, availH / VH); if (!hd) s = Math.max(1, Math.floor(s * 4) / 4);
-    const w = Math.round(VW * s), h = Math.round(VH * s);
+    /* the logical width follows the screen: 480 on 16:9, wider on phones, so no black bars */
+    if (hd) G.VW = Math.max(480, Math.min(640, Math.round(VH * availW / Math.max(1, availH))));
+    let s = Math.min(availW / G.VW, availH / VH); if (!hd) s = Math.max(1, Math.floor(s * 4) / 4);
+    const w = Math.round(G.VW * s), h = Math.round(VH * s);
     canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
     document.body.style.height = availH + 'px'; document.body.style.width = availW + 'px';
     if (hd) G.draw.resize(w, h);
@@ -246,11 +249,11 @@
     if (testM || simM) {
       const idx = Math.max(0, Math.min(N - 1, +(testM ? testM[2] : simM[1]) - 1));
       S.wi = Math.floor(idx / 4); S.li = idx % 4; hideAll(); S.lives = 4; E.load(S.wi, S.li, false); S.mode = 'play';
-      if (testM && testM[1] === 'end') { P.x = (G.L.towerX || G.L.goalX) - 120; S.cam = Math.max(0, P.x - VW * 0.4); }
-      if (testM && testM[4]) { P.x = +testM[4] * T; S.cam = Math.max(0, Math.min(G.L.mainW * T - VW, P.x - VW * 0.4)); }
+      if (testM && testM[1] === 'end') { P.x = (G.L.towerX || G.L.goalX) - 120; S.cam = Math.max(0, P.x - G.VW * 0.4); }
+      if (testM && testM[4]) { P.x = +testM[4] * T; S.cam = Math.max(0, Math.min(G.L.mainW * T - G.VW, P.x - G.VW * 0.4)); }
       if (testM && testM[1] === 'room' && G.L.bonus) E.enterRoom(1);
       if (testM && testM[3] && G.gad) G.gad.give(testM[3]);
-      if (simM && simM[2].includes('e')) { P.x = (G.L.arenaX || (G.L.goalX - 200)) + 4; S.cam = Math.max(0, P.x - VW * 0.4); }
+      if (simM && simM[2].includes('e')) { P.x = (G.L.arenaX || (G.L.goalX - 200)) + 4; S.cam = Math.max(0, P.x - G.VW * 0.4); }
       const caps = G.L.cols.filter(c => c[9] === 'g').length, cannons = G.ents.filter(e => e.kind === 'cannon').length;
       console.log('POOKIE_BOOT level=' + G.L.name + ' (' + G.L.sub + ') w=' + G.L.w + ' mainW=' + G.L.mainW + ' ents=' + G.ents.length + ' start=' + P.x + ',' + P.y + ' arena=' + (G.L.arenaX || '-') + ' door=' + (G.L.doorX || '-') + ' capsules=' + caps + ' cannons=' + cannons + ' bonus=' + (G.L.bonus ? G.L.bonus.pipeCol + '>' + G.L.bonus.roomCol : '-'));
     }

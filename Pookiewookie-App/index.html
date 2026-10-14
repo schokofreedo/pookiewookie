@@ -85,17 +85,18 @@ summary{cursor:pointer;font:700 14px/1.4 var(--font);color:var(--pink)}
 #corner button:hover{color:#fff;border-color:var(--pink)}
 #touch{position:fixed;inset:auto 0 0 0;z-index:4;display:none;justify-content:space-between;padding:0 max(12px,env(safe-area-inset-left,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-right,0px));pointer-events:none}
 #touch div{display:flex;gap:8px;align-items:flex-end}
-#touch button{pointer-events:auto;width:62px;height:62px;border-radius:50%;background:rgba(74,34,58,.55);border:2px solid var(--line);color:var(--fg);font:700 20px/1 var(--font);touch-action:none;-webkit-user-select:none;user-select:none}
-#touch button small{display:block;font:600 9px/1 var(--font);color:var(--muted);margin-top:2px}
+#touch .col{flex-direction:column;align-items:center;gap:8px}
+#touch button{pointer-events:auto;width:54px;height:54px;border-radius:50%;background:rgba(74,34,58,.55);border:2px solid var(--line);color:var(--fg);font:700 18px/1 var(--font);touch-action:none;-webkit-user-select:none;user-select:none;padding:0}
+#touch button small{display:block;font:600 8px/1 var(--font);color:var(--muted);margin-top:2px}
 #touch button:active{background:var(--rose)}
-#touch .big{width:72px;height:72px}
+#touch .big{width:64px;height:64px}
 /* touch devices: on-screen pad, corner buttons at the top, short help, landscape only */
 body.touch #touch{display:none}
 body.touch.playing #touch{display:flex}
 body.touch #corner{display:none;bottom:auto;top:max(6px,env(safe-area-inset-top,0px));right:auto;left:50%;transform:translateX(-50%)}
 body.touch.playing #corner,body.touch.onglobe #corner{display:flex}
-body.touch.sidebars #corner{flex-direction:column;left:auto;right:max(6px,env(safe-area-inset-right,0px));transform:none;align-items:stretch}
-body.touch #corner button{padding:6px 8px;font-size:11px}
+body.touch #corner button{padding:6px 10px;font-size:11px}
+body.touch #corner button:not(#btnPause){display:none}
 #rotate div{width:min(84vw,460px);overflow-wrap:anywhere}
 body.touch .keys{display:none}
 body.touch .touchhelp{display:block}
@@ -158,7 +159,7 @@ body.touch #globeUI .gfoot p{display:none}
       <span><b>Shift</b> / <b>X</b> rennen · schießen (Kaffee, Honigschleuder)</span><span><b>↓</b> in der Luft = Stampfer · auf Gold-Röhre = Bonusraum</span>
       <span><b>Esc</b> / <b>P</b> Pause · <b>F</b> Vollbild</span><span>Kapsel anstoßen = Gadget ziehen · Honigkanone = reinlaufen</span>
     </div>
-    <p class="touchhelp">Handy quer halten. Links: ◀ ▶ laufen, ▲ springen / klettern / Level am Schild starten, ▼ Stampfer in der Luft und Bonus-Röhren. Rechts: A springen (halten = höher), B rennen und schießen. Auf dem Globus: Welt antippen.</p>
+    <p class="touchhelp">Handy quer halten. Links ◀ ▶ laufen. Rechts: A springen (in der Luft nochmal = Salto), ▼ Stampfer in der Luft und Bonus-Röhren, B schießen. An Ranken hält A fest und klettert. Level starten: springen und mit ▼ auf das Schild stampfen. Auf dem Globus: Welt antippen.</p>
     <details>
       <summary>Einstellungen</summary>
       <div class="settings">
@@ -203,6 +204,7 @@ body.touch #globeUI .gfoot p{display:none}
       <button id="btnPauseTitle" class="btn ghost" type="button">Hauptmenü</button>
       <button class="btn ghost btnFull" type="button">Vollbild</button>
       <button class="btn ghost btnVoiceToggle" type="button">Stimme aus</button>
+      <button id="btnPauseMute" class="btn ghost" type="button">Ton aus</button>
     </div>
     <p class="sub" style="margin:0">Esc oder P: weiterspielen</p>
   </div>
@@ -237,8 +239,8 @@ body.touch #globeUI .gfoot p{display:none}
 </div>
 
 <div id="touch">
-  <div><button type="button" data-k="left" aria-label="Links">◀</button><button type="button" data-k="right" aria-label="Rechts">▶</button><button type="button" data-k="up" aria-label="Hoch">▲<small>Hoch</small></button><button type="button" data-k="run" aria-label="Schuss">B<small>Schuss</small></button></div>
-  <div><button type="button" data-k="down" aria-label="Stampfer">▼<small>Stampf</small></button><button type="button" class="big" data-k="jumpkey" aria-label="Springen">A<small>Sprung</small></button></div>
+  <div><button type="button" data-k="left" aria-label="Links">◀</button><button type="button" data-k="right" aria-label="Rechts">▶</button></div>
+  <div class="rpad"><button type="button" data-k="down" aria-label="Stampfer">▼<small>Stampf</small></button><div class="col"><button type="button" data-k="run" aria-label="Schuss">B<small>Schuss</small></button><button type="button" class="big" data-k="jumpkey" aria-label="Springen">A<small>Sprung</small></button></div></div>
 </div>
 <div id="rotate"><div><span>📱</span>Bitte das Handy quer halten, dann geht's los.</div></div>
 <div id="corner"><button id="btnPause" type="button">Pause</button><button class="btnFull" type="button">Vollbild</button><button id="btnMute" type="button">Ton aus</button></div>

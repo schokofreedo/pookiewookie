@@ -107,7 +107,7 @@
       '##############################']];
     const bonusRoom = () => {    // appended after the level end; the camera is locked to this screen while inside
       const room = ROOMS[(wi + li) % ROOMS.length]; bonus.roomCol = cols.length;
-      for (let x = 0; x < 30; x++) { const c = empty(); for (let y = 0; y < H; y++) { const ch = room[y][x]; c[y] = ch === '.' ? '-' : ch; } push(c); }
+      for (let x = 0; x < 40; x++) { const c = empty(); for (let y = 0; y < H; y++) { const ch = x < 30 ? room[y][x] : '#'; c[y] = ch === '.' ? '-' : ch; } push(c); }   /* 10 wall columns on the right: wide screens see rock, not the level */
     };
     const arena = () => {        // boss arena: gate, flat floor, boss, locked gate, door
       ground(2); const g1 = groundBase(); for (let y = 9; y < 13; y++) g1[y] = '='; push(g1);

@@ -1,7 +1,7 @@
 /* Pookiewookie: the publisher intro. "Schokofreedo Games": a drop of chocolate falls, splashes into a glossy chocolate bar with a bite,
    the wordmark pops in letter by letter, a shine sweeps across, sparkles, fade. Also draws the start screen while the game waits for the first tap. */
 (function () {
-  const G = window.PW = window.PW || {}, VW = 480, VH = 270, TAU = Math.PI * 2;
+  const G = window.PW = window.PW || {}, VH = 270, TAU = Math.PI * 2;
   const A = () => G.audio;
   const ease = (t, a, b) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
   const back = k => { const s = 1.70158; return 1 + (s + 1) * Math.pow(k - 1, 3) + s * Math.pow(k - 1, 2); };
@@ -39,16 +39,16 @@
     },
     frame(ctx) {
       const t = this.started ? this.t : -1;
-      const g = ctx.createRadialGradient(VW / 2, VH * 0.45, 20, VW / 2, VH * 0.45, 360); g.addColorStop(0, '#2b1409'); g.addColorStop(1, '#0a0503'); ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
+      const g = ctx.createRadialGradient(G.VW / 2, VH * 0.45, 20, G.VW / 2, VH * 0.45, 360); g.addColorStop(0, '#2b1409'); g.addColorStop(1, '#0a0503'); ctx.fillStyle = g; ctx.fillRect(0, 0, G.VW, VH);
       if (t < 0) {
         /* start screen: pulsing prompt */
         const pulse = 0.75 + 0.25 * Math.sin(performance.now() / 300);
-        this.bar(ctx, VW / 2, VH / 2 - 26, 0.9, 1); ctx.globalAlpha = pulse;
-        ctx.font = '700 15px "Fredoka", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffd9b0'; ctx.fillText('Tippen oder Taste drücken', VW / 2, VH / 2 + 34);
-        ctx.font = '600 9px "Fredoka", sans-serif'; ctx.fillStyle = '#b9865c'; ctx.fillText('Ton an · Handy quer halten', VW / 2, VH / 2 + 52); ctx.globalAlpha = 1;
+        this.bar(ctx, G.VW / 2, VH / 2 - 26, 0.9, 1); ctx.globalAlpha = pulse;
+        ctx.font = '700 15px "Fredoka", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffd9b0'; ctx.fillText('Tippen oder Taste drücken', G.VW / 2, VH / 2 + 34);
+        ctx.font = '600 9px "Fredoka", sans-serif'; ctx.fillStyle = '#b9865c'; ctx.fillText('Ton an · Handy quer halten', G.VW / 2, VH / 2 + 52); ctx.globalAlpha = 1;
         return;
       }
-      const cx = VW / 2, barY = 104;
+      const cx = G.VW / 2, barY = 104;
       /* drop and puddle */
       if (t < 0.72) { const k = ease(t, 0.05, 0.62), y = -20 + k * k * (barY + 20); ctx.fillStyle = '#5a2e14'; ctx.beginPath(); ctx.moveTo(cx, y - 14); ctx.bezierCurveTo(cx + 8, y - 2, cx + 7, y + 8, cx, y + 8); ctx.bezierCurveTo(cx - 7, y + 8, cx - 8, y - 2, cx, y - 14); ctx.fill(); }
       if (t > 0.6) { const k = ease(t, 0.6, 1.4); ctx.globalAlpha = 0.5 * (1 - k * 0.6); ctx.fillStyle = '#4a2512'; ctx.beginPath(); ctx.ellipse(cx, barY + 34, 20 + k * 110, 4 + k * 10, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; if (k < 1) { ctx.strokeStyle = 'rgba(255,214,170,' + (0.8 * (1 - k)) + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(cx, barY + 34, 10 + k * 150, 3 + k * 16, 0, 0, TAU); ctx.stroke(); } }
@@ -70,7 +70,7 @@
       /* sparkles around the bar */
       if (t > 1.7) for (const s of sparks) { const life = ((t - 1.7) * 0.8 + s.p) % 1, r = s.s * Math.sin(life * Math.PI); starPath(ctx, cx + Math.cos(s.a) * s.d * (0.6 + life * 0.6), barY + Math.sin(s.a) * s.d * 0.55 * (0.6 + life * 0.6), Math.max(0.1, r * 1.8)); ctx.fillStyle = s.p > 0.5 ? '#ffd84a' : '#fff1dc'; ctx.fill(); }
       /* fade out */
-      const fade = ease(t, DUR - 0.5, DUR); if (fade > 0) { ctx.fillStyle = 'rgba(0,0,0,' + fade + ')'; ctx.fillRect(0, 0, VW, VH); }
+      const fade = ease(t, DUR - 0.5, DUR); if (fade > 0) { ctx.fillStyle = 'rgba(0,0,0,' + fade + ')'; ctx.fillRect(0, 0, G.VW, VH); }
     },
   };
 })();

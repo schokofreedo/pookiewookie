@@ -1,7 +1,7 @@
 /* Pookiewookie: core engine. Tiles, physics, Wookie, boxes, collectibles, checkpoints, goal and rescue sequences, particles. */
 (function () {
   const G = window.PW = window.PW || {}, A = () => G.audio;
-  const T = G.T = 16, VW = G.VW = 480, VH = G.VH = 270, MH = G.MH = 15; G.OFFY = VH - MH * T;
+  const T = G.T = 16, VH = G.VH = 270, MH = G.MH = 15; G.VW = G.VW || 480; G.OFFY = VH - MH * T;
   const SOLID = new Set(['#', '=', '?', '!', 'X', 'n', '|', 's', 'i', 'b', 'c', 'Z', 'g', 'P']);
   const S = G.S = {mode: 'title', wi: 0, li: 0, lives: 4, score: 0, hearts: 0, time: 300, timeAcc: 0, cam: 0, frames: 0, shake: 0, voiceT: 8, stars: [false, false, false], checkpoint: null, bossActive: false, gateOpen: false, wind: 0, camLock: null, room: 0, honey: 0, flash: 0};
   const P = G.P = {x: 0, y: 0, vx: 0, vy: 0, w: 12, h: 14, big: false, coffee: false, wings: false, onGround: false, facing: 1, inv: 0, dead: false, deathT: 0, anim: 0, throwT: 0, ground: 'meadow', coyote: 0, jumpBuf: 0, climbing: false, sx: 1, sy: 1, gliding: false, wasGround: false,
@@ -33,7 +33,7 @@
       L.starXs.sort((a, b) => a - b);
       if (fromCheckpoint && S.checkpoint) { P.x = S.checkpoint.x; P.y = S.checkpoint.y; for (let cy = 0; cy < MH; cy++) if (L.cols[S.checkpoint.cx][cy] === 'K') L.cols[S.checkpoint.cx][cy] = 'k'; for (const sx of L.starXs) { const idx = L.starXs.indexOf(sx); if (S.stars[idx]) for (let cy = 0; cy < MH; cy++) if (L.cols[sx][cy] === '*') L.cols[sx][cy] = '-'; } }
       P.vx = P.vy = 0; P.dead = false; P.inv = 0; P.facing = 1; P.climbing = false; P.h = P.big ? 24 : 14; P.sx = P.sy = 1;
-      S.time = src.par; S.timeAcc = 0; S.cam = Math.max(0, P.x - VW * 0.4); S.voiceT = 3; S.shake = 0;
+      S.time = src.par; S.timeAcc = 0; S.cam = Math.max(0, P.x - G.VW * 0.4); S.voiceT = 3; S.shake = 0;
       A().setWorld(L.world.music); A().setBoss(false);
       return L;
     },
@@ -125,7 +125,7 @@
       const b = L.bonus; if (!b) return;
       S.room = n; P.vx = 0; P.vy = 0; P.pipeCd = 40; S.flash = 1; A().sfx.pipe(); P.climbing = false; P.pound = false;
       if (n === 1) { P.x = (b.roomCol + 2) * T + 2; P.y = 13 * T - P.h; S.cam = b.roomCol * T; E.toast('Bonusraum!'); }
-      else { P.x = b.pipeCol * T + 2; P.y = b.pipeTop * T - P.h; S.cam = Math.max(0, Math.min(L.mainW * T - VW, P.x - VW * 0.42)); }
+      else { P.x = b.pipeCol * T + 2; P.y = b.pipeTop * T - P.h; S.cam = Math.max(0, Math.min(L.mainW * T - G.VW, P.x - G.VW * 0.42)); }
     },
     fireCannon(e) {
       P.cannon = null; P.hidden = false; P.launch = 40; P.cannonCd = 50; P.x = e.x + 4; P.y = e.y - 8; P.vx = 5.6; P.vy = -6.2; P.facing = 1; P.sx = 1.5; P.sy = 0.7;
@@ -160,13 +160,14 @@
       }
       /* vines */
       const ccx = Math.floor((P.x + P.w / 2) / T), ccy = Math.floor((P.y + P.h / 2) / T), onVine = E.tileAt(ccx, ccy) === 'v' || E.tileAt(ccx, Math.floor((P.y + 2) / T)) === 'v';
-      if (!P.climbing && onVine && (input.up || (input.down && !P.onGround))) { P.climbing = true; P.vx = 0; P.vy = 0; P.jumpBuf = 0; input.jumpEdge = false; }
+      const upIn = input.up || (input.touchMode && input.jump);   /* on touch the jump button also grabs and climbs vines */
+      if (!P.climbing && onVine && (upIn || (input.down && !P.onGround))) { P.climbing = true; P.vx = 0; P.vy = 0; P.jumpBuf = 0; input.jumpEdge = false; input.jumpKeyEdge = false; }
       if (P.climbing) {
         if (!onVine) P.climbing = false;
         else {
-          P.vy = (input.up ? -1.3 : 0) + (input.down ? 1.3 : 0); P.vx = dir * 0.8; if (dir) P.facing = dir;
+          P.vy = (upIn ? -1.3 : 0) + (input.down ? 1.3 : 0); P.vx = dir * 0.8; if (dir) P.facing = dir;
           E.moveX(P); E.moveY(P, true); P.anim += Math.abs(P.vy) * 0.15 + Math.abs(P.vx) * 0.1;
-          if (input.jumpKeyEdge) { P.climbing = false; P.vy = -5; A().sfx.jump(); }
+          if (input.jumpKeyEdge && !input.touchMode) { P.climbing = false; P.vy = -5; A().sfx.jump(); }
           if (P.onGround && input.down) P.climbing = false;
           E.afterMove(); return;
         }
@@ -265,9 +266,9 @@
       if (S.shake > 0) S.shake = Math.max(0, S.shake - 0.3);
     },
     updateCamera() {
-      let target = P.x + P.facing * 20 - VW * 0.42;
+      let target = P.x + P.facing * 20 - G.VW * 0.42;
       if (S.camLock) target = S.camLock;
-      const minX = S.room && L.bonus ? L.bonus.roomCol * T : 0, maxX = S.room ? L.w * T - VW : L.mainW * T - VW;
+      const minX = S.room && L.bonus ? L.bonus.roomCol * T : 0, maxX = S.room ? L.w * T - G.VW : L.mainW * T - G.VW;
       S.cam += (Math.max(minX, Math.min(maxX, target)) - S.cam) * 0.12;
       if (S.flash > 0) S.flash = Math.max(0, S.flash - 0.04);
     },
