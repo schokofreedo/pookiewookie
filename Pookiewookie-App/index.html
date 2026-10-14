@@ -90,6 +90,12 @@ summary{cursor:pointer;font:700 14px/1.4 var(--font);color:var(--pink)}
 #touch button small{display:block;font:600 8px/1 var(--font);color:var(--muted);margin-top:2px}
 #touch button:active{background:var(--rose)}
 #touch .big{width:64px;height:64px}
+/* the run pad: one pill, slide the thumb left or right without lifting it */
+.dpad{pointer-events:auto;width:150px;height:60px;border-radius:999px;background:rgba(74,34,58,.55);border:2px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-sizing:border-box;color:var(--fg);font:700 22px/1 var(--font);touch-action:none;-webkit-user-select:none;user-select:none}
+.dpad span{transition:transform .08s,color .08s;opacity:.85}
+.dpad i{width:6px;height:6px;border-radius:50%;background:var(--muted);opacity:.6}
+.dpad.l span:first-child,.dpad.r span:last-child{color:#fff;opacity:1;transform:scale(1.35)}
+.dpad.l,.dpad.r{background:rgba(255,111,156,.45)}
 /* touch devices: on-screen pad, corner buttons at the top, short help, landscape only */
 body.touch #touch{display:none}
 body.touch.playing #touch{display:flex}
@@ -265,7 +271,7 @@ body.touch #globeUI .gfoot p{display:none}
 </div>
 
 <div id="touch">
-  <div><button type="button" data-k="left" aria-label="Links">◀</button><button type="button" data-k="right" aria-label="Rechts">▶</button></div>
+  <div><div id="dpad" class="dpad" aria-label="Laufen: Daumen nach links oder rechts schieben"><span>◀</span><i></i><span>▶</span></div></div>
   <div class="rpad"><button type="button" data-k="down" aria-label="Stampfer">▼<small>Stampf</small></button><div class="col"><button type="button" data-k="run" aria-label="Schuss">B<small>Schuss</small></button><button type="button" class="big" data-k="jumpkey" aria-label="Springen">A<small>Sprung</small></button></div></div>
 </div>
 <div id="rotate"><div><span>📱</span>Bitte das Handy quer halten, dann geht's los.</div></div>

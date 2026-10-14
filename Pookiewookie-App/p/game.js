@@ -234,6 +234,13 @@
   document.addEventListener('keyup', e => { const n = KEYMAP[e.code]; if (n) press(n, false); });
   window.addEventListener('blur', resetInput);
   document.querySelectorAll('#touch button').forEach(b => { const n = b.dataset.k; const on = e => { e.preventDefault(); A().init(); press(n, true); if (S.mode === 'card' && cardT > 0.4 && n === 'jumpkey') beginPlay(); }; const off = () => press(n, false); b.addEventListener('pointerdown', on); ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => b.addEventListener(ev, off)); b.addEventListener('contextmenu', e => e.preventDefault()); });
+  /* the run pad: direction follows the thumb's position; sliding across switches sides without lifting */
+  { const pad = $('#dpad'); let padId = null;
+    const setDir = x => { const r = pad.getBoundingClientRect(), rel = x - (r.left + r.width / 2), dz = 7, l = rel < -dz, rt = rel > dz; if (l !== input.left) press('left', l); if (rt !== input.right) press('right', rt); pad.classList.toggle('l', l); pad.classList.toggle('r', rt); };
+    const release = e => { if (padId === null || (e && e.pointerId !== padId)) return; padId = null; press('left', false); press('right', false); pad.classList.remove('l', 'r'); };
+    pad.addEventListener('pointerdown', e => { e.preventDefault(); A().init(); if (padId !== null) release({pointerId: padId}); padId = e.pointerId; try { pad.setPointerCapture(e.pointerId); } catch (err) {} setDir(e.clientX); });
+    pad.addEventListener('pointermove', e => { if (e.pointerId === padId) setDir(e.clientX); });
+    pad.addEventListener('pointerup', release); pad.addEventListener('pointercancel', release); pad.addEventListener('lostpointercapture', release); pad.addEventListener('contextmenu', e => e.preventDefault()); }
   /* taps on the stage: skip the dive, start after the level card */
   $('#stage').addEventListener('pointerdown', () => { if (S.mode === 'boot') startBrand(); else if (S.mode === 'brand') G.brand.skip(); else if (S.mode === 'dive') G.dive.t = Math.max(G.dive.t, 2.15); else if (S.mode === 'card' && cardT > 0.4) beginPlay(); });
   function advance() {
@@ -403,7 +410,7 @@
       const fx = Math.floor((P.x + P.w + 6) / T), fy = Math.floor((P.y + P.h) / T);
       let need = false, wait = false;
       const boss = G.ents.find(e => e.kind === 'boss' && e.active);
-      if (boss && HASH.includes('x') && boss.t < 0.5 && !runSim.cheated) { runSim.cheated = true; runSim.cheatT = t; G.entsMod.bossHit(boss, 99); console.log('SIM_CHEAT boss defeated at t=' + t.toFixed(1)); }
+      if (boss && HASH.includes('x') && !runSim.cheated) { runSim.cheated = true; runSim.cheatT = t; G.entsMod.bossHit(boss, 99); console.log('SIM_CHEAT boss defeated at t=' + t.toFixed(1)); }
       if (runSim.cheated && !S.gateOpen && t > runSim.cheatT + 1.5) { E.openGate(); console.log('SIM_GATE opened at t=' + t.toFixed(1)); }
       if (P.launch > 0 && !runSim.launched) { runSim.launched = true; launches++; } if (P.launch <= 0) runSim.launched = false;
       if (P.gadget && gadgets[gadgets.length - 1] !== P.gadget) gadgets.push(P.gadget);
@@ -429,6 +436,8 @@
       if (P.onGround && jumpHold > 0 && jumpHold < 15) jumpHold = 0;
       if (need && jumpHold <= 0 && P.onGround) { input.jumpEdge = true; input.jumpKeyEdge = true; jumpHold = 18; }
       input.jump = jumpHold > 0; if (jumpHold > 0) jumpHold--;
+      /* a human would double-jump when falling into a gap: the bot does too */
+      if (!P.onGround && P.vy > 1.2 && P.jumps === 1 && !P.pound && !P.cannon) { const bx = Math.floor((P.x + 6) / T), by = Math.floor((P.y + P.h + 10) / T); const platBelow = G.ents.some(e => (e.kind === 'platformH' || e.kind === 'platformV') && P.x + P.w > e.x && P.x < e.x + e.w && e.y > P.y + P.h && e.y - (P.y + P.h) < 48); if (!solidAt(bx, by) && !solidAt(bx, by + 1) && !platBelow) { input.jumpEdge = true; input.jumpKeyEdge = true; } }
       if (tileAt(Math.floor((P.x + 6) / T), Math.floor((P.y + 4) / T)) === 'v' && !P.climbing) { input.up = true; } else input.up = P.climbing;
       if (!runSim.trace) runSim.trace = [];
       runSim.trace.push(`f${i} x${P.x.toFixed(0)} y${P.y.toFixed(0)} g${P.onGround ? 1 : 0} vx${P.vx.toFixed(1)} vy${P.vy.toFixed(1)} need${need ? 1 : 0} wait${wait ? 1 : 0} hold${jumpHold} fx${fx} t${tileAt(fx, fy)}${tileAt(fx + 1, fy)}`); if (runSim.trace.length > 24) runSim.trace.shift();

@@ -168,9 +168,11 @@
         E.afterMove(); return;
       }
       const W = L.world, icy = P.ground === 'ice' && P.onGround, honey = P.ground === 'honey' && P.onGround;
-      const max = (input.run ? 2.6 : 1.55) * (honey ? 0.5 : 1) * (P.coffee ? 1.12 : 1);
-      const acc = P.onGround ? (icy ? 0.045 : 0.11) : 0.07, fr = P.onGround ? (icy ? 0.012 : (honey ? 0.2 : 0.1)) : 0.02;
+      /* movement feel: snappy stops, quick turnarounds, real air control; ice stays slippery on purpose */
+      const max = (input.touchMode ? 2.15 : (input.run ? 2.3 : 1.5)) * (honey ? 0.5 : 1) * (P.coffee ? 1.12 : 1);
       const dir = P.wallJumpT > 0 ? 0 : (input.right ? 1 : 0) - (input.left ? 1 : 0);
+      const turning = dir !== 0 && Math.sign(P.vx) === -dir;
+      const acc = P.onGround ? (icy ? 0.05 : (turning ? 0.5 : 0.24)) : (turning ? 0.34 : 0.22), fr = P.onGround ? (icy ? 0.012 : (honey ? 0.25 : 0.34)) : 0.05;
       /* ground pound: tap down in the air */
       if (input.downEdge && !P.onGround && !P.climbing && !P.pound && !P.jetting) { P.pound = true; P.poundT = 9; P.vx = 0; P.vy = -1.5; A().sfx.poundStart(); P.sx = 0.8; P.sy = 1.2; }
       if (P.pound) {
@@ -192,7 +194,7 @@
           E.afterMove(); return;
         }
       }
-      if (dir) { P.vx += dir * acc; P.facing = dir; if (Math.abs(P.vx) > max) P.vx += (max * Math.sign(P.vx) - P.vx) * (icy ? 0.03 : 0.1); }
+      if (dir) { P.vx += dir * acc; P.facing = dir; if (Math.abs(P.vx) > max) P.vx += (max * Math.sign(P.vx) - P.vx) * (icy ? 0.03 : 0.25); }
       else { if (Math.abs(P.vx) < fr) P.vx = 0; else P.vx -= Math.sign(P.vx) * fr; }
       if (W.wind) { S.wind = Math.sin(S.frames / 240) * 0.05 + Math.sin(S.frames / 71) * 0.015; P.vx += S.wind * (P.onGround ? 0.35 : 1); }
       if (P.onGround) { P.coyote = 6; P.jumps = 0; } else if (P.coyote > 0) P.coyote--;

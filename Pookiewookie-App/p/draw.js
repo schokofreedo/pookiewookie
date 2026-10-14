@@ -1,7 +1,7 @@
 /* Pookiewookie: HD rendering. Parallax worlds, shaded tiles, chibi bears, every creature, weather, particles, HUD.
    Everything is drawn in logical 480x270 units; the backing store follows devicePixelRatio via G.draw.resize(). */
 (function () {
-  const G = window.PW = window.PW || {}, T = 16, VW = 480, VH = 270, MH = 15, OFFY = VH - MH * T, TAU = Math.PI * 2;
+  const G = window.PW = window.PW || {}, T = 16, VH = 270, MH = 15, OFFY = VH - MH * T, TAU = Math.PI * 2; let VW = G.VW || 480;   /* logical width follows the screen aspect (480..640) */
   let ctx = null, canvas = null, k = 1, sk = 1;
   const S = () => G.S, P = () => G.P, L = () => G.L, E = () => G.eng;
   const clamp = (v, a, b) => v < a ? a : (v > b ? b : v), mod = (a, n) => ((a % n) + n) % n, lerp = (a, b, t) => a + (b - a) * t;
@@ -848,7 +848,7 @@
   const GRADE = {wiese: 'rgba(255,170,210,.12)', insel: 'rgba(255,225,150,.12)', dschungel: 'rgba(110,200,120,.12)', schnee: 'rgba(170,205,255,.14)', lava: 'rgba(255,110,40,.16)', himmel: 'rgba(150,110,230,.16)'};
   function grade(W, s) {
     ctx.globalCompositeOperation = 'overlay'; ctx.fillStyle = s.room === 1 ? 'rgba(255,170,60,.18)' : (GRADE[W.key] || GRADE.wiese); ctx.fillRect(0, 0, VW, VH); ctx.globalCompositeOperation = 'source-over';
-    const vg = spr('vignette', VW, VH, (g) => { g.fillStyle = rad(g, '', VW / 2, VH / 2, VH * 0.45, VW * 0.72, [0, 'rgba(40,20,40,0)', 1, 'rgba(40,20,40,.42)']); g.fillRect(0, 0, VW, VH); }); blit(vg, 0, 0);
+    const vg = spr('vignette' + VW, VW, VH, (g) => { g.fillStyle = rad(g, '', VW / 2, VH / 2, VH * 0.45, VW * 0.72, [0, 'rgba(40,20,40,0)', 1, 'rgba(40,20,40,.42)']); g.fillRect(0, 0, VW, VH); }); blit(vg, 0, 0);
   }
 
   /* ================= HUD ================= */
@@ -861,11 +861,12 @@
     heartPath(ctx, 58, 14, 4.6); fs(ctx, '#ff6f9c', '#c9305f', 0.8); txt(ctx, String(s.hearts), 66, 14.5, 10, '#fff', 'left', '#7a3b57', 2.5);
     for (let i = 0; i < 3; i++) starIcon(100 + i * 14.5, 14.5, s.stars[i]);
     txt(ctx, String(s.score).padStart(6, '0'), 203, 14.5, 10, '#ffe9a8', 'right', '#7a3b57', 2.5);
-    panel(322, 5, 152, 19);
-    txt(ctx, 'Welt ' + (lv.wi + 1) + '-' + (lv.li + 1), 330, 14.5, 10, '#fff', 'left', '#7a3b57', 2.5);
+    const ox = VW - 480;   /* right panel hugs the right edge on wide screens */
+    panel(322 + ox, 5, 152, 19);
+    txt(ctx, 'Welt ' + (lv.wi + 1) + '-' + (lv.li + 1), 330 + ox, 14.5, 10, '#fff', 'left', '#7a3b57', 2.5);
     const low = s.time < 60, tc = low && (fr >> 4) % 2 ? '#ff6f9c' : (low ? '#ffb3c6' : '#fff');
-    fcirc(ctx, 422, 14.5, 4.6, 'rgba(255,255,255,.9)', '#7a3b57', 1); ctx.strokeStyle = '#7a3b57'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(422, 14.5); ctx.lineTo(422, 11.5); ctx.moveTo(422, 14.5); ctx.lineTo(424.2, 15.5); ctx.stroke();
-    txt(ctx, String(s.time), 468, 14.5, 10, tc, 'right', '#7a3b57', 2.5);
+    fcirc(ctx, 422 + ox, 14.5, 4.6, 'rgba(255,255,255,.9)', '#7a3b57', 1); ctx.strokeStyle = '#7a3b57'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(422 + ox, 14.5); ctx.lineTo(422 + ox, 11.5); ctx.moveTo(422 + ox, 14.5); ctx.lineTo(424.2 + ox, 15.5); ctx.stroke();
+    txt(ctx, String(s.time), 468 + ox, 14.5, 10, tc, 'right', '#7a3b57', 2.5);
     let boss = null; for (const e of G.ents) if (e.kind === 'boss' && e.active) { boss = e; break; }
     if (boss) { txt(ctx, boss.name, VW / 2, 32, 11, '#fff', 'center', '#7a3b57', 3); for (let i = 0; i < boss.maxHp; i++) { const hx = VW / 2 - boss.maxHp * 7 + i * 14 + 5; heartPath(ctx, hx, 45, 5); fs(ctx, i < boss.hp ? '#ff6f9c' : 'rgba(0,0,0,.35)', i < boss.hp ? '#c9305f' : 'rgba(255,255,255,.4)', 0.9); } }
   }
@@ -882,7 +883,9 @@
     frame() {
       if (!ctx) return;
       ctx.setTransform(k, 0, 0, k, 0, 0); ctx.imageSmoothingEnabled = true; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      VW = G.VW || 480;
       if (G.S.mode === 'dive' && G.dive && G.dive.frame) { G.dive.frame(ctx, k); return; }
+      if ((G.S.mode === 'brand' || G.S.mode === 'boot') && G.brand && G.brand.frame) { G.brand.frame(ctx, k); return; }
       const s = S(), p = P(), lv = L(); if (!lv) { ctx.fillStyle = '#ffc9dc'; ctx.fillRect(0, 0, VW, VH); return; }
       const W = lv.world, fr = s.frames, cam = s.cam, shx = s.shake > 0 ? (Math.random() - 0.5) * s.shake : 0, shy = s.shake > 0 ? (Math.random() - 0.5) * s.shake : 0;
       if (s.room === 1) drawCave(cam, fr); else drawBackground(W, cam, fr);
@@ -895,7 +898,9 @@
       for (const e of G.ents) { if (e.kind === 'bean' || e.kind === 'shot') continue; if (G.fx && G.fx.ent && G.fx.ent(ctx, e, fr)) continue; drawEnt(e, fr); }
       if (G.fx && G.fx.playerBack) G.fx.playerBack(ctx, p, fr);
       if (p.inv > 0 && (fr >> 2) % 2) ctx.globalAlpha = 0.4;
+      if (p.flip > 0) { ctx.save(); const fcx = p.x + p.w / 2, fcy = p.y + p.h / 2; ctx.translate(fcx, fcy); ctx.rotate(p.facing * (1 - p.flip) * Math.PI * 2); ctx.translate(-fcx, -fcy); }   /* double-jump somersault */
       drawBear(p.x, p.y, p.big, p.anim, p.facing, !p.onGround && !G.goalSeq && !p.climbing, false, false, p.sx, p.sy, p.gliding);
+      if (p.flip > 0) ctx.restore();
       ctx.globalAlpha = 1;
       if (G.fx && G.fx.playerFront) G.fx.playerFront(ctx, p, fr);
       for (const e of G.ents) { if (e.kind !== 'bean' && e.kind !== 'shot') continue; if (G.fx && G.fx.ent && G.fx.ent(ctx, e, fr)) continue; drawEnt(e, fr); }
