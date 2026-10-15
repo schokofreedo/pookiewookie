@@ -652,6 +652,17 @@
     if (HASH === '#voicetest') { A().init(); A().voiceCfg.on = true; const files = Object.values(G.VOICE_FILES || {}); Promise.all(files.map(f => A().loadVoice(f))).then(bufs => { const ok = bufs.filter(Boolean).length; console.log('VOICE_TEST decoded=' + ok + '/' + files.length + ' dur=' + bufs.filter(Boolean).reduce((a, b) => a + b.duration, 0).toFixed(1) + 's'); }); }
     (document.fonts ? document.fonts.load('bold 10px "Fredoka"').catch(() => {}) : Promise.resolve()).then(() => requestAnimationFrame(frame));
   }
+  /* techno disco reachability model (#flow): standing spots reachable from the pad (jump + double jump: up to 6 rows, 6 columns;
+     a bass speaker reaches everything above it), every heart within 4 columns and 6 rows above a reachable spot */
+  function discoCheck(cols, b) {
+    const at = (x, y) => (x < 0 || x > 29 || y < 0 || y > 14) ? '#' : cols[b.roomCol + x][y], sol = (x, y) => '#yqb?gX'.includes(at(x, y)), key = s => s[0] * 16 + s[1];
+    const stands = []; for (let x = 1; x <= 28; x++) for (let y = 1; y <= 12; y++) if (!sol(x, y) && sol(x, y + 1)) stands.push([x, y, at(x, y + 1) === 'b']);
+    const seen = new Set(), q = stands.filter(s => s[1] === 12 && at(s[0], 13) === 'q'); q.forEach(s => seen.add(key(s)));
+    while (q.length) { const s = q.pop(); for (const t of stands) { if (seen.has(key(t))) continue; const dx = Math.abs(t[0] - s[0]), rise = s[1] - t[1]; if (s[2] ? dx <= 5 : (rise <= 6 && dx <= (rise >= 0 ? 6 : 8))) { seen.add(key(t)); q.push(t); } } }
+    const reach = stands.filter(s => seen.has(key(s))), miss = []; let hearts = 0;
+    for (let x = 1; x <= 28; x++) for (let y = 1; y <= 12; y++) if (at(x, y) === 'o') { hearts++; if (!reach.some(s => Math.abs(s[0] - x) <= 4 && (s[2] || s[1] - y <= 6))) miss.push(x + ',' + y); }
+    return {hearts, miss, clawsOk: !sol(1, 6) && !sol(1, 7)};
+  }
   /* scripted mechanics checks for headless tests (#flow): bonus room, ground pound, cannon, capsule roulette and every gadget */
   function flowTest() {
     const log = (name, ok, info) => console.log('FLOW ' + (ok ? 'PASS' : 'FAIL') + ' ' + name + (info ? ' (' + info + ')' : ''));
@@ -661,11 +672,18 @@
     const load = idx => { S.wi = Math.floor(idx / 4); S.li = idx % 4; S.lives = 9; E.load(S.wi, S.li, false); S.mode = 'play'; hideAll(); clearIn(); };
     const findTile = (ch, row) => { for (let cx = 0; cx < G.L.mainW; cx++) if (G.L.cols[cx][row] === ch) return cx; return -1; };
     try {
-      load(1); const b = G.L.bonus; place(b.pipeCol * T + 2, b.pipeTop * T - 14); run(3); input.down = true; run(3);
-      log('room-enter', S.room === 1 && P.x > b.roomCol * T, 'room=' + S.room + ' x=' + P.x.toFixed(0) + ' cam=' + S.cam.toFixed(0));
-      clearIn(); run(45); let ex = -1; for (let cx = b.roomCol; cx < G.L.w; cx++) if (G.L.cols[cx][11] === 'P') { ex = cx; break; }
-      place(ex * T + 2, 11 * T - 14); run(3); input.down = true; run(3);
-      log('room-exit', S.room === 0 && Math.abs(P.x - (b.pipeCol * T + 2)) < 2 && !P.dead, 'room=' + S.room + ' x=' + P.x.toFixed(0) + ' exitCol=' + ex);
+      load(1); let b = G.L.bonus; place(b.pipeCol * T + 10, b.pipeTop * T - 14); run(3); input.down = true; run(3);
+      log('room-enter', S.room === 1 && P.x > b.roomCol * T && G.L.cols[b.pipeCol][13] === 'q', 'room=' + S.room + ' x=' + P.x.toFixed(0) + ' cam=' + S.cam.toFixed(0) + ' pad=' + b.pipeCol);
+      const bpmIn = A().cfg.bpm; run(60); const stayed = S.room === 1;   /* holding down on the arrival pad must not beam straight back */
+      clearIn(); run(45); let ex = -1; for (let cx = b.roomCol; cx < G.L.w; cx++) if (G.L.cols[cx][13] === 'q') { ex = cx; break; }
+      place(ex * T + 10, 13 * T - 14); run(3); input.down = true; run(3);
+      log('room-exit', S.room === 0 && Math.abs(P.x - (b.pipeCol * T + 10)) < 2 && !P.dead && stayed, 'room=' + S.room + ' x=' + P.x.toFixed(0) + ' exitCol=' + ex + ' stayedWhileHeld=' + stayed);
+      log('disco-music', bpmIn === 128 && A().cfg.bpm === G.L.world.music.bpm && A().cfg.pattern === G.L.world.music.pattern, 'in=' + bpmIn + ' out=' + A().cfg.bpm + '/' + G.L.world.music.bpm);
+      { const sig = () => { const bb = G.L.bonus; let s = ''; for (let x = 0; x < 30; x++) s += G.L.cols[bb.roomCol + x].join(''); return s; }; const s1 = sig(); load(1); const s2 = sig(); load(1); const s3 = sig(); log('disco-variety', s1 !== s2 || s2 !== s3, 'three loads, ' + new Set([s1, s2, s3]).size + ' different layouts'); }
+      { const N = 400, sets = {}, bad = []; let lo = 999, hi = 0, sum = 0;
+        for (let i = 0; i < N; i++) { const cols = []; for (let x = 0; x < 42; x++) cols.push(Array(15).fill('#')); const bb = G.discoRoom(cols, {roomCol: 6}), r = discoCheck(cols, bb); lo = Math.min(lo, r.hearts); hi = Math.max(hi, r.hearts); sum += r.hearts; bb.sets.forEach(k => { sets[k] = (sets[k] || 0) + 1; }); if (r.miss.length || !r.clawsOk || r.hearts < 30) bad.push(bb.sets.join('+') + ' pad' + bb.padCol + ' hearts=' + r.hearts + ' miss=' + r.miss.slice(0, 4).join(' ') + (r.clawsOk ? '' : ' claws')); }
+        log('disco-reach', !bad.length, 'rooms=' + N + ' hearts min/avg/max=' + lo + '/' + (sum / N).toFixed(0) + '/' + hi + ' sets=' + JSON.stringify(sets) + (bad.length ? ' bad=' + bad.length + ': ' + bad.slice(0, 3).join(' | ') : '')); }
+      load(1); b = G.L.bonus;
       load(0); const qx = findTile('?', 9); place(qx * T + 2, 5 * T); run(2); input.downEdge = true; run(1); const pounded = P.pound; run(70);
       log('ground-pound', pounded && G.L.cols[qx][9] === 'X' && S.hearts === 1 && P.onGround, 'pound=' + pounded + ' tile=' + G.L.cols[qx][9] + ' hearts=' + S.hearts);
       load(0); const gx = findTile('g', 9); place(gx * T + 2, 13 * T - 14); run(2); input.jumpEdge = true; input.jump = true; run(12); clearIn(); run(110);
@@ -896,6 +914,8 @@
       if (P.onGround && jumpHold > 0 && jumpHold < 15) jumpHold = 0;
       if (need && jumpHold <= 0 && P.onGround) { input.jumpEdge = true; input.jumpKeyEdge = true; jumpHold = 18; }
       input.jump = jumpHold > 0; if (jumpHold > 0) jumpHold--;
+      /* falling against a ledge just ahead (a wall down to the ground, its top at the feet): double-jump onto it instead of landing in front of it */
+      if (!P.onGround && P.vy > 0.5 && (P.jumps || 0) <= 1 && !P.pound && !P.cannon && P.launch <= 0 && !boss && !P.wallSlide && P.wallCoyote <= 0 && solidAt(fx, Math.floor((P.y + P.h - 2) / T)) && !solidAt(fx, Math.floor((P.y + P.h - 2) / T) - 1) && !solidAt(fx, Math.floor((P.y - 18) / T))) { let floorBelow = false; for (let r = Math.floor((P.y + P.h) / T); r <= 13 && !floorBelow; r++) floorBelow = solidAt(Math.floor((P.x + 6) / T), r); let wall = true; for (let r = Math.floor((P.y + P.h - 2) / T); r <= 13 && wall; r++) wall = solidAt(fx, r); if (floorBelow && wall) { input.jumpEdge = true; input.jumpKeyEdge = true; jumpHold = 18; } }
       /* a human would double-jump when falling into a gap: the bot does too */
       if (!P.onGround && P.vy > 1.2 && P.jumps === 1 && !P.pound && !P.cannon) { const bx = Math.floor((P.x + 6) / T), by = Math.floor((P.y + P.h + 10) / T); const platBelow = G.ents.some(e => (e.kind === 'platformH' || e.kind === 'platformV') && P.x + P.w > e.x && P.x < e.x + e.w && e.y > P.y + P.h && e.y - (P.y + P.h) < 48); let pit = true; for (let r = Math.floor((P.y + P.h) / T); r <= 14; r++) { const tt = tileAt(bx, r), tt2 = tileAt(bx + (P.vx > 0 ? 1 : -1), r); if (solidAt(bx, r) || tt === '~' || solidAt(bx + (P.vx > 0 ? 1 : -1), r)) { pit = tt === '~' && tt2 === '~'; break; } } if (pit && !platBelow) { input.jumpEdge = true; input.jumpKeyEdge = true; } }
       if (tileAt(Math.floor((P.x + 6) / T), Math.floor((P.y + 4) / T)) === 'v' && !P.climbing) { input.up = true; } else input.up = P.climbing;

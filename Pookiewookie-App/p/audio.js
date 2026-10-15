@@ -156,6 +156,8 @@
         if (b) this.tone(midi(this.deg(b, minor) - 12 + cfg.transpose), s16 * (cfg.bass === 'square' ? 1.5 : 5), {type: cfg.bass, gain: cfg.bass === 'square' ? 0.07 : 0.14, delay: dl, attack: 0.02}, this.music);
         if (cfg.perc >= 1 && i % 4 === 2) this.noise(0.04, {type: 'highpass', freq: 6000, gain: 0.04, delay: dl}, this.music);
         if (cfg.perc >= 2 && i % 8 === 0) this.noise(0.08, {type: 'lowpass', freq: 250, gain: 0.16, delay: dl}, this.music);
+        if (cfg.perc >= 3 && i % 4 === 0) this.tone(150, 0.16, {type: 'sine', slide: 42, slideDur: 0.12, gain: 0.32, delay: dl, attack: 0.002}, this.music);   /* techno: a kick on every beat (four on the floor) */
+        if (cfg.perc >= 3 && i % 4 === 2) this.noise(0.05, {type: 'highpass', freq: 8000, gain: 0.07, delay: dl}, this.music);
         if (cfg.perc >= 2 && i % 8 === 4) this.noise(0.06, {type: 'bandpass', freq: 1800, q: 1.5, gain: 0.1, delay: dl}, this.music);
         if (cfg.perc === 0 && i % 8 === 4) this.noise(0.05, {type: 'highpass', freq: 7000, gain: 0.025, delay: dl}, this.music);
         this.nextT += s16; this.step++;

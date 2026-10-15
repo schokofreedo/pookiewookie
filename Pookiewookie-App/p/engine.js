@@ -3,7 +3,7 @@
   const G = window.PW = window.PW || {}, A = () => G.audio;
   const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const T = G.T = 16, VH = G.VH = 270, MH = G.MH = 15; G.VW = G.VW || 480; G.OFFY = VH - MH * T;
-  const SOLID = new Set(['#', '=', '?', '!', 'X', 'n', '|', 's', 'i', 'b', 'c', 'Z', 'g', 'P', '@', '&', 'z']);
+  const SOLID = new Set(['#', '=', '?', '!', 'X', 'n', '|', 's', 'i', 'b', 'c', 'Z', 'g', 'q', 'y', '@', '&', 'z']);
   const S = G.S = {mode: 'title', wi: 0, li: 0, lives: 4, score: 0, hearts: 0, time: 300, timeAcc: 0, cam: 0, frames: 0, shake: 0, voiceT: 8, stars: [false, false, false], checkpoint: null, bossActive: false, gateOpen: false, wind: 0, camLock: null, room: 0, honey: 0, flash: 0};
   const P = G.P = {x: 0, y: 0, vx: 0, vy: 0, w: 12, h: 14, big: false, coffee: false, wings: false, onGround: false, facing: 1, inv: 0, dead: false, deathT: 0, anim: 0, throwT: 0, ground: 'meadow', coyote: 0, jumpBuf: 0, climbing: false, sx: 1, sy: 1, gliding: false, wasGround: false,
     gadget: null, gadT: 0, fuel: 0, jetting: false, wallSlide: false, wallDir: 0, wallCoyote: 0, wallJumpT: 0, pound: false, poundT: 0, poundLand: false, launch: 0, cannon: null, cannonCd: 0, combo: 0, pipeCd: 0, hidden: false};
@@ -16,7 +16,8 @@
       const src = custom || G.buildLevel(wi, li);
       const W0 = (custom && custom.worldDef) || G.WORLDS[wi], skin = W0.skins ? (W0.skins[src.hub || src.rocket ? 0 : li] || null) : null;
       const world = skin ? Object.assign({}, W0, skin) : W0;   /* planets: own palette, sky and gravity on top of the world */
-      L = G.L = {w: src.cols.length, wi, li, world, tower: src.tower, name: src.name, sub: src.sub, par: src.par, cols: src.cols.map(c => c.slice()), rescued: false, starXs: [], h: src.cols[0] ? src.cols[0].length : MH, deep: src.deep || null, vchunks: src.vchunks || [], pz: src.pz ? Object.assign({}, src.pz) : null, waterfall: src.waterfall || null, bonus: src.bonus || null, puzzle: src.puzzle ? Object.assign({progress: 0, solved: false, lit: [0, 0, 0, 0], demo: null, demoCd: 0}, src.puzzle) : null, mainW: src.bonus ? src.bonus.roomCol : (src.puzzle ? src.puzzle.roomCol : src.cols.length), hub: !!src.hub, rocket: !!src.rocket, daily: src.daily || null, event: src.event || null, grav: (skin && skin.grav) || 1};
+      L = G.L = {w: src.cols.length, wi, li, world, tower: src.tower, name: src.name, sub: src.sub, par: src.par, cols: src.cols.map(c => c.slice()), rescued: false, starXs: [], h: src.cols[0] ? src.cols[0].length : MH, deep: src.deep || null, vchunks: src.vchunks || [], pz: src.pz ? Object.assign({}, src.pz) : null, waterfall: src.waterfall || null, bonus: src.bonus ? Object.assign({}, src.bonus) : null, puzzle: src.puzzle ? Object.assign({progress: 0, solved: false, lit: [0, 0, 0, 0], demo: null, demoCd: 0}, src.puzzle) : null, mainW: src.bonus ? (src.bonus.mainW || src.bonus.roomCol) : (src.puzzle ? src.puzzle.roomCol : src.cols.length), hub: !!src.hub, rocket: !!src.rocket, daily: src.daily || null, event: src.event || null, grav: (skin && skin.grav) || 1};
+      if (L.bonus && L.bonus.props && G.discoRoom) G.discoRoom(L.cols, L.bonus);   /* the techno disco gets a new layout on every load (also after a death) */
       P.skydive = false; P.victory = false; S.outfit = S.outfitOverride || W0.key;
       G.ents = []; G.parts = []; G.bumps = []; G.crumbles = []; G.goalSeq = null;
       S.bossActive = false; S.gateOpen = false; S.camLock = null; S.wind = 0; S.room = 0; S.honey = 0; S.flash = 0;
@@ -133,13 +134,39 @@
       for (let cx = x0; cx <= x1; cx++) { const ch = E.tileAt(cx, cy); if (ch === '?' || ch === '!' || ch === 'g' || (ch === '=' && P.big)) E.bump(cx, cy); }
       for (const e of G.ents) if (e.alive && e.stompable !== undefined && e.kind !== 'boss' && Math.abs(e.x + e.w / 2 - (P.x + 6)) < 34 && Math.abs(e.y + e.h - (P.y + P.h)) < 20) E.kill(e, true, e.points || 100);
     },
-    /* bonus rooms: enter via a golden pipe ('P'), the room lives at the far right of the level */
+    /* bonus rooms: the teleporter pad ('q') beams Toffo into the techno disco at the far right of the level (the old puzzle room used a pipe) */
     room(n) { return n === 1 ? L.bonus : (n === 2 ? L.puzzle : null); },
+    roomCam(rm) { const a = rm.roomCol * T, b = (rm.roomEnd || L.w) * T - G.VW; return b < a ? (a + b) / 2 : Math.max(a, Math.min(b, P.x - G.VW * 0.42)); },   /* wide screens: the box sits centred between the club walls */
     enterRoom(n) {
       const rm = E.room(n || S.room); if (!rm) return;
-      S.room = n; P.vx = 0; P.vy = 0; P.pipeCd = 40; S.flash = 1; A().sfx.pipe(); P.climbing = false; P.pound = false;
-      if (n) { P.x = (rm.roomCol + 2) * T + 2; P.y = 13 * T - P.h; S.cam = rm.roomCol * T; E.toast(n === 2 ? tr('Rätselkammer!', 'Puzzle room!') : tr('Bonusraum!', 'Bonus room!')); if (n === 2) { G.flow.speak('A puzzle! Let me think...', {happy: true}); if (L.puzzle.kind === 'melody' && !L.puzzle.solved) E.puzzleDemo(); } }
-      else { P.x = rm.pipeCol * T + 2; P.y = rm.pipeTop * T - P.h; S.cam = Math.max(0, Math.min(L.mainW * T - G.VW, P.x - G.VW * 0.42)); }
+      const disco = rm === L.bonus;
+      S.room = n; P.vx = 0; P.vy = 0; P.pipeCd = 40; P.padHold = true; S.flash = disco ? 0.85 : 1; P.climbing = false; P.pound = false;
+      if (!disco) A().sfx.pipe(); else E.teleSound(!!n);
+      if (n) {
+        P.x = disco ? (rm.roomCol + rm.padCol) * T + 10 : (rm.roomCol + 2) * T + 2; P.y = 13 * T - P.h; S.cam = E.roomCam(rm);
+        E.toast(n === 2 ? tr('Rätselkammer!', 'Puzzle room!') : tr('Techno-Disco!', 'Techno disco!'));
+        if (n === 2) { G.flow.speak('A puzzle! Let me think...', {happy: true}); if (L.puzzle.kind === 'melody' && !L.puzzle.solved) E.puzzleDemo(); }
+      } else { P.x = rm.pipeCol * T + (disco ? 10 : 2); P.y = rm.pipeTop * T - P.h; S.cam = Math.max(0, Math.min(L.mainW * T - G.VW, P.x - G.VW * 0.42)); }
+      if (disco) {
+        E.teleFx(P.x + P.w / 2, P.y + P.h);
+        /* the music: a 128 BPM techno groove in the club, the level's own tune again outside */
+        const a = A(); a.setWorld(n ? Object.assign({bpm: 128, lead: 'synth', bass: 'square', perc: 3}, rm.music || {pattern: 1, transpose: 0}) : L.world.music);
+        if (a.playing) { a.stopMusic(); a.startMusic(); }
+      }
+    },
+    /* beam-in: a shrinking light column, neon sparks, a ring on the floor; Toffo appears stretched and fades in */
+    teleFx(x, y) {
+      G.parts.push({kind: 'tbeam', x, y, t: 0.6, float: true, vx: 0, vy: 0});
+      G.parts.push({kind: 'ring', x, y, t: 0.35, float: true, vx: 0, vy: 0});
+      for (let i = 0; i < 20; i++) G.parts.push({kind: 'spark', x: x + (Math.random() - 0.5) * 22, y: y - Math.random() * 34, vx: (Math.random() - 0.5) * 1.4, vy: -0.4 - Math.random() * 1.8, t: 0.45 + Math.random() * 0.45, float: true, col: ['#5ff6ff', '#ff6fd8', '#c9a0ff', '#ffffff'][i % 4]});
+      P.tele = 24; P.sx = 0.35; P.sy = 1.9;
+    },
+    teleSound(up) {
+      const a = A(); if (!a.ctx) return;
+      if (up) { a.tone(180, 0.5, {type: 'sawtooth', slide: 1400, slideDur: 0.42, gain: 0.04}); a.tone(360, 0.5, {type: 'triangle', slide: 2200, slideDur: 0.42, gain: 0.09}); }
+      else { a.tone(1400, 0.45, {type: 'sawtooth', slide: 160, slideDur: 0.4, gain: 0.04}); a.tone(2000, 0.45, {type: 'triangle', slide: 330, slideDur: 0.4, gain: 0.08}); }
+      a.noise(0.5, {type: 'bandpass', freq: up ? 500 : 5000, freqTo: up ? 5000 : 500, q: 2.5, gain: 0.07});
+      [1319, 1760, 2349, 3136].forEach((f, i) => a.bell(up ? f : f * 0.75, 0.32, 0.055, 0.3 + i * 0.05));
     },
     /* ---------- puzzle room: ring the four bells in the right order ---------- */
     ringBell(cx) {
@@ -167,7 +194,7 @@
       if (G.gad) G.gad.update();
       /* at the puzzle station: the up key (not the jump key) or down opens the puzzle instead of jumping */
       if (P.onGround && L.pz && G.flow.openPuzzle && E.nearStation() && ((input.up && input.jumpEdge && !input.jumpKeyEdge && !input.touchMode) || input.downEdge)) { input.jumpEdge = false; input.downEdge = false; input.up = false; input.jump = false; P.jumpBuf = 0; G.flow.openPuzzle(L.pz.id, () => E.openPzGate()); return; }
-      if (P.cannonCd > 0) P.cannonCd--; if (P.pipeCd > 0) P.pipeCd--; if (P.wallJumpT > 0) P.wallJumpT--;
+      if (P.cannonCd > 0) P.cannonCd--; if (P.pipeCd > 0) P.pipeCd--; if (P.wallJumpT > 0) P.wallJumpT--; if (P.tele > 0) P.tele--;
       if (P.flip > 0) { P.flip = Math.max(0, P.flip - 1 / 26); if (P.onGround) P.flip = 0; }
       /* inside a honey cannon: wait, then fly */
       if (P.cannon) { const e = P.cannon; e.loadT -= 1 / 60; P.x = e.x + 4; P.y = e.y; P.vx = P.vy = 0; if (e.loadT <= 0) E.fireCannon(e); return; }
@@ -258,8 +285,9 @@
         if (L.arenaX && !S.bossActive && !S.gateOpen && !L.bossDone && P.x >= L.arenaX) G.entsMod.bossStart();
         if (L.doorX && S.gateOpen && P.x + P.w / 2 >= L.doorX + 6) E.startDoor();
       }
-      /* golden pipes lead into and out of the bonus room */
-      if ((L.bonus || L.puzzle) && input.down && P.onGround && P.pipeCd <= 0 && !P.pound) { const pc = Math.floor((P.x + P.w / 2) / T), pr = Math.floor((P.y + P.h + 1) / T), ch = E.tileAt(pc, pr); if (ch === 'P' && L.bonus) { E.enterRoom(S.room ? 0 : 1); return; } if (ch === '&' && L.puzzle) { E.enterRoom(S.room ? 0 : 2); return; } }
+      /* the teleporter pad beams into and out of the disco (down must be let go between two beams) */
+      if (!input.down) P.padHold = false;
+      if ((L.bonus || L.puzzle) && input.down && P.onGround && P.pipeCd <= 0 && !P.pound) { const pc = Math.floor((P.x + P.w / 2) / T), pr = Math.floor((P.y + P.h + 1) / T), ch = E.tileAt(pc, pr); if (ch === 'q' && L.bonus && !P.padHold) { E.enterRoom(S.room ? 0 : 1); return; } if (ch === '&' && L.puzzle) { E.enterRoom(S.room ? 0 : 2); return; } }
       if (P.throwT > 0) P.throwT -= 1 / 60;
       if (P.coffee && input.runEdge && P.throwT <= 0 && G.ents.filter(e => e.kind === 'bean' && e.alive).length < 2) { P.throwT = 0.25; A().sfx.throwBean(); G.ents.push({kind: 'bean', x: P.x + (P.facing > 0 ? P.w : -6), y: P.y + 6, w: 6, h: 6, vx: P.facing * 3.8, vy: -1, alive: true, t: 3}); }
       /* honey blaster: the gadget, or the boss weapon (faster, aims at the boss in front of Toffo, holding Shift auto-fires) */
@@ -329,7 +357,7 @@
       let target = P.x + P.facing * 20 - G.VW * 0.42;
       if (S.camLock) target = S.camLock;
       const rm = E.room(S.room), minX = rm ? rm.roomCol * T : 0, maxX = rm ? (rm.roomEnd || L.w) * T - G.VW : L.mainW * T - G.VW;
-      S.cam += (Math.max(minX, Math.min(maxX, target)) - S.cam) * 0.12;
+      S.cam += ((rm && maxX < minX ? (minX + maxX) / 2 : Math.max(minX, Math.min(maxX, target))) - S.cam) * 0.12;   /* a room narrower than the screen stays centred */
       if (S.flash > 0) S.flash = Math.max(0, S.flash - 0.04);
       /* the camera follows downwards in deep sections (caves, waterfalls) and stays on the band elsewhere */
       let ty = 0; if (L.h > MH && !S.room && (E.isDeep(Math.floor((P.x + P.w / 2) / T)) || P.y + P.h > MH * T + 8)) ty = P.y + P.h / 2 - MH * T * 0.55;

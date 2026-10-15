@@ -1,6 +1,6 @@
 /* The Starway Home: level generator. 24 levels (6 worlds x 4), assembled from hand-designed chunks with a fixed seed each,
    difficulty rising with the level index. Tower levels (4th of each world) end in a boss arena.
-   Tile legend (rows 0..14): '#' ground, '=' block, '?' heart box, '!' power box, 'X' used box, 'n' pipe rim, '|' pipe body,
+   Tile legend (rows 0..14): '#' ground, '=' block, '?' heart box, '!' power box, 'X' used box, 'n' pipe rim, '|' pipe body, 'q' teleporter pad, 'y' disco block,
    '~' liquid hazard, 's' slow ground, 'i' ice, 'o' heart, '*' star cookie, 'F' goal post, 'W' tower door, 'Z' boss gate (solid until the boss falls),
    'R' start, 'K' checkpoint, 'v' vine (climbable), 'b' bouncy mushroom, 'c' crumbling platform, 'A' arena marker,
    entities: 'E' walker, 'G' flyer, 'M' spiky, 'S' pipe hazard, 'C' horizontal platform, 'V' vertical platform, 'T' thrower, 'J' liquid jumper, 'D' dropper, 'B' boss,
@@ -10,6 +10,112 @@
   const H = 15;
   function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
   const empty = () => Array(H).fill('-');
+
+  /* ---------- the techno disco (bonus room): a new layout on every load (Math.random, not the level seed) ----------
+     A 30x15 box (walls, ceiling row 0, floor rows 13-14). The teleporter pad sits in the floor (left, centre or right), the rest
+     is split into two or three zones with different set pieces: equalizer bars, speaker stairs, a DJ booth, a bass trampoline,
+     an LED pyramid, hanging neon bars, plus heart shapes. Solid set pieces are 'y' tiles; b.props tells draw.js how to paint them.
+     Jump + double jump reach every heart (checked by #flow 'disco-reach'). */
+  const PATS = {
+    heart: ['.oo.oo.', 'ooooooo', 'ooooooo', '.ooooo.', '..ooo..', '...o...'],
+    mini: ['oo.oo', 'ooooo', '.ooo.', '..o..'],
+    diamond: ['..o..', '.ooo.', 'ooooo', '.ooo.', '..o..'],
+    ring: ['.ooo.', 'o...o', 'o...o', 'o...o', '.ooo.'],
+    notes: ['.oooo', '.o..o', '.o..o', 'oo.oo', 'oo.oo'],
+    arrow: ['..o..', '.ooo.', 'o.o.o', '..o..', '..o..'],
+    star: ['..o..', 'ooooo', '.ooo.', '.o.o.', 'o...o'],
+    smile: ['.o...o.', '.......', 'o.....o', '.o...o.', '..ooo..'],
+  };
+  const DISCO_MUSIC = [{pattern: 1, transpose: 0}, {pattern: 1, transpose: -3}, {pattern: 3, transpose: 2}, {pattern: 0, transpose: 2}];
+  function discoRoom(cols, b) {
+    const R = Math.random, ri = n => Math.floor(R() * n), pick = a => a[ri(a.length)], x0 = b.roomCol, props = b.props = [], busy = new Set();
+    const at = (x, y) => cols[x0 + x][y];
+    const free = (x, y) => x >= 1 && x <= 28 && y >= 1 && y <= 12 && at(x, y) === '-' && !busy.has(x * 16 + y);
+    const set = (x, y, ch) => { if (x >= 1 && x <= 28 && y >= 1 && y <= 12) cols[x0 + x][y] = ch; };
+    /* reach: from a spot to stand on, jump + double jump touch hearts up to 6 rows higher and 4 columns aside; a bass speaker reaches the ceiling */
+    const sol = (x, y) => x < 1 || x > 28 || y < 1 || y > 12 || '#yqb?gX'.includes(at(x, y));
+    const reach = (x, y) => { for (let c = Math.max(1, x - 4); c <= Math.min(28, x + 4); c++) for (let s = 1; s <= 12; s++) if (!sol(c, s) && sol(c, s + 1)) { if (s + 1 <= 12 && at(c, s + 1) === 'b') return true; if (s - y <= 6) return true; break; } return false; };
+    const heart = (x, y) => { if (free(x, y) && reach(x, y)) cols[x0 + x][y] = 'o'; };
+    const solid = (k, x, y, w, h, o) => { for (let i = 0; i < w; i++) for (let j = 0; j < h; j++) set(x + i, y + j, 'y'); props.push(Object.assign({k, x, y, w, h, hue: ri(24)}, o)); };
+    const fits = (pat, x, y) => {   /* free, reachable, and a one-tile gap to other hearts so every shape stays readable */
+      const pw = pat[0].length, ph = pat.length;
+      for (let j = -1; j <= ph; j++) for (let i = -1; i <= pw; i++) { const X = x + i, Y = y + j; if (i >= 0 && j >= 0 && i < pw && j < ph) { if (!free(X, Y) || (pat[j][i] === 'o' && !reach(X, Y))) return false; } else if (X >= 1 && X <= 28 && Y >= 1 && Y <= 12 && at(X, Y) === 'o') return false; }
+      return true;
+    };
+    const stamp = (pat, x, y) => pat.forEach((row, j) => { for (let i = 0; i < row.length; i++) if (row[i] === 'o') heart(x + i, y + j); });
+    const place = (pat, a, w, y0, y1) => { const pw = pat[0].length; for (let k = 0; k < 40; k++) { const x = a + ri(Math.max(1, w - pw + 1)), y = y0 + ri(Math.max(1, y1 - y0 + 1)); if (fits(pat, x, y)) { stamp(pat, x, y); return true; } } return false; };
+    for (let x = 1; x <= 28; x++) { for (let y = 1; y <= 12; y++) cols[x0 + x][y] = '-'; cols[x0 + x][13] = '#'; }
+    /* the pad: two tiles in the floor; its light column stays free */
+    const px = pick([3, 13, 25]); cols[x0 + px][13] = 'q'; cols[x0 + px + 1][13] = 'q'; b.padCol = px;
+    for (let x = px - 1; x <= px + 2; x++) for (let y = 8; y <= 12; y++) busy.add(x * 16 + y);
+    const ARCH = {
+      eq(a, w) {   /* equalizer bars of different heights, hearts on top */
+        const bw = w >= 11 && R() < 0.45 ? 2 : 1, n = Math.floor((w + 1) / (bw + 1)), off = a + Math.floor((w - (n * (bw + 1) - 1)) / 2), ph = R() * 6.3, fq = 0.55 + R() * 0.7;
+        for (let i = 0; i < n; i++) {
+          const h = Math.max(1, Math.min(4, Math.round(2.4 + Math.sin(ph + i * fq) * 1.7 + (R() - 0.5) * 0.8))), x = off + i * (bw + 1);
+          solid('eq', x, 13 - h, bw, h); for (let k = 0; k < bw; k++) { heart(x + k, 12 - h); if (h >= 2) heart(x + k, 11 - h); }
+          if (i < n - 1 && R() < 0.5) heart(x + bw, 12);
+        }
+        if (R() < 0.5) for (let x = a; x < a + w; x++) heart(x, 5 + Math.round(Math.sin(x * 0.9 + ph)));
+        else place(pick([PATS.mini, PATS.diamond, PATS.arrow, PATS.smile]), a, w, 1, 4);
+      },
+      speakers(a, w) {   /* a speaker stack on the floor, then hanging speaker boxes stepping up */
+        const dir = R() < 0.5 ? 1 : -1, n = w >= 11 ? 3 : 2; let x = dir > 0 ? a : a + w - 2, y = 11;
+        solid('spk', x, 11, 2, 2); heart(x, 10); heart(x + 1, 10);
+        for (let s = 0; s < n; s++) { const nx = x + dir * (3 + (w >= 12 ? ri(2) : 0)); if (nx < Math.max(a, 2) || nx + 1 > a + w - 1) break; x = nx; y -= 3; solid('spk', x, y, 2, 2, {hang: true}); heart(x, y - 1); heart(x + 1, y - 1); }
+        place(pick([PATS.ring, PATS.diamond, PATS.notes, PATS.mini]), a, w, 1, 6);
+      },
+      booth(a, w) {   /* the DJ booth on a stage, a neon bar above it, music in the air */
+        const sw = Math.min(w - 2, 6 + ri(3)), sx = a + Math.floor((w - sw) / 2);
+        solid('stage', sx, 11, sw, 2); props.push({k: 'dj', x: sx, y: 11, w: sw, h: 0, hue: ri(24)});
+        heart(sx, 10); heart(sx + sw - 1, 10);
+        const bw = Math.min(4, sw - 2), bx = sx + Math.floor((sw - bw) / 2);
+        solid('bar', bx, 7, bw, 1, {hang: true}); for (let i = 0; i < bw; i++) heart(bx + i, 6);
+        place(pick([PATS.notes, PATS.mini, PATS.smile, PATS.diamond]), a, w, 1, 1);
+      },
+      bass(a, w) {   /* a bass speaker trampoline shoots Toffo up to a big heart shape */
+        const bx = a + Math.floor(w / 2) - 1; set(bx, 12, 'b'); set(bx + 1, 12, 'b'); props.push({k: 'bass', x: bx, y: 12, w: 2, h: 1, hue: ri(24)});
+        const pat = pick(w >= 8 ? [PATS.heart, PATS.ring, PATS.diamond, PATS.star, PATS.smile] : [PATS.ring, PATS.diamond, PATS.star, PATS.mini]);
+        stamp(pat, bx + 1 - Math.floor(pat[0].length / 2), 1 + ri(2));
+        heart(bx - 1, 9); heart(bx + 2, 9); heart(bx - 2, 11); heart(bx + 3, 11);
+      },
+      steps(a, w) {   /* an LED cube pyramid with an arrow or a diamond over the top */
+        const n = Math.min(w - 1, 7 + (w >= 10 ? 2 : 0)), sx = a + Math.floor((w - n) / 2);
+        for (let i = 0; i < n; i++) { const h = Math.min(4, 1 + Math.min(i, n - 1 - i)); solid('cube', sx + i, 13 - h, 1, h); heart(sx + i, 12 - h); }
+        place(pick([PATS.arrow, PATS.diamond, PATS.mini, PATS.star]), sx, n, 2, 3);
+      },
+      bars(a, w) {   /* hanging neon bars zig-zag up, hearts on top of each */
+        const span = Math.min(w, 10), xL = a + Math.floor((w - span) / 2), xR = xL + span - 3, left = R() < 0.5;
+        [11, 8, 5].forEach((y, i) => { const x = ((i % 2 === 0) === left) ? xL : xR; solid('bar', x, y, 3, 1, {hang: y < 11}); for (let k = 0; k < 3; k++) heart(x + k, y - 1); });
+        place(pick([PATS.mini, PATS.smile, PATS.diamond]), a, w, 1, 1);
+      },
+    };
+    const MINW = {eq: 6, speakers: 7, booth: 8, bass: 5, steps: 7, bars: 7};
+    /* the floor beside the pad is split into two or three zones (one free column between them), each gets a different set piece */
+    const spans = px === 3 ? [[6, 23]] : (px === 13 ? [[1, 11], [16, 13]] : [[1, 23]]), zones = [];
+    for (const [a, w] of spans) {
+      if (w >= 20 && R() < 0.45) { const w1 = 7 + ri(2), w2 = 7 + ri(2); zones.push([a, w1 - 1], [a + w1, w2 - 1], [a + w1 + w2, w - w1 - w2]); }
+      else if (w >= 20) { const w1 = 9 + ri(w - 17); zones.push([a, w1 - 1], [a + w1, w - w1]); }
+      else zones.push([a, w]);
+    }
+    const pool = Object.keys(ARCH); for (let i = pool.length - 1; i > 0; i--) { const j = ri(i + 1); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    b.sets = [];
+    for (const [a, w] of zones) { const k = pool.find(k => MINW[k] <= w && !b.sets.includes(k)) || 'eq'; b.sets.push(k); ARCH[k](a, w); }
+    /* a gift over free floor (most of the time): a gadget capsule or a heart box */
+    const gift = R(); if (gift < 0.85) { const spots = []; for (let x = 2; x <= 27; x++) { let ok = at(x, 13) === '#'; for (let y = 8; y <= 12 && ok; y++) ok = free(x, y); if (ok) spots.push(x); } if (spots.length) set(pick(spots), 9, gift < 0.5 ? 'g' : '?'); }
+    heart(px - 1, 7); heart(px, 6); heart(px + 1, 6); heart(px + 2, 7);   /* a little arc over the pad */
+    /* more shapes wherever they fit and can be reached */
+    const extra = [PATS.heart, PATS.mini, PATS.diamond, PATS.ring, PATS.notes, PATS.arrow, PATS.star, PATS.smile];
+    for (let k = 0, n = 3 + ri(2); k < 30 && n > 0; k++) if (place(pick(extra), 1, 28, 1, 8)) n--;
+    /* still a small room? heart arcs over the free stretches of the dance floor */
+    let cnt = 0; for (let x = 1; x <= 28; x++) for (let y = 1; y <= 12; y++) if (at(x, y) === 'o') cnt++;
+    for (let x = 1; x <= 26 && cnt < 48; x++) { let n = 0; while (x + n <= 28 && free(x + n, 12) && free(x + n, 11) && free(x + n, 10) && at(x + n, 13) === '#') n++; for (let s = 0; n - s >= 3; s += 6) { const len = Math.min(5, n - s); for (let i = 0; i < len; i++) { const y = 11 - Math.round(Math.sin((i + 0.5) / len * Math.PI) * 1.4); if (free(x + s + i, y)) { cols[x0 + x + s + i][y] = 'o'; cnt++; } } } x += n; }
+    /* the look: palette, LED wall program, floor program, disco ball, lasers, music */
+    b.theme = ri(4); b.wall = ri(4); b.floor = ri(3); b.ball = 6 + ri(18); b.ballLen = 18 + ri(14); b.lasers = R() < 0.75; b.music = pick(DISCO_MUSIC);
+    b.hearts = 0; for (let x = 1; x <= 28; x++) for (let y = 1; y <= 12; y++) if (at(x, y) === 'o') b.hearts++;
+    return b;
+  }
+  G.discoRoom = discoRoom;
 
   function build(wi, li, seedExtra, Wover) {
     const W = Wover || G.WORLDS[wi], d = Math.min(23, Math.round((wi * 4 + li) * 0.66)), tower = li === 3;
@@ -156,46 +262,19 @@
       ground(3, {hearts: true});
     };
     let bonus = null;
-    const bonusPipe = () => {    // a golden pipe (rim 'P'); press down on it to visit the bonus room
+    const bonusPipe = () => {    // a teleporter pad ('q', two tiles flush in the ground); press down on it to beam into the techno disco
       ground(3, {hearts: true}); const col = cols.length;
-      for (let k = 0; k < 2; k++) { const c = groundBase(); c[11] = 'P'; c[12] = '|'; push(c); }
-      bonus = {pipeCol: col, pipeTop: 11}; ground(3);
+      for (let k = 0; k < 2; k++) { const c = groundBase(); c[13] = 'q'; push(c); }
+      bonus = {pipeCol: col, pipeTop: 13}; reserve(col - 1, col + 3); ground(3);
     };
-    const ROOMS = [[
-      '##############################',
-      '#............................#',
-      '#............................#',
-      '#............................#',
-      '#.......oo...oo..............#',
-      '#......oooo.oooo.............#',
-      '#..==..ooooooooo..==....g....#',
-      '#.......ooooooo..............#',
-      '#........ooooo...............#',
-      '#.==......ooo.......==.===...#',
-      '#..........o.................#',
-      '#.?.......................PP.#',
-      '#.........................||.#',
-      '##############################',
-      '##############################'], [
-      '##############################',
-      '#............................#',
-      '#............................#',
-      '#......oo.........oo.........#',
-      '#.....oooo.......oooo........#',
-      '#.....oooooooooooooo....==...#',
-      '#......oooooooooooo..........#',
-      '#.==...oo..oooo..oo..........#',
-      '#......oooooooooooo.....g....#',
-      '#.......oooo..oooo...........#',
-      '#.........oooooo....==.===...#',
-      '#.?.........oo............PP.#',
-      '#.........................||.#',
-      '##############################',
-      '##############################']];
-    const bonusRoom = () => {    // appended after the level end; the camera is locked to this screen while inside
-      const room = ROOMS[(wi + li) % ROOMS.length]; bonus.roomCol = cols.length;
-      for (let x = 0; x < 40; x++) { const c = empty(); for (let y = 0; y < H; y++) { const ch = x < 30 ? room[y][x] : '#'; c[y] = ch === '.' ? '-' : ch; } push(c); }   /* 10 wall columns on the right: wide screens see rock, not the level */
-      bonus.roomEnd = cols.length;
+    const bonusRoom = () => {    // appended after the level end: club wall, the 30x15 disco box (exactly one screen), club wall; discoRoom fills it
+      bonus.mainW = cols.length;
+      const wall = () => { const c = empty(); for (let y = 0; y < H; y++) c[y] = '#'; push(c); };
+      for (let i = 0; i < 6; i++) wall();   /* wide screens centre the box and see the club walls on both sides, never the level */
+      bonus.roomCol = cols.length;
+      for (let x = 0; x < 30; x++) { const c = empty(); for (let y = 0; y < H; y++) c[y] = (x === 0 || x === 29 || y === 0 || y >= 13) ? '#' : '-'; push(c); }
+      bonus.roomEnd = cols.length; for (let i = 0; i < 6; i++) wall();
+      discoRoom(cols, bonus);
     };
     /* puzzle room: four bells ('@') must be rung in the right order (a board '^' shows it, or the bells sing it), then the gate 'z' opens
        and the chocolate coin ('$') waits behind it. Entered through a purple pipe ('&'). */

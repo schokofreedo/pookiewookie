@@ -1,5 +1,5 @@
 /* The Starway Home: gadget visuals. Icons, the capsule block and roulette, honey shots, flying hearts, the honey cannon,
-   what Toffo wears per gadget, the Honigzeit tint, the pipe flash and the gadget HUD slot. draw.js calls these hooks. */
+   what Toffo wears per gadget, the Honigzeit tint, the teleporter beam and flash and the gadget HUD slot. draw.js calls these hooks. */
 (function () {
   const G = window.PW = window.PW || {}, T = 16, VH = 270;
   const S = () => G.S, P = () => G.P, L = () => G.L, E = () => G.eng;
@@ -216,6 +216,12 @@
     particle(ctx, q, fr) {
       if (q.kind === 'spark') { const a = Math.max(0, Math.min(1, q.t / 0.5)); ctx.globalAlpha = a; starPath(ctx, q.x, q.y, 2.2); ctx.fillStyle = q.col || '#ffd84a'; ctx.fill(); ctx.globalAlpha = 1; return true; }
       if (q.kind === 'flame') { const a = Math.max(0, q.t / 0.35); ctx.globalAlpha = a; circle(ctx, q.x, q.y, 1.5 + (1 - a) * 2.5, a > 0.5 ? '#ffe94a' : '#ff6a2a'); ctx.globalAlpha = 1; return true; }
+      if (q.kind === 'tbeam') {   /* teleporter beam-in: a light column that narrows to a thread, a pink glow on the floor */
+        const k = Math.max(0, Math.min(1, q.t / 0.6)), w = 3 + 17 * k, h = 78; ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        const g = ctx.createLinearGradient(0, q.y - h, 0, q.y); g.addColorStop(0, 'rgba(95,246,255,0)'); g.addColorStop(0.55, 'rgba(150,240,255,' + (0.5 * k) + ')'); g.addColorStop(1, 'rgba(255,255,255,' + (0.95 * k) + ')');
+        ctx.fillStyle = g; rr(ctx, q.x - w / 2, q.y - h, w, h, w / 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(q.x, q.y, 6 + w * 0.8, 2.5 + k, 0, 0, TAU); ctx.fillStyle = 'rgba(255,111,216,' + (0.7 * k) + ')'; ctx.fill(); ctx.restore(); return true;
+      }
       if (q.kind === 'ring') { const k = 1 - q.t / 0.35; ctx.globalAlpha = 1 - k; ctx.beginPath(); ctx.ellipse(q.x, q.y, 6 + k * 34, 2 + k * 6, 0, 0, TAU); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1; return true; }
       return false;
     },
