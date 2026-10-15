@@ -195,8 +195,8 @@
     /* Toffo's lines are recorded audio files (see tools/mkvoice.py); the browser's speech synthesis is only the fallback */
     voiceBuf: {}, voiceSrc: null, voiceReq: 0,
     preloadVoice() {
-      if (this.voicePreloaded || !this.ctx || !G.VOICE_FILES) return; this.voicePreloaded = true;
-      for (const file of Object.values(G.VOICE_FILES)) this.loadVoice(file);
+      if (this.voicePreloaded || !this.ctx || !G.VOX) return; this.voicePreloaded = true;
+      for (const list of Object.values(G.VOX || {})) for (const file of list) this.loadVoice(file);
     },
     loadVoice(file) {
       if (this.voiceBuf[file]) return this.voiceBuf[file];
@@ -207,23 +207,29 @@
       this.init(); if (!this.ctx || this.muted) return;
       this.loadVoice(file).then(buf => { if (!buf) return; const s = this.ctx.createBufferSource(); s.buffer = buf; const g = this.ctx.createGain(); g.gain.value = gain || 1; s.connect(g).connect(this.master); s.start(); });
     },
+    /* Toffo's voice: real human vocalizations (p/vox.js), Mario-style. A spoken line picks a fitting sound, the bubble shows the words. */
+    vox(cat, o = {}) {
+      if (!this.voiceCfg.on || this.muted) return false;
+      const list = G.VOX && G.VOX[cat]; if (!list || !list.length) return false;
+      this.init(); if (!this.ctx) return false;
+      const now = this.ctx.currentTime; if (!o.force && now < (this.voxT || 0)) return false;
+      if (o.p !== undefined && Math.random() > o.p) return false;
+      this.voxT = now + (o.gap || 0.32);
+      let k = Math.floor(Math.random() * list.length); if (list.length > 1 && k === this.voxLast) k = (k + 1) % list.length; this.voxLast = k;
+      const file = list[k], req = ++this.voiceReq;
+      this.loadVoice(file).then(buf => {
+        if (!buf || req !== this.voiceReq) return;
+        try { if (this.voiceSrc) this.voiceSrc.stop(); } catch (e) {}
+        const s = this.ctx.createBufferSource(); s.buffer = buf; s.playbackRate.value = o.rate || 1; const g = this.ctx.createGain(); g.gain.value = (o.gain || 1) * 0.95; s.connect(g).connect(this.master); s.start(this.ctx.currentTime + (o.delay || 0)); this.voiceSrc = s;
+        if (buf.duration > 0.6) this.duck(buf.duration);
+      });
+      return true;
+    },
     say(text, o = {}) {
-      if (!this.voiceCfg.on) return false;
-      this.init(); this.preloadVoice();
-      const file = G.VOICE_FILES && G.VOICE_FILES[text];
-      if (file && this.ctx && !this.muted) {
-        this.duck(2.0); const req = ++this.voiceReq;
-        const timeout = new Promise(res => setTimeout(() => res('timeout'), 1500));
-        Promise.race([this.loadVoice(file), timeout]).then(buf => {
-          if (req !== this.voiceReq) return;
-          if (!buf || buf === 'timeout') { this.sayTTS(text, o); return; }   /* recording not ready: the browser voice steps in for this line */
-          try { if (this.voiceSrc) this.voiceSrc.stop(); } catch (e) {}
-          const s = this.ctx.createBufferSource(); s.buffer = buf; const g = this.ctx.createGain(); g.gain.value = 1.0; s.connect(g).connect(this.master); s.start(); this.voiceSrc = s;
-        });
-        return true;
-      }
-      if (this.muted) return false;
-      return this.sayTTS(text, o);
+      const line = G.VOICE_LINES && G.VOICE_LINES[text];
+      const cat = line ? line.cat : (o.sad ? 'sad' : (o.happy ? 'cheer' : 'call'));
+      if (!cat || cat === 'none') return false;
+      return this.vox(cat, {force: true});
     },
     sayTTS(text, o = {}) {
       this.duck(2.2);

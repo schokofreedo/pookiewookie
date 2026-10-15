@@ -47,7 +47,7 @@
   G.flow = {
     speak(text, o) {
       A().say(text, o);
-      const b = $('#bubble'); b.textContent = text; b.classList.remove('on', 'sad'); void b.offsetWidth; b.classList.add('on'); if (o && o.sad) b.classList.add('sad');
+      const line = G.VOICE_LINES && G.VOICE_LINES[text], b = $('#bubble'); b.textContent = (G.lang !== 'en' && line && line.de) ? line.de : text; b.classList.remove('on', 'sad'); void b.offsetWidth; b.classList.add('on'); if (o && o.sad) b.classList.add('sad');
       clearTimeout(G.flow.tm); G.flow.tm = setTimeout(() => b.classList.remove('on'), 2600);
     },
     banner(title, t, sub) { const b = $('#banner'); b.innerHTML = `<div>${title}</div>${sub ? `<small>${sub}</small>` : ''}`; b.classList.add('on'); clearTimeout(G.flow.bt); G.flow.bt = setTimeout(() => b.classList.remove('on'), t * 1000); },
@@ -515,6 +515,12 @@
     $('#chkHaptic').addEventListener('change', e => { haptic = e.target.checked; try { localStorage.setItem('pookie-haptic', haptic ? '1' : '0'); } catch (err) {} if (haptic && can) navigator.vibrate(30); });
     const buzz = ms => { if (haptic && can && document.hasFocus()) try { navigator.vibrate(ms); } catch (e) {} };
     for (const [n, ms] of [['stomp', 12], ['die', [40, 40, 70]], ['hurt', 40], ['bossHit', 30], ['pound', 22], ['bubblePop', 25], ['bossDown', [30, 40, 30, 40, 90]], ['cannon', 30], ['rocketHit', 35]]) { const f = A().sfx[n]; if (f) A().sfx[n] = function () { buzz(ms); return f.apply(this, arguments); }; } }
+  /* Toffo's voice on the action, Mario-style: short real vocalizations on jumps, hits, wins and pickups (with a cooldown so it never chatters) */
+  { const V = (cat, o) => () => { try { A().vox(cat, o); } catch (e) {} };
+    const hooks = {jump: V('jump', {p: 0.3, gain: 0.8}), doubleJump: V('jump', {p: 0.75}), wallJump: V('jump', {p: 0.6}), bigJump: V('whoo', {p: 0.5}), hurt: V('hurt', {force: true}), die: V('doh', {force: true}),
+      clear: V('cheer', {force: true, delay: 0.25}), gadget: V('wow', {p: 0.8}), powerup: V('aha', {p: 0.7}), starStart: V('wahoo', {force: true}), cannon: V('whoo', {force: true}), oneUp: V('laugh', {}),
+      bossDown: V('wahoo', {force: true, delay: 0.3}), puzzleSolved: V('aha', {force: true}), wrong: V('huh', {p: 0.8}), lose: V('sad', {force: true}), rescue: V('wahoo', {force: true}), landing: V('phew', {p: 0.6})};
+    for (const [n, f] of Object.entries(hooks)) { const orig = A().sfx[n]; if (orig) A().sfx[n] = function () { f(); return orig.apply(this, arguments); }; } }
   /* installed app (standalone) or iPhone: no fullscreen API needed, hide those buttons */
   if (matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone || !(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)) document.querySelectorAll('.btnFull').forEach(b => b.hidden = true);
   /* gadget counter for the Keksdose */

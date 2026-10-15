@@ -212,7 +212,7 @@
     [3520, 4186, 4699.6].forEach((f, i) => osc(f, wt + 0.07 + i * 0.045, 0.1, {g: 0.014, rv: 0.5}));
     noise(T.sweep, 0.6, {f: 2500, to: 7500, q: 1.1, g: 0.02, att: 0.25});
     /* the voice line rides on the chord tail */
-    try { a.loadVoice('p/voice/brand.mp3').then(buf => { if (!buf || b.bus !== bus) return; const at = t0 + T.voice; if (c.currentTime > at - 0.02) return; const s = c.createBufferSource(), g = c.createGain(); s.buffer = buf; g.gain.value = 0.9; s.connect(g).connect(bus); s.start(at); }); } catch (e) {}
+    if (G.BRAND_VOICE) try { a.loadVoice(G.BRAND_VOICE).then(buf => { if (!buf || b.bus !== bus) return; const at = t0 + T.voice; if (c.currentTime > at - 0.02) return; const s = c.createBufferSource(), g = c.createGain(); s.buffer = buf; g.gain.value = 0.9; s.connect(g).connect(bus); s.start(at); }); } catch (e) {}
   }
 
   /* ---------- start screen + intro ---------- */
