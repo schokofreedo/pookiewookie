@@ -13,7 +13,8 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <title>Pookiewookie</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="p/puzzles.css">
 <style>
 /* Layout: an HD canvas with the 480x270 logical world scaled to fit, a WebGL globe stacked on top for the world menu, soft rounded overlays. Pastel bakery palette. */
 :root{
@@ -123,6 +124,22 @@ body.touch #globeUI .gfoot p{display:none}
 .keks li.done{color:#fff;background:rgba(255,216,74,.18)}
 .keks li b{font-size:16px;width:22px;text-align:center}
 .wm.space b{background:#3b2a6a;font-size:1em}
+/* shop */
+.card.shop{max-width:620px}
+.tabs{display:flex;gap:6px;justify-content:center;margin:0 0 10px}
+.tab{background:transparent;color:var(--muted);border:2px solid var(--line);border-radius:999px;padding:7px 16px;font:700 14px/1 var(--font);cursor:pointer}
+.tab.on{background:var(--rose);color:#fff;border-color:var(--rose)}
+.shoplist{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px;text-align:left;max-height:min(52vh,420px);overflow:auto}
+.shoplist li{display:grid;grid-template-columns:38px 1fr auto;gap:10px;align-items:center;padding:7px 10px;border-radius:14px;background:rgba(0,0,0,.2)}
+.shoplist li.own{background:rgba(155,231,165,.12)}
+.shoplist li.nope{animation:pzshake .35s}
+.shoplist b{display:block;font:700 14px/1.2 var(--font);color:#fff}.shoplist small{font:500 12px/1.3 var(--font);color:var(--muted)}
+.shoplist .btn{padding:8px 12px;font-size:13px;margin:0;white-space:nowrap}.shoplist .btn.poor{opacity:.55}
+.shoplist .owned{font:700 12px/1 var(--font);color:var(--mint)}.shoplist .lock{font:600 11px/1.2 var(--font);color:var(--muted)}
+.ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-style:normal;font-size:20px;background:rgba(255,255,255,.12)}
+.ico-shield::before{content:"🛡️"}.ico-fat::before{content:"🚀"}.ico-laser2::before{content:"✳️"}.ico-laser3::before{content:"💥"}.ico-turbo::before{content:"⚡"}.ico-magnet::before{content:"🧲"}.ico-paint::before{content:"✨"}
+.ico-wiese::before{content:"🧣"}.ico-insel::before{content:"👒"}.ico-dschungel::before{content:"🪖"}.ico-schnee::before{content:"🧶"}.ico-lava::before{content:"⛑️"}.ico-himmel::before{content:"🦸"}.ico-gold::before{content:"👑"}
+@media(max-height:480px){.card.shop{padding:12px 14px}.card.shop h2{font-size:20px;margin-bottom:4px}.shoplist{max-height:52vh}}
 #pause{background:rgba(43,29,51,.72);backdrop-filter:blur(3px)}
 #pause .card{max-width:380px}
 #pause .menu{display:grid;gap:10px;margin:0 0 8px}
@@ -157,7 +174,7 @@ body.touch #globeUI .gfoot p{display:none}
   <div id="globeUI" hidden>
     <div class="ghead"><h2>Wähle eine Welt</h2><p id="gprog"></p></div>
     <div id="markers"></div>
-    <div class="gfoot"><button id="btnDaily" class="btn" type="button">Tageslevel</button><button id="btnKeks" class="btn ghost" type="button">Keksdose</button><button id="btnGlobeBack" class="btn ghost" type="button">Hauptmenü</button><button id="btnReset" class="btn ghost" type="button">Spielstand löschen</button><p>Ziehen = drehen · ← → wählen · Enter oder Klick = reinfliegen</p></div>
+    <div class="gfoot"><button id="btnDaily" class="btn" type="button">Tageslevel</button><button class="btn btnShop" type="button">Shop</button><button id="btnKeks" class="btn ghost" type="button">Keksdose</button><button id="btnGlobeBack" class="btn ghost" type="button">Hauptmenü</button><button id="btnReset" class="btn ghost" type="button">Spielstand löschen</button><p>Ziehen = drehen · ← → wählen · Enter oder Klick = reinfliegen</p></div>
   </div>
 </div>
 <div id="bubble">Where is my Pookie?</div>
@@ -166,8 +183,8 @@ body.touch #globeUI .gfoot p{display:none}
 <div id="title" class="ov">
   <div class="card">
     <h1>Pookiewookie</h1>
-    <p class="sub">Wookie sucht seine Pookie · 7 Welten · 28 Level · 9 Gadgets · Rätselkammern · Raketenflug</p>
-    <p>Pookie, die weiße Bärin, wurde vom Sternenpiraten entführt. Wookie muss durch Zuckerwattewiese, Kokosinsel, Dschungel, Schneeland, Lavawelt und Wolkenschloss und fliegt zuletzt mit der Rakete zum Mond, zum Mars und zum Saturn-Gefängnis. Lies Pookies Briefe im Hub, finde die lila Rätselröhren, läute die Glocken in der richtigen Reihenfolge und sammle die Schokomünzen für neue Kostüme.</p>
+    <p class="sub">Wookie sucht seine Pookie · 10 Welten · 40 Level · 20 Rätsel · U-Boot · Raketenflug · großes Finale</p>
+    <p>Pookie, die weiße Bärin, wurde vom Sternenpiraten entführt. Wookie hüpft durch Zuckerwattewiese und Kokosinsel, taucht mit dem U-Boot durchs Korallenmeer, klettert durch Dschungel und Schokoladenland, rutscht übers Schneeland, trotzt der Lavawelt und dem Wolkenschloss und fliegt mit der Rakete bis zum Saturn. Und danach? Ein Schwarzes Loch, die Schoko-Mafia und ein langer Weg nach Hause.</p>
     <div class="keys">
       <span><b>← →</b> laufen · <b>↑</b> klettern / springen</span><span><b>Leer</b> / <b>K</b> springen · in der Luft nochmal = Doppelsprung</span>
       <span><b>Shift</b> / <b>X</b> rennen · schießen (Kaffee, Honigschleuder)</span><span><b>↓</b> in der Luft = Stampfer · auf Gold-Röhre = Bonusraum</span>
@@ -216,12 +233,31 @@ body.touch #globeUI .gfoot p{display:none}
       <button id="btnRestart" class="btn ghost" type="button">Level neu starten</button>
       <button id="btnPauseMap" class="btn ghost" type="button">Zurück zur Welt</button>
       <button id="btnPauseGlobe" class="btn ghost" type="button">Zum Globus</button>
+      <button class="btn ghost btnShop" type="button">Shop</button>
       <button id="btnPauseTitle" class="btn ghost" type="button">Hauptmenü</button>
       <button class="btn ghost btnFull" type="button">Vollbild</button>
       <button class="btn ghost btnVoiceToggle" type="button">Stimme aus</button>
       <button id="btnPauseMute" class="btn ghost" type="button">Ton aus</button>
     </div>
     <p class="sub" style="margin:0">Esc oder P: weiterspielen</p>
+  </div>
+</div>
+
+<div id="shop" class="ov" hidden>
+  <div class="card shop">
+    <h2>Shop</h2>
+    <p class="sub">Du hast <b id="shop-money">0</b> Taler · Taler gibt es für Herzen, Gegner, Sternkekse, Level und Raketenflüge</p>
+    <div class="tabs"><button class="tab on" data-tab="rocket" type="button">Rakete</button><button class="tab" data-tab="outfits" type="button">Outfits</button></div>
+    <ul id="shop-list" class="shoplist"></ul>
+    <button id="btnShopClose" class="btn" type="button">Fertig</button>
+  </div>
+</div>
+
+<div id="puzzle" class="ov" hidden>
+  <div class="pzbox">
+    <header class="pzhead"><span id="pz-world"></span><h2 id="pz-title"></h2><p id="pz-intro"></p></header>
+    <div id="pz-root"></div>
+    <footer class="pzfoot"><span id="pz-msg"></span><button id="pz-tip" class="btn ghost" type="button">Pookies Tipp</button><button id="pz-tip2" class="btn ghost" type="button">Großer Tipp</button><button id="pz-solve" class="btn ghost" type="button">Lösung</button><button id="pz-close" class="btn ghost" type="button">Zurück</button></footer>
   </div>
 </div>
 
@@ -280,16 +316,42 @@ body.touch #globeUI .gfoot p{display:none}
 <script src="p/worlds.js"></script>
 <script src="p/audio.js"></script>
 <script src="p/voicelines.js"></script>
+<script src="p/economy.js"></script>
+<script src="p/puzzles.js"></script>
 <script src="p/levels.js"></script>
 <script src="p/gadgets.js"></script>
 <script src="p/engine.js"></script>
 <script src="p/entities.js"></script>
 <script src="p/draw.js"></script>
 <script src="p/fx.js"></script>
+<script src="p/art.js"></script>
 <script src="p/globe.js"></script>
 <script src="p/hub.js"></script>
 <script src="p/rocket.js"></script>
 <script src="p/brand.js"></script>
+<script src="p/pz/dschungel-automat.js"></script>
+<script src="p/pz/dschungel-pfad.js"></script>
+<script src="p/pz/finale-tresor.js"></script>
+<script src="p/pz/finale-wurmloch.js"></script>
+<script src="p/pz/himmel-laternen.js"></script>
+<script src="p/pz/himmel-wortgitter.js"></script>
+<script src="p/pz/insel-schatzkarte.js"></script>
+<script src="p/pz/insel-schiebe.js"></script>
+<script src="p/pz/lava-hanoi.js"></script>
+<script src="p/pz/lava-mathe.js"></script>
+<script src="p/pz/schnee-rutsche.js"></script>
+<script src="p/pz/schnee-spiegel.js"></script>
+<script src="p/pz/schoko-chomp.js"></script>
+<script src="p/pz/schoko-sudoku.js"></script>
+<script src="p/pz/unterwasser-fische.js"></script>
+<script src="p/pz/unterwasser-rohre.js"></script>
+<script src="p/pz/weltraum-bloecke.js"></script>
+<script src="p/pz/weltraum-planeten.js"></script>
+<script src="p/pz/wiese-gedicht.js"></script>
+<script src="p/pz/wiese-waage.js"></script>
+<script src="p/sub.js"></script>
+<script src="p/finale1.js"></script>
+<script src="p/finale2.js"></script>
 <script src="p/game.js"></script>
 <script>
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); }); }

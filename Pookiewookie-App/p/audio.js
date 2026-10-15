@@ -95,13 +95,26 @@
       combo(n) { A.bell(880 * Math.pow(1.122, Math.min(n, 8)), 0.2, 0.12, 0); },
       pause() { A.tone(660, 0.12, {type: 'square', gain: 0.06}); A.tone(440, 0.16, {type: 'square', gain: 0.06, delay: 0.1}); },
       lose() { A.tone(500, 0.3, {type: 'triangle', slide: 200, gain: 0.14}); A.noise(0.25, {type: 'lowpass', freq: 700, freqTo: 200, gain: 0.12}); },
+      cash() { A.tone(1568, 0.07, {type: 'square', gain: 0.045}); A.tone(2093, 0.12, {type: 'square', gain: 0.04, delay: 0.05}); },
+      buy() { [1047, 1319, 1568, 2093].forEach((f, i) => A.tone(f, 0.12, {type: 'square', gain: 0.05, delay: i * 0.05})); A.noise(0.25, {type: 'highpass', freq: 5000, gain: 0.05, delay: 0.18}); },
       doubleJump() { A.tone(520, 0.18, {type: 'triangle', slide: 1300, slideDur: 0.14, gain: 0.12}); A.tone(780, 0.14, {type: 'sine', slide: 1560, slideDur: 0.1, gain: 0.07, delay: 0.03}); },
-      /* brand intro jingle: drop, splash, four bells, shine, warm chord */
-      brandDrop() { A.tone(900, 0.5, {type: 'sine', slide: 300, slideDur: 0.45, gain: 0.08}); },
-      brandSplash() { A.noise(0.35, {type: 'lowpass', freq: 900, freqTo: 200, gain: 0.2}); A.tone(110, 0.5, {type: 'sine', slide: 60, gain: 0.2}); },
-      brandBell(i) { A.bell([523, 659, 784, 1047, 1319][i % 5], 0.6, 0.14, 0); },
-      brandShine() { A.noise(0.7, {type: 'bandpass', freq: 1500, freqTo: 6000, q: 1.2, gain: 0.08}); [1568, 2093, 2637].forEach((f, k) => A.bell(f, 0.5, 0.08, k * 0.07)); },
-      brandChord() { [131, 262, 330, 392, 523].forEach((f, k) => A.tone(f, 2.2, {type: k ? 'triangle' : 'sine', gain: k ? 0.07 : 0.16, attack: 0.08})); },
+      /* brand intro: sub swell, whoosh, twelve rhythmic chocolate clacks, impact with a big chord, neon buzz, crunch, gold sparkle */
+      brandSwell() { A.tone(38, 1.6, {type: 'sine', slide: 72, slideDur: 1.4, gain: 0.3, attack: 0.4}); A.tone(76, 1.6, {type: 'triangle', slide: 144, slideDur: 1.4, gain: 0.05, attack: 0.5}); },
+      brandWhoosh() { A.noise(1.0, {type: 'bandpass', freq: 300, freqTo: 2400, q: 0.9, gain: 0.12}); },
+      brandClack(i) { const f = [262, 294, 330, 392, 440, 523, 587, 659, 784, 880, 1047, 1175][i % 12]; A.tone(f, 0.16, {type: 'triangle', slide: f * 0.9, slideDur: 0.14, gain: 0.14, attack: 0.002}); A.tone(f * 2, 0.08, {type: 'sine', gain: 0.05}); A.noise(0.03, {type: 'highpass', freq: 2500, gain: 0.12}); A.noise(0.06, {type: 'lowpass', freq: 500, gain: 0.1}); },
+      brandImpact() {
+        /* the big landing: sub drop, snare crack and a bright brass-like major-9 chord that rings out */
+        A.noise(0.5, {type: 'lowpass', freq: 1500, freqTo: 80, gain: 0.42}); A.tone(98, 0.8, {type: 'sine', slide: 36, slideDur: 0.7, gain: 0.4}); A.noise(0.18, {type: 'bandpass', freq: 1900, q: 0.7, gain: 0.3});
+        [131, 196, 262, 330, 392, 494, 587].forEach((f, k) => { A.tone(f, 2.8, {type: k < 2 ? 'sine' : 'sawtooth', gain: k < 2 ? 0.14 : 0.022, attack: 0.03}); A.tone(f * 1.006, 2.8, {type: 'triangle', gain: k < 2 ? 0.03 : 0.035, attack: 0.05}); });
+        [1047, 1319, 1568, 2093].forEach((f, k) => A.bell(f, 1.0, 0.08, 0.05 + k * 0.06));
+      },
+      brandBurst() { A.noise(0.25, {type: 'highpass', freq: 3000, gain: 0.25}); A.noise(0.4, {type: 'bandpass', freq: 5000, freqTo: 1500, q: 1.5, gain: 0.12, delay: 0.03}); A.tone(523, 0.12, {type: 'triangle', slide: 1047, gain: 0.12}); [784, 1047, 1319].forEach((f, k) => A.bell(f, 0.4, 0.1, 0.05 + k * 0.05)); },
+      brandBlink() { A.tone(1568, 0.06, {type: 'sine', gain: 0.07}); A.tone(2093, 0.08, {type: 'sine', gain: 0.06, delay: 0.07}); },
+      brandStamp() { A.noise(0.22, {type: 'lowpass', freq: 600, freqTo: 120, gain: 0.45}); A.tone(70, 0.3, {type: 'sine', slide: 40, gain: 0.35}); A.tone(392, 0.5, {type: 'square', gain: 0.04, delay: 0.02}); },
+      brandShing() { A.noise(0.5, {type: 'bandpass', freq: 6000, freqTo: 9000, q: 3, gain: 0.12}); A.tone(2637, 0.5, {type: 'sine', slide: 3136, gain: 0.08}); A.tone(3951, 0.6, {type: 'sine', gain: 0.05, delay: 0.06}); },
+      brandNeon() { A.tone(110, 0.9, {type: 'square', gain: 0.025, attack: 0.01}); A.tone(220, 0.08, {type: 'square', gain: 0.05}); A.tone(220, 0.1, {type: 'square', gain: 0.05, delay: 0.15}); A.tone(220, 0.5, {type: 'square', gain: 0.04, delay: 0.3}); },
+      brandCrunch() { A.noise(0.12, {type: 'bandpass', freq: 1200, q: 0.6, gain: 0.25}); A.noise(0.08, {type: 'lowpass', freq: 400, gain: 0.2, delay: 0.06}); },
+      brandSparkle() { [1568, 1976, 2349, 2637, 3136, 3951].forEach((f, k) => A.bell(f, 0.8, 0.09, k * 0.07)); A.noise(1.2, {type: 'highpass', freq: 5000, gain: 0.05, delay: 0.1}); [523, 659, 784, 1047].forEach((f, k) => A.bell(f, 1.2, 0.12, 0.3 + k * 0.1)); },
       /* puzzles, coins, chocolate pen */
       bell(i) { const f = [523, 659, 784, 1047][i % 4]; A.bell(f, 0.7, 0.16, 0); A.tone(f * 2, 0.3, {gain: 0.05}); },
       wrong() { A.tone(220, 0.25, {type: 'square', slide: 160, gain: 0.08}); A.tone(165, 0.3, {type: 'square', slide: 120, gain: 0.08, delay: 0.15}); },
@@ -189,6 +202,10 @@
       if (this.voiceBuf[file]) return this.voiceBuf[file];
       const p = fetch(file).then(r => r.arrayBuffer()).then(b => new Promise((res, rej) => this.ctx.decodeAudioData(b, res, rej))).catch(e => { console.warn('voice load failed ' + file, e && e.message); return null; });
       this.voiceBuf[file] = p; return p;
+    },
+    playFile(file, gain) {
+      this.init(); if (!this.ctx || this.muted) return;
+      this.loadVoice(file).then(buf => { if (!buf) return; const s = this.ctx.createBufferSource(); s.buffer = buf; const g = this.ctx.createGain(); g.gain.value = gain || 1; s.connect(g).connect(this.master); s.start(); });
     },
     say(text, o = {}) {
       if (!this.voiceCfg.on) return false;

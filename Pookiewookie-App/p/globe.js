@@ -3,7 +3,7 @@
    DOM markers float over the worlds; pick one and the camera dives toward the surface before the cloud fall begins. */
 (function () {
   const G = window.PW = window.PW || {}, VW = 480, VH = 270;
-  const POS = {wiese: [-100, 22], insel: [-28, -12], dschungel: [55, 4], schnee: [138, 46], lava: [-158, -46], himmel: [20, 74]};
+  const POS = {wiese: [-100, 22], insel: [-28, -12], unterwasser: [-62, -38], dschungel: [55, 4], schoko: [102, -24], schnee: [138, 46], lava: [-158, -46], himmel: [20, 74]};
   const D = 3.2, rad = d => d * Math.PI / 180;
   let gl = null, prog = null, canvas = null, cssW = VW, cssH = VH, uni = {}, markers = [], ui = null, startT = performance.now();
   const st = {yaw: 2.2, pitch: 0.35, zoom: 1.55, auto: true, drag: null, fly: null, flash: 0, sel: 0, visible: false, dragged: false};
@@ -93,6 +93,13 @@ void main(){
     both('#8a6ad0', '#808080', k => { const gg = k === c ? c.createLinearGradient(0, 0, 0, H * 0.14) : null; if (gg) { gg.addColorStop(0, '#8a6ad0'); gg.addColorStop(1, '#5a3fa0'); k.fillStyle = gg; } k.fillRect(0, 0, W, H * 0.13); });
     { const rr = rng(23); for (let i = 0; i < 40; i++) { const x = rr() * W, y = rr() * H * 0.12, r2 = 8 + rr() * 16; both('#c9b8f0', null, k => { k.beginPath(); k.ellipse(x, y, r2 * 2.2, r2 * 0.6, 0, 0, Math.PI * 2); k.fill(); }); } }
     { const rr = rng(24); for (let i = 0; i < 10; i++) { const x = (i + 0.5) * W / 10, y = H * 0.07; both('#3b2a6a', null, k => { k.fillRect(x - 10, y - 6, 20, 14); k.fillRect(x - 14, y - 10, 6, 18); k.fillRect(x + 8, y - 10, 6, 18); k.beginPath(); k.moveTo(x - 10, y - 6); k.lineTo(x, y - 16); k.lineTo(x + 10, y - 6); k.fill(); }); for (let w = 0; w < 3; w++) both('#ffe9a8', '#ffffff', k => { k.fillRect(x - 6 + w * 5, y - 2 + (rr() > 0.5 ? 0 : 4), 2.5, 3); }); } }
+    /* Korallenmeer: turquoise shallows with a ring of coral reefs */
+    blob(-62, -38, 60, 14, 26, '#3fc7d8', null, 1.1); blob(-62, -38, 40, 10, 27, '#7fe7ef', null);
+    dots(-62, -38, 52, 26, 28, '#ff6f9c', '#808080', 2.6); dots(-62, -38, 52, 18, 29, '#ffb347', '#808080', 2.2); dots(-62, -38, 30, 10, 30, '#ffffff', null, 1.4);
+    /* Schokoladenland: a chocolate continent with a river of hot chocolate, cream caps and sprinkles */
+    blob(102, -24, 70, 26, 31, '#7a4425', '#808080'); blob(108, -18, 40, 12, 32, '#a8643a', '#808080'); dots(102, -24, 60, 20, 33, '#fff1dc', null, 3);
+    dots(102, -24, 62, 40, 34, '#ff6f9c', null, 1.4); dots(102, -24, 62, 30, 35, '#9be7a5', null, 1.4);
+    both('#4a2210', '#000', k => { k.lineWidth = 5; k.strokeStyle = k.fillStyle; k.beginPath(); const [ax, ay] = px(84, -10); k.moveTo(ax, ay); const [bx, by] = px(96, -22), [cx2, cy2] = px(110, -30), [dx, dy] = px(122, -38); k.bezierCurveTo(bx, by, cx2, cy2, dx, dy); k.stroke(); });
     /* south polar ice */
     both('#f4f8ff', '#808080', k => { k.fillRect(0, H * 0.92, W, H * 0.08); const rr = rng(25); for (let i = 0; i < 30; i++) { const x = rr() * W, y = H * (0.9 + rr() * 0.04), r2 = 6 + rr() * 14; k.beginPath(); k.ellipse(x, y, r2 * 2, r2 * 0.5, 0, 0, Math.PI * 2); k.fill(); } });
     return {color: cc, mask: mc};
@@ -102,8 +109,8 @@ void main(){
   const rotY = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return [c * v[0] + s * v[2], v[1], -s * v[0] + c * v[2]]; };
   const rotX = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return [v[0], c * v[1] - s * v[2], s * v[1] + c * v[2]]; };
   function project(key) {
-    if (!POS[key]) {   /* space: a rocket orbiting the globe */
-      const a = (performance.now() - startT) / 1000 * 0.45, r = (st.zoom / Math.sqrt(D * D - 1)) * cssH / 2;
+    if (!POS[key]) {   /* space and the finale: markers orbiting the globe on opposite sides */
+      const a = (performance.now() - startT) / 1000 * 0.45 + (key === 'finale' ? Math.PI : 0), r = (st.zoom / Math.sqrt(D * D - 1)) * cssH / 2;
       const facing = 0.5 + 0.5 * Math.sin(a + 1.2);
       return {x: cssW / 2 + Math.cos(a) * r * 1.6, y: cssH / 2 + Math.sin(a) * r * 0.42 - r * 0.9, facing: 0.3 + facing * 0.7};
     }
@@ -136,7 +143,7 @@ void main(){
       const tx = paint(); texture(tx.color, 0); texture(tx.mask, 1); gl.uniform1i(uni.uTex, 0); gl.uniform1i(uni.uMask, 1);
       /* markers */
       const mk = ui.querySelector('#markers') || ui; mk.innerHTML = '';
-      markers = G.WORLDS.map((W, wi) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'wm' + (POS[W.key] ? '' : ' space'); b.innerHTML = `<b>${POS[W.key] ? wi + 1 : '🚀'}</b><span>${W.name}</span><i></i>`; b.addEventListener('click', e => { e.stopPropagation(); if (st.dragged) return; globe.select(wi); globe.pick(); }); b.addEventListener('mouseenter', () => { if (!st.fly) globe.select(wi, true); }); mk.appendChild(b); return b; });
+      markers = G.WORLDS.map((W, wi) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'wm' + (POS[W.key] ? '' : ' space'); b.innerHTML = `<b>${POS[W.key] ? wi + 1 : (W.key === 'finale' ? '🕳️' : '🚀')}</b><span>${W.name}</span><i></i>`; b.addEventListener('click', e => { e.stopPropagation(); if (st.dragged) return; globe.select(wi); globe.pick(); }); b.addEventListener('mouseenter', () => { if (!st.fly) globe.select(wi, true); }); mk.appendChild(b); return b; });
       /* drag to turn */
       cv.addEventListener('pointerdown', e => { st.drag = {x: e.clientX, y: e.clientY, yaw: st.yaw, pitch: st.pitch}; st.dragged = false; st.auto = false; cv.setPointerCapture(e.pointerId); });
       cv.addEventListener('pointermove', e => { if (!st.drag || st.fly) return; const dx = e.clientX - st.drag.x, dy = e.clientY - st.drag.y; if (Math.abs(dx) + Math.abs(dy) > 4) st.dragged = true; st.yaw = st.drag.yaw + dx * 0.008; st.pitch = Math.max(-1.3, Math.min(1.3, st.drag.pitch + dy * 0.008)); });

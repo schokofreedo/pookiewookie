@@ -6,12 +6,25 @@
   const N = G.levelCount();
   let cardT = 0, mapSel = 0, resetArmed = false, pausedFrom = 'play', assist = false;
   try { assist = localStorage.getItem('pookie-assist') === '1'; } catch (e) {}
-  let save = {unlocked: 0, stars: {}, best: {}, done: {}, coins: {}, letters: {}, ach: {}, daily: {}, streak: 0, dailyLast: '', costume: '', gad: 0};
+  let save = {unlocked: 0, stars: {}, best: {}, done: {}, coins: {}, letters: {}, ach: {}, daily: {}, streak: 0, dailyLast: '', costume: '', gad: 0, money: 0, owned: {}, solved: {}};
   try { save = Object.assign(save, JSON.parse(localStorage.getItem('pookie-save') || '{}') || {}); } catch (e) {}
   for (const k of ['stars', 'best', 'done', 'coins', 'letters', 'ach', 'daily']) if (!save[k] || typeof save[k] !== 'object') save[k] = {};
   const persist = () => { try { localStorage.setItem('pookie-save', JSON.stringify(save)); } catch (e) {} };
-  const key = (wi, li) => wi + '-' + li;
-  const OVERLAYS = ['title', 'map', 'card', 'clear', 'over', 'win', 'pause', 'letter', 'keks'];
+  /* Taler wallet and shop ownership live in the save */
+  if (!save.owned || typeof save.owned !== 'object') save.owned = {}; if (!save.solved || typeof save.solved !== 'object') save.solved = {};
+  S.money = Math.max(0, +save.money || 0); G.eco.owned = save.owned;
+  if (save.coins && Object.keys(save.coins).length && !save.coinsPaid) { S.money += Object.keys(save.coins).length * 200; save.coinsPaid = true; }   /* old chocolate-coin unlocks become Taler */
+  let moneyTimer = 0;
+  const key = (wi, li) => (G.WORLDS[wi] ? G.WORLDS[wi].key : wi) + '-' + li;
+  /* saves before version 2 used world indexes in the old order */
+  if ((save.version || 1) < 2) {
+    const OLD = ['wiese', 'insel', 'dschungel', 'schnee', 'lava', 'himmel', 'weltraum'];
+    const mig = o => { const r = {}; for (const k in (o || {})) { const m = /^(\d+)-(\d+)$/.exec(k); r[m && OLD[+m[1]] ? OLD[+m[1]] + '-' + m[2] : k] = o[k]; } return r; };
+    save.stars = mig(save.stars); save.best = mig(save.best); save.done = mig(save.done);
+    const migW = o => { const r = {}; for (const k in (o || {})) r[OLD[+k] || k] = o[k]; return r; };
+    save.letters = migW(save.letters); save.coins = migW(save.coins); save.version = 2;
+  }
+  const OVERLAYS = ['title', 'map', 'card', 'clear', 'over', 'win', 'pause', 'letter', 'keks', 'shop'];
   const GLOBE_MUSIC = {bpm: 84, pattern: 2, transpose: 2, lead: 'bell', bass: 'sine', perc: 0};
   const globeOk = G.globe && G.globe.init($('#globe'), $('#globeUI'));
   /* touch devices get the on-screen pad, landscape prompt and fullscreen on start */
@@ -49,39 +62,85 @@
         const used = Math.max(0, L.par - S.time), prevBest = save.daily[L.daily];
         if (prevBest === undefined || used < prevBest) save.daily[L.daily] = used;
         if (save.dailyLast !== L.daily) { const y = new Date(Date.now() - 864e5); const yk = y.getFullYear() + '-' + String(y.getMonth() + 1).padStart(2, '0') + '-' + String(y.getDate()).padStart(2, '0'); save.streak = save.dailyLast === yk ? (save.streak || 0) + 1 : 1; save.dailyLast = L.daily; }
-        persist(); achieve('daily');
+        G.eco.add(100, 0, 0, true); persist(); achieve('daily');
         $('#clear').hidden = false; $('#clear-title').textContent = 'Tageslevel geschafft'; $('#clear-stars').textContent = S.stars.map(b => b ? '★' : '☆').join(' ');
         $('#clear-stats').innerHTML = `<div class="row"><dt>Zeit</dt><dd>${used}s</dd></div><div class="row"><dt>Tagesbestzeit</dt><dd>${save.daily[L.daily]}s</dd></div><div class="row"><dt>Serie</dt><dd>${save.streak} Tag${save.streak === 1 ? '' : 'e'}</dd></div><div class="row"><dt>Punkte</dt><dd>${S.score.toLocaleString('de-DE')}</dd></div>`;
         $('#clear-next').hidden = true; G.flow.speak('Yay! I did it!', {happy: true}); return;
       }
+      const pay = 50 + Math.floor(Math.max(0, S.time) / 10) + (L.tower ? 100 : 0); G.eco.add(pay, 0, 0, true);
       save.unlocked = Math.max(save.unlocked, idx + 1); save.done[k] = true;
       const prev = save.stars[k] || [false, false, false]; save.stars[k] = prev.map((b, i) => b || S.stars[i]);
       save.best[k] = Math.max(save.best[k] || 0, S.score); persist();
       achieve('first'); if (S.stars.every(Boolean)) achieve('stars3'); if (worldProgress(S.wi).done >= 4) achieve('world'); if (!S.hits) achieve('nohit');
-      if (L.world.boss.final && L.rescued) { win(); return; }
+      if (L.world.boss.final && L.rescued) { const fi = G.WORLDS.findIndex(w => w.key === 'finale'); if (fi >= 0) { $('#clear').hidden = true; G.flow.banner('Frei!', 2.6, 'Doch das Raumschiff gerät in ein Schwarzes Loch ...'); setTimeout(() => startLevel(fi * 4), 2600); S.mode = 'clear'; return; } win(); return; }
       $('#clear').hidden = false; $('#clear-title').textContent = (L.rocket ? 'Flug geschafft' : (L.tower ? 'Turm geschafft' : L.sub + ' geschafft'));
       $('#clear-stars').textContent = L.rocket ? '🚀' : S.stars.map(b => b ? '★' : '☆').join(' ');
-      $('#clear-stats').innerHTML = `<div class="row"><dt>Zeitbonus</dt><dd>${bonus}</dd></div><div class="row"><dt>Punkte</dt><dd>${S.score.toLocaleString('de-DE')}</dd></div><div class="row"><dt>Herzen</dt><dd>${S.hearts}</dd></div><div class="row"><dt>Leben</dt><dd>${S.lives}</dd></div>`;
+      $('#clear-stats').innerHTML = `<div class="row"><dt>Zeitbonus</dt><dd>${bonus}</dd></div><div class="row"><dt>Punkte</dt><dd>${S.score.toLocaleString('de-DE')}</dd></div><div class="row"><dt>Taler für das Level</dt><dd>+${pay}</dd></div><div class="row"><dt>Taler gesamt</dt><dd>${S.money.toLocaleString('de-DE')}</dd></div>`;
       $('#clear-next').hidden = idx + 1 >= N; $('#clear-next').textContent = S.li === 3 ? 'Nächste Welt' : 'Nächstes Level';
       mapSel = Math.min(N - 1, idx + 1);
       G.flow.speak('Yay! I did it!', {happy: true});
     },
-    coin(wi) { save.coins[wi] = true; persist(); achieve('coin'); refreshCostumes(); },
+    coin(wi) { save.coins[wi] = true; G.eco.add(200, 0, 0, true); persist(); achieve('coin'); },
+    moneyChanged() { save.money = S.money; clearTimeout(moneyTimer); moneyTimer = setTimeout(persist, 400); const sm = $('#shop-money'); if (sm) sm.textContent = S.money.toLocaleString('de-DE'); },
+    bought(id) { save.owned = G.eco.owned; save.money = S.money; const it = G.SHOP.outfits.find(o => o.id === id); if (it) save.costume = it.outfit; persist(); refreshCostumes(); renderShop(); achieve('shop'); },
     achieve(id) { achieve(id); },
   };
   /* ---------------- Keksdose (achievements), coins and costumes ---------------- */
-  const ACH = {first: 'Erstes Level geschafft', stars3: 'Alle drei Sternkekse in einem Level', world: 'Eine ganze Welt geschafft', combo5: 'Fünffach-Combo', nohit: 'Ein Level ohne einen Treffer', gadgets10: 'Zehn Gadgets gezogen', puzzle: 'Eine Rätselkammer gelöst', coin: 'Eine Schokomünze gefunden', bonus: 'Einen Bonusraum entdeckt', pirate: 'Den Sternenpiraten abgeschossen', rescue: 'Pookie gerettet', daily: 'Ein Tageslevel geschafft'};
+  const ACH = {shop: 'Etwas im Shop gekauft', allpuzzles: 'Alle 20 Rätsel gelöst', first: 'Erstes Level geschafft', stars3: 'Alle drei Sternkekse in einem Level', world: 'Eine ganze Welt geschafft', combo5: 'Fünffach-Combo', nohit: 'Ein Level ohne einen Treffer', gadgets10: 'Zehn Gadgets gezogen', puzzle: 'Eine Rätselkammer gelöst', coin: 'Eine Schokomünze gefunden', bonus: 'Einen Bonusraum entdeckt', pirate: 'Den Sternenpiraten abgeschossen', rescue: 'Pookie gerettet', daily: 'Ein Tageslevel geschafft'};
   function achieve(id) { if (!ACH[id] || save.ach[id]) return; save.ach[id] = true; persist(); A().sfx.gadget(); E.toast('Keksdose: ' + ACH[id]); if (globeOk) G.globe.refreshMarkers(); }
   function renderKeks() { const n = Object.keys(save.ach).length; $('#keks-list').innerHTML = Object.entries(ACH).map(([id, t]) => `<li class="${save.ach[id] ? 'done' : ''}"><b>${save.ach[id] ? '🍪' : '○'}</b>${t}</li>`).join(''); $('#keks-count').textContent = n + ' von ' + Object.keys(ACH).length + ' Keksen'; }
-  const COSTUMES = [['', 'Welt-Outfit (Standard)', 0], ['wiese', 'Roter Schal', 1], ['insel', 'Strohhut & Sonnenbrille', 2], ['dschungel', 'Tropenhelm', 3], ['schnee', 'Bommelmütze', 4], ['lava', 'Grubenhelm', 5], ['himmel', 'Fliegerkappe & Cape', 6], ['gold', 'Goldener Wookie', 7]];
-  function refreshCostumes() { const coins = Object.keys(save.coins).length, sel = $('#selCostume'); sel.innerHTML = COSTUMES.map(([v, t, n]) => `<option value="${v}" ${n > coins ? 'disabled' : ''}>${t}${n > coins ? ' (🍫 ' + n + ')' : ''}</option>`).join(''); sel.value = COSTUMES.some(c => c[0] === (save.costume || '') && c[2] <= coins) ? (save.costume || '') : ''; applyCostume(); $('#coinCount').textContent = coins + ' von 7 Schokomünzen'; }
+  /* outfits are bought in the shop; the settings list shows the owned ones */
+  function refreshCostumes() {
+    const sel = $('#selCostume'), owned = G.SHOP.outfits.filter(o => G.eco.has(o.id));
+    sel.innerHTML = '<option value="">Welt-Outfit (passt sich an)</option>' + owned.map(o => `<option value="${o.outfit}">${o.name}</option>`).join('');
+    if (!owned.some(o => o.outfit === save.costume)) save.costume = ''; sel.value = save.costume || ''; applyCostume();
+    $('#coinCount').textContent = owned.length + ' von ' + G.SHOP.outfits.length + ' Outfits · Shop auf dem Globus';
+  }
+  function renderShop(tab) {
+    tab = tab || renderShop.tab || 'rocket'; renderShop.tab = tab;
+    document.querySelectorAll('#shop .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+    $('#shop-money').textContent = S.money.toLocaleString('de-DE');
+    const items = tab === 'rocket' ? G.SHOP.rocket : G.SHOP.outfits;
+    $('#shop-list').innerHTML = items.map(it => { const own = G.eco.has(it.id), wearing = tab === 'outfits' && own && save.costume === it.outfit, locked = it.needs && !G.eco.has(it.needs), afford = S.money >= it.price;
+      const btn = own ? (tab === 'outfits' ? (wearing ? '<button class="btn ghost" data-act="off" data-id="' + it.id + '">Ausziehen</button>' : '<button class="btn" data-act="wear" data-id="' + it.id + '">Anziehen</button>') : '<span class="owned">✓ gekauft</span>') : (locked ? '<span class="lock">erst ' + (G.SHOP.rocket.find(r => r.id === it.needs) || {}).name + '</span>' : '<button class="btn' + (afford ? '' : ' poor') + '" data-act="buy" data-id="' + it.id + '">' + it.price.toLocaleString('de-DE') + ' Taler</button>');
+      return '<li class="' + (own ? 'own' : '') + '"><i class="ico ico-' + (it.outfit || it.id) + '"></i><div><b>' + it.name + '</b><small>' + (it.desc || '') + '</small></div>' + btn + '</li>'; }).join('');
+  }
+  function shopAction(act, id) {
+    const it = G.SHOP.rocket.concat(G.SHOP.outfits).find(x => x.id === id); if (!it) return;
+    if (act === 'buy') { if (!G.eco.buy(it)) { A().sfx.wrong(); const li = document.querySelector('#shop-list [data-id="' + id + '"]'); if (li) { li.classList.remove('nope'); void li.offsetWidth; li.classList.add('nope'); } return; } A().sfx.gadget(); }
+    else if (act === 'wear') { save.costume = it.outfit; persist(); refreshCostumes(); A().sfx.select(); }
+    else if (act === 'off') { save.costume = ''; persist(); refreshCostumes(); A().sfx.select(); }
+    renderShop();
+  }
+  function openShop(tab) { A().init(); renderShop(tab); $('#shop').hidden = false; }
   function applyCostume() { const c = save.costume || ''; S.costume = c === 'gold' ? 'gold' : ''; S.outfitOverride = (c && c !== 'gold') ? c : null; if (S.outfitOverride) S.outfit = S.outfitOverride; else if (G.L) S.outfit = G.L.world.key; }
-  function showLetter(wi) { const L = G.LETTERS[wi]; if (!L) return; $('#letter-title').textContent = L.title + ' von Pookie'; $('#letter-text').textContent = L.text; $('#letter').hidden = false; save.letters[wi] = true; persist(); if (G.hub) G.hub.letterRead = true; G.flow.speak('A letter from Pookie!', {happy: true}); }
+  function letterFor(wkey) {
+    const st = G.LETTER_STORY[wkey]; if (!st) return null;
+    const pz = Object.values(G.PZ.defs).filter(d => d.world === wkey).sort((a, b) => a.slot - b.slot);
+    const tips = pz.map((d, i) => (i === 0 ? 'Erstes Tor, „' : 'Zweites Tor, „') + d.title + '“: ' + d.letter).join('\n\n');
+    return {title: st.title, text: st.text + (tips ? '\n\n' + tips : '') + '\n\nDeine Pookie\n\nP.S. ' + st.ps};
+  }
+  const allLetters = () => G.WORLDS.map(W => letterFor(W.key)).filter(Boolean);
+  function showLetter(wi) { const W = G.WORLDS[wi], L = W && letterFor(W.key); if (!L) return; $('#letter-title').textContent = L.title; $('#letter-text').textContent = L.text; $('#letter').hidden = false; save.letters[W.key] = true; persist(); if (G.hub) G.hub.letterRead = true; G.flow.speak('A letter from Pookie!', {happy: true}); }
 
+  /* ---------------- puzzles: the overlay pauses whatever runs underneath ---------------- */
+  let pzFrom = null;
+  G.flow.isSolved = id => !!save.solved[id];
+  G.flow.openPuzzle = (id, onSolved) => {
+    if (G.PZ.isOpen()) return; const def = G.PZ.defs[id]; if (!def) { onSolved && onSolved(); return; }
+    pzFrom = S.mode; S.mode = 'pzpause'; resetInput(); G.flow.speak('A puzzle! Let me think...');
+    const wIdx = G.WORLDS.findIndex(w => w.key === def.world);
+    G.PZ.open(id, {label: 'Rätsel ' + (def.slot + 1) + ' von 2 · ' + (G.WORLDS[wIdx] ? G.WORLDS[wIdx].name : ''), isTouch,
+      pay: n => { if ((S.money || 0) < n) return false; G.eco.add(-n, 0, 0, true); return true; }, letters: allLetters,
+      onSolved: () => { save.solved[id] = true; G.eco.add(250, 0, 0, true); persist(); achieve('puzzle'); if (Object.keys(save.solved).length >= 20) achieve('allpuzzles'); S.mode = pzFrom === 'pause' ? 'play' : pzFrom; pzFrom = null; G.flow.speak('I solved it!', {happy: true}); E.toast && G.L && E.toast('+250 Taler'); onSolved && onSolved(); },
+      onClose: () => { S.mode = pzFrom === 'pause' ? 'play' : pzFrom; pzFrom = null; }});
+  };
   /* ---------------- level, hub, globe flow ---------------- */
   function startLevel(idx, custom) {
     S.wi = Math.floor(idx / 4); S.li = idx % 4; mapSel = idx; S.hits = 0;
     const W = G.WORLDS[S.wi];
+    /* worlds whose levels are self-contained modes (submarine, finale) */
+    if (W.modes && !custom) { startMode(W.modes[S.li], idx); return; }
     /* space: the first level is the rocket flight, Mars and Saturn begin with a short flight from the previous planet */
     if (W.rocket && !custom && (S.li === 0 || S.li >= 2) && !G.rocket.skipFlight) { startFlight(idx); return; }
     G.rocket.skipFlight = false;
@@ -89,6 +148,38 @@
     $('#card').hidden = false; $('#card-world').textContent = custom && custom.daily ? 'Tageslevel · ' + custom.daily : 'Welt ' + (S.wi + 1) + ' · ' + W.name; $('#card-title').textContent = custom && custom.daily ? custom.sub : (S.li + 1) + '. ' + W.levels[S.li]; $('#card-lives').textContent = 'Wookie × ' + S.lives;
     $('#card').style.background = `linear-gradient(${W.sky[0]}, ${W.sky[1]})`;
     hideAll(['card']); A().stopMusic(); $('#btnPause').textContent = 'Pause';
+  }
+  function startMode(name, idx) {
+    const wi = Math.floor(idx / 4), li = idx % 4, W = G.WORLDS[wi], m = G.modes && G.modes[name];
+    S.wi = wi; S.li = li; mapSel = idx; S.hits = 0; S.stars = [false, false, false];
+    if (!m) { console.warn('mode missing: ' + name); G.flow.banner('Bald verfügbar', 2, 'Dieses Level wird gerade gebaut.'); showHub(wi, false); return; }
+    hideAll(); A().stopMusic(); A().setWorld(W.music); A().setBoss(false); A().startMusic();
+    S.mode = 'mode'; S.modeName = name; S.modeIdx = idx; $('#btnPause').textContent = 'Pause'; S.outfit = S.outfitOverride || W.key;
+    try {
+      m.start({wi, li, world: W, name: W.levels[li], isTouch, autoplay: false,
+        done: (result, info) => setTimeout(() => modeDone(name, idx, result, info || {}), 0),
+        openPuzzle: (id, cb) => G.flow.openPuzzle(id, cb), isSolved: id => !!save.solved[id],
+        money: n => G.eco.add(n, 0, 0, true), speak: (t, o) => G.flow.speak(t, o), banner: (t, d, sub) => G.flow.banner(t, d, sub),
+        sfx: (nm, arg) => { try { if (A().sfx[nm]) A().sfx[nm](arg); } catch (e) {} },
+        loadout: G.eco.loadout(), drawBear: (c, x, y, o) => G.draw.drawBearAt(c, x, y, o)});
+    } catch (e) { console.error('MODE_START_ERROR ' + name + ' ' + e.message); showHub(wi, false); }
+  }
+  function modeDone(name, idx, result, info) {
+    if (S.mode !== 'mode') return;
+    const wi = Math.floor(idx / 4), li = idx % 4, W = G.WORLDS[wi];
+    if (result === 'dead') { S.lives--; if (S.lives <= 0) { gameOver(); return; } startMode(name, idx); return; }
+    if (result === 'quit') { showHub(wi, false); return; }
+    /* finale: the ranch flows straight into the ending film, the film ends the game */
+    const k = key(wi, li); save.done[k] = true; const prev = save.stars[k] || [false, false, false]; save.stars[k] = prev.map((b, i) => b || !!(info.stars && info.stars[i]));
+    S.score += info.score || 0; G.eco.add(60 + (li === 3 ? 100 : 0), 0, 0, true); persist(); achieve('first');
+    if (W.key === 'finale' && name === 'ranch') { startMode('cinema', idx + 1); return; }
+    if (W.key === 'finale' && name === 'cinema') { win(); return; }
+    S.mode = 'clear'; A().stopMusic(); A().sfx.clear(); G.flow.speak('Yay! I did it!', {happy: true});
+    $('#clear').hidden = false; $('#clear-title').textContent = W.levels[li] + ' geschafft';
+    $('#clear-stars').textContent = (info.stars || [false, false, false]).map(b => b ? '★' : '☆').join(' ');
+    $('#clear-stats').innerHTML = `<div class="row"><dt>Punkte</dt><dd>${S.score.toLocaleString('de-DE')}</dd></div><div class="row"><dt>Taler gesamt</dt><dd>${S.money.toLocaleString('de-DE')}</dd></div><div class="row"><dt>Leben</dt><dd>${S.lives}</dd></div>`;
+    $('#clear-next').hidden = idx + 1 >= N; $('#clear-next').textContent = li === 3 ? 'Nächste Welt' : 'Nächstes Level';
+    mapSel = Math.min(N - 1, idx + 1);
   }
   function startFlight(idx) {
     S.wi = Math.floor(idx / 4); S.li = idx % 4; mapSel = idx;
@@ -115,13 +206,13 @@
     if (!globeOk) { showMap(); return; }
     S.mode = 'globe'; hideAll(['globe']); G.globe.show(wi !== undefined ? wi : S.wi);
     const totalStars = Object.values(save.stars).reduce((a, s) => a + s.filter(Boolean).length, 0);
-    $('#gprog').textContent = `${Object.keys(save.done).length} von ${N} Leveln geschafft · ${totalStars} von ${N * 3} Sternkeksen · ${Object.keys(save.coins).length}/7 🍫`;
+    $('#gprog').textContent = `${Object.keys(save.done).length} von ${N} Leveln geschafft · ${totalStars} von ${N * 3} Sternkeksen · ${Object.keys(save.solved).length} von 20 Rätseln · ${S.money.toLocaleString('de-DE')} Taler`;
     refreshDaily();
     A().stopMusic(); A().fast = false; A().slow = false; A().setWorld(GLOBE_MUSIC); A().setBoss(false); A().startMusic();
   }
   function showHub(wi, fromSky) {
-    hideAll(); A().stopMusic(); G.hub.letterRead = !!save.letters[wi]; G.hub.enter(wi, fromSky); applyCostume(); $('#btnPause').textContent = 'Globus';
-    if (!save.letters[wi]) setTimeout(() => { if (S.mode === 'hub' && S.wi === wi && $('#letter').hidden) showLetter(wi); }, fromSky ? 2600 : 700);
+    hideAll(); A().stopMusic(); G.hub.letterRead = !!save.letters[G.WORLDS[wi].key]; G.hub.enter(wi, fromSky); applyCostume(); $('#btnPause').textContent = 'Globus';
+    if (!save.letters[G.WORLDS[wi].key]) setTimeout(() => { if (S.mode === 'hub' && S.wi === wi && $('#letter').hidden) showLetter(wi); }, fromSky ? 2600 : 700);
   }
   if (globeOk) { G.globe.progress = worldProgress; G.globe.onPick = wi => { S.mode = 'dive'; A().stopMusic(); G.dive.start(wi, () => showHub(wi, true)); }; }
   G.hub.onStart = idx => { A().sfx.select(); G.flow.speak("Let's go!", {happy: true}); startLevel(idx); };
@@ -156,8 +247,8 @@
 
   /* ---------------- pause and fullscreen ---------------- */
   function pauseGame() {
-    if (S.mode !== 'play' && S.mode !== 'card' && !(S.mode === 'dive' && G.dive.rocketMode)) return;
-    pausedFrom = S.mode; S.mode = 'pause'; A().stopMusic(); A().sfx.pause(); resetInput();
+    if (S.mode !== 'play' && S.mode !== 'card' && S.mode !== 'mode' && !(S.mode === 'dive' && G.dive.rocketMode)) return;
+    pausedFrom = S.mode; S.mode = 'pause'; A().stopMusic(); A().sfx.pause(); resetInput(); const dp = $('#dpad'); if (dp) dp.classList.remove('l', 'r');
     $('#pause-level').textContent = 'Welt ' + (S.wi + 1) + '-' + (S.li + 1) + ' · ' + G.WORLDS[S.wi].levels[S.li];
     $('#pause').hidden = false; $('#btnResume').focus(); $('#btnPause').textContent = 'Weiter';
   }
@@ -187,8 +278,9 @@
   /* ---------------- step ---------------- */
   function step() {
     S.frames++;
-    if (S.mode === 'card') { cardT += 1 / 60; if (cardT > 2) beginPlay(); return; }
+    if (S.mode === 'card') { cardT += 1 / 60; input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false; if (cardT > 2) beginPlay(); return; }
     if (S.mode === 'brand') { G.brand.update(); return; }
+    if (S.mode === 'mode') { const m = G.modes && G.modes[S.modeName]; if (m) { try { m.update(); } catch (e) { console.error('MODE_UPDATE_ERROR ' + e.message); } } input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false; return; }
     if (S.mode === 'dive') { G.dive.update(); input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false; return; }
     if (S.mode === 'hub' || S.mode === 'play') { if (P.combo >= 5) achieve('combo5'); if (S.room === 1) achieve('bonus'); }
     if (S.mode === 'hub') { E.updatePlayer(); E.updateParts(); E.updateCamera(); G.hub.update(); input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false; return; }
@@ -216,7 +308,7 @@
   }
   document.addEventListener('keydown', e => {
     if (e.target && (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT')) return;
-    const n = KEYMAP[e.code]; if (n && (S.mode === 'play' || S.mode === 'card' || S.mode === 'hub' || (S.mode === 'dive' && G.dive.rocketMode))) { press(n, true); e.preventDefault(); }
+    const n = KEYMAP[e.code]; if (n && (S.mode === 'play' || S.mode === 'card' || S.mode === 'hub' || S.mode === 'mode' || (S.mode === 'dive' && G.dive.rocketMode))) { press(n, true); e.preventDefault(); }
     if (!$('#letter').hidden && (e.code === 'Enter' || e.code === 'Escape' || e.code === 'Space')) { $('#letter').hidden = true; return; }
     if (!$('#keks').hidden && (e.code === 'Enter' || e.code === 'Escape')) { $('#keks').hidden = true; return; }
     if (e.repeat) return;
@@ -228,7 +320,7 @@
     if (S.mode === 'hub') { if (e.code === 'Escape') showGlobe(S.wi); return; }
     if (S.mode === 'map') { if (e.code === 'ArrowLeft' || e.code === 'KeyA') mapMove(-1); else if (e.code === 'ArrowRight' || e.code === 'KeyD') mapMove(1); else if (e.code === 'ArrowUp' || e.code === 'KeyW') mapMove(-4); else if (e.code === 'ArrowDown' || e.code === 'KeyS') mapMove(4); else if (e.code === 'Enter' || e.code === 'Space') { A().sfx.select(); startLevel(mapSel); } else if (e.code === 'Escape') showTitle(); return; }
     if (S.mode === 'pause') { if (e.code === 'Escape' || e.code === 'KeyP' || e.code === 'Enter') resumeGame(); return; }
-    if ((e.code === 'Escape' || e.code === 'KeyP') && (S.mode === 'play' || S.mode === 'card') && !P.dead && !G.goalSeq) { pauseGame(); return; }
+    if ((e.code === 'Escape' || e.code === 'KeyP') && (S.mode === 'mode' || ((S.mode === 'play' || S.mode === 'card') && !P.dead && !G.goalSeq))) { pauseGame(); return; }
     if (e.code === 'Enter' || e.code === 'Space') advance();
   });
   document.addEventListener('keyup', e => { const n = KEYMAP[e.code]; if (n) press(n, false); });
@@ -238,11 +330,14 @@
   { const pad = $('#dpad'); let padId = null;
     const setDir = x => { const r = pad.getBoundingClientRect(), rel = x - (r.left + r.width / 2), dz = 7, l = rel < -dz, rt = rel > dz; if (l !== input.left) press('left', l); if (rt !== input.right) press('right', rt); pad.classList.toggle('l', l); pad.classList.toggle('r', rt); };
     const release = e => { if (padId === null || (e && e.pointerId !== padId)) return; padId = null; press('left', false); press('right', false); pad.classList.remove('l', 'r'); };
-    pad.addEventListener('pointerdown', e => { e.preventDefault(); A().init(); if (padId !== null) release({pointerId: padId}); padId = e.pointerId; try { pad.setPointerCapture(e.pointerId); } catch (err) {} setDir(e.clientX); });
+    pad.addEventListener('pointerdown', e => { e.preventDefault(); A().init(); if (padId !== null) return; padId = e.pointerId; try { pad.setPointerCapture(e.pointerId); } catch (err) {} setDir(e.clientX); });
     pad.addEventListener('pointermove', e => { if (e.pointerId === padId) setDir(e.clientX); });
     pad.addEventListener('pointerup', release); pad.addEventListener('pointercancel', release); pad.addEventListener('lostpointercapture', release); pad.addEventListener('contextmenu', e => e.preventDefault()); }
   /* taps on the stage: skip the dive, start after the level card */
-  $('#stage').addEventListener('pointerdown', () => { if (S.mode === 'boot') startBrand(); else if (S.mode === 'brand') G.brand.skip(); else if (S.mode === 'dive') G.dive.t = Math.max(G.dive.t, 2.15); else if (S.mode === 'card' && cardT > 0.4) beginPlay(); });
+  $('#stage').addEventListener('pointerdown', () => { if (S.mode === 'boot') startBrand(); else if (S.mode === 'brand') G.brand.skip(); else if (S.mode === 'dive') { if (G.dive.launching) G.rocket.lt = Math.max(G.rocket.lt || 0, 3.0); else if (!G.dive.rocketMode) G.dive.t = Math.max(G.dive.t, 2.15); } else if (S.mode === 'card' && cardT > 0.4) beginPlay(); });
+  $('#card').addEventListener('pointerdown', () => { if (S.mode === 'card' && cardT > 0.4) beginPlay(); });
+  /* touch browsers only grant fullscreen on pointerup/touchend: try again there, and on the first title button */
+  if (isTouch) ['pointerup', 'touchend'].forEach(ev => document.addEventListener(ev, () => { if (!document.fullscreenElement && S.mode !== 'boot') goFullscreen(); }, {passive: true}));
   function advance() {
     if (S.mode === 'title') { A().init(); hideAll(); showGlobe(); if (isTouch) goFullscreen(); }
     else if (S.mode === 'card' && cardT > 0.4) beginPlay();
@@ -271,6 +366,10 @@
   $('#btnKeksClose').addEventListener('click', () => { $('#keks').hidden = true; });
   $('#btnLetterClose').addEventListener('click', () => { $('#letter').hidden = true; });
   $('#selCostume').addEventListener('change', e => { save.costume = e.target.value; persist(); applyCostume(); });
+  $('#shop-list').addEventListener('click', e => { const b = e.target.closest('button[data-act]'); if (b) shopAction(b.dataset.act, b.dataset.id); });
+  document.querySelectorAll('#shop .tab').forEach(b => b.addEventListener('click', () => { A().sfx.select(); renderShop(b.dataset.tab); }));
+  $('#btnShopClose').addEventListener('click', () => { $('#shop').hidden = true; });
+  document.querySelectorAll('.btnShop').forEach(b => b.addEventListener('click', () => openShop()));
   refreshCostumes();
   /* gadget counter for the Keksdose */
   { const give0 = G.gad.give.bind(G.gad); G.gad.give = (id, quiet) => { give0(id, quiet); if (!quiet) { save.gad = (save.gad || 0) + 1; persist(); if (save.gad >= 10) achieve('gadgets10'); } }; }
@@ -304,14 +403,55 @@
     requestAnimationFrame(frame);
     const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now; acc += dt;
     let n = 0; while (acc >= 1 / 60 && n++ < 4) { step(); acc -= 1 / 60; }
-    if (isTouch) { document.body.classList.toggle('playing', S.mode === 'play' || S.mode === 'card' || S.mode === 'hub' || S.mode === 'dive'); document.body.classList.toggle('onglobe', S.mode === 'globe'); }
-    if (S.mode === 'globe' && globeOk) G.globe.frame(); else G.draw.frame();
+    if (isTouch) { document.body.classList.toggle('playing', S.mode === 'play' || S.mode === 'card' || S.mode === 'hub' || S.mode === 'dive' || S.mode === 'mode'); document.body.classList.toggle('onglobe', S.mode === 'globe'); }
+    if (S.mode === 'globe' && globeOk) G.globe.frame();
+    else if (S.mode === 'boot' || S.mode === 'brand' || S.mode === 'dive' || S.mode === 'mode' || (S.mode === 'pause' && (pausedFrom === 'dive' || pausedFrom === 'mode')) || (S.mode === 'pzpause' && (pzFrom === 'mode' || pzFrom === 'dive'))) {
+      const c = G.draw.ctx || canvas.getContext('2d'), kk = G.draw.k || (canvas.height / VH); c.setTransform(kk, 0, 0, kk, 0, 0); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+      if (S.mode === 'boot' || S.mode === 'brand') G.brand.frame(c, kk);
+      else if (S.mode === 'mode' || (S.mode === 'pause' && pausedFrom === 'mode') || (S.mode === 'pzpause' && pzFrom === 'mode')) { const m = G.modes && G.modes[S.modeName]; if (m) m.frame(c); }
+      else G.dive.frame(c, kk);
+    }
+    else G.draw.frame();
   }
   function boot() {
     S.mode = 'boot'; hideAll();   /* start screen on the canvas; the first tap starts the publisher intro */
     const brandM = /^#brand(?:=([\d.]+))?$/.exec(HASH);
     if (brandM) { S.mode = 'boot'; startBrand(); const n = Math.round((+brandM[1] || 0) * 60); for (let i = 0; i < n; i++) step(); }   /* headless: step the intro synchronously to a time point */
     if (HASH === '#title') showTitle();
+    const stM = /^#station(\d+)(open)?$/.exec(HASH);
+    if (stM) { const idx = +stM[1] - 1; S.wi = Math.floor(idx / 4); S.li = idx % 4; hideAll(); S.lives = 4; E.load(S.wi, S.li, false); S.mode = 'play'; const pz = G.L.pz; if (pz) { P.x = (pz.stationCol - 1) * T; P.y = 13 * T - P.h; S.cam = Math.max(0, Math.min(G.L.mainW * T - G.VW, P.x - G.VW * 0.45)); for (let i = 0; i < 4; i++) step(); if (stM[2]) G.flow.openPuzzle(pz.id, () => console.log('STATION_SOLVED ' + pz.id)); } console.log('STATION_BOOT ' + G.L.name + ' pz=' + (pz ? pz.id + ' col=' + pz.stationCol + ' gate=' + pz.gateCol : 'none')); }
+    const bossM = /^#boss(\d+)(fight)?$/.exec(HASH);
+    if (bossM) { const idx = +bossM[1] - 1; S.wi = Math.floor(idx / 4); S.li = idx % 4; hideAll(); S.lives = 4; E.load(S.wi, S.li, false); S.mode = 'play'; const L2 = G.L; if (L2.arenaX) { P.x = L2.arenaX + 8; P.y = (L2.arenaRow + 1) * T - P.h - 2; P.inv = 99; S.cam = Math.max(0, L2.arenaX - 40); for (let i = 0; i < (bossM[2] ? 260 : 6); i++) { step(); P.inv = 99; } } const bz = G.ents.find(e => e.kind === 'boss'); console.log('BOSS_BOOT ' + L2.name + ' arena=' + (bz ? bz.arena : '-') + ' weapon=' + (bz ? bz.weapon : '-') + ' active=' + (bz ? bz.active : '-') + ' hazards=' + G.ents.filter(e => e.kind === 'beam' || e.kind === 'warn' || (e.kind === 'shot' && e.boss)).length + ' blaster=' + P.blaster + ' camY=' + (S.camY || 0).toFixed(0)); }
+    if (HASH === '#wfdump') { const wi = G.WORLDS.findIndex(w => w.key === 'schoko'); const src = G.buildLevel(wi, G.WORLDS[wi].waterfall); const wf = src.waterfall; const a = Math.floor(wf.x0 / 16) - 2, b = Math.floor(wf.x1 / 16) + 12; for (let y = 10; y < src.cols[0].length; y++) { let r = ''; for (let x = a; x < b; x++) r += src.cols[x][y] || '?'; console.log('WF' + String(y).padStart(2, '0') + ' ' + r); } console.log('WFINFO x0=' + wf.x0 / 16 + ' x1=' + wf.x1 / 16 + ' from=' + a); }
+    const wfM = /^#wf(\d+)$/.exec(HASH);
+    if (wfM) { const wi = G.WORLDS.findIndex(w => w.key === 'schoko'), li = G.WORLDS[wi].waterfall; S.wi = wi; S.li = li; hideAll(); S.lives = 4; E.load(wi, li, false); S.mode = 'play'; const wf = G.L.waterfall; const ch = G.ents.find(e => e.kind === 'chute'); P.x = ch.x - 40; P.y = 13 * T - P.h; P.inv = 99999; S.cam = Math.max(0, P.x - 200); const n = +wfM[1]; for (let i = 0; i < n; i++) { for (const k in input) input[k] = false; if (P.x < wf.x0 + 6 * T) input.right = true; step(); } console.log('WF_BOOT frames=' + n + ' x=' + P.x.toFixed(0) + ' y=' + P.y.toFixed(0) + ' chute=' + P.chute + ' camY=' + S.camY.toFixed(0)); }
+    const playM = /^#play(\d+)(?:t=([\d.]+))?$/.exec(HASH);
+    if (playM) { hideAll(); S.lives = 4; startLevel(+playM[1] - 1); if (S.mode === 'card') beginPlay(); const n = Math.round((+playM[2] || 0) * 60); for (let i = 0; i < n; i++) step(); console.log('PLAY_BOOT idx=' + playM[1] + ' mode=' + S.mode + ' modeName=' + (S.modeName || '-') + ' world=' + G.WORLDS[S.wi].key + ' li=' + S.li); }
+    if (HASH === '#pzall') {
+      /* every registered puzzle in the real page: open, auto-solve, wait for the solve, next */
+      const ids = Object.keys(G.PZ.defs).sort(); let i = 0, ok = 0; const per = {};
+      G.WORLDS.forEach(W => { per[W.key] = Object.values(G.PZ.defs).filter(d => d.world === W.key).map(d => d.slot).sort().join(''); });
+      console.log('PZALL worlds ' + JSON.stringify(per));
+      const next = () => { if (i >= ids.length) { console.log('PZALL DONE ' + ok + '/' + ids.length); return; } const id = ids[i++]; const t0 = Date.now(); let done = false;
+        G.PZ.open(id, {pay: () => true, letters: allLetters, onSolved: () => { done = true; ok++; console.log('PZALL ok ' + id); setTimeout(next, 50); }});
+        setTimeout(() => { const c = G.PZ.current; if (c && c.handle && c.handle.autoSolve) c.handle.autoSolve(); else console.log('PZALL noAutoSolve ' + id); }, 300);
+        setTimeout(() => { if (!done) { console.log('PZALL TIMEOUT ' + id); G.PZ.close(); next(); } }, 9000); };
+      hideAll(); S.mode = 'title'; next();
+    }
+    if (HASH === '#journey') {
+      /* the finale chain through the real flow: Saturn rescue -> black hole -> city -> ranch -> film -> win (each mode finished via debugWin) */
+      const fi = G.WORLDS.findIndex(w => w.key === 'finale'); hideAll(); S.lives = 4; let steps = 0;
+      const tick = () => {
+        steps++; if (steps > 40) { console.log('JOURNEY TIMEOUT mode=' + S.mode); return; }
+        if (S.mode === 'win') { console.log('JOURNEY WIN after ' + steps + ' steps'); return; }
+        if (S.mode === 'clear') { console.log('JOURNEY clear ' + G.WORLDS[S.wi].levels[S.li]); advance(); setTimeout(tick, 300); return; }
+        if (S.mode === 'mode') { const m = G.modes[S.modeName]; console.log('JOURNEY in ' + S.modeName); for (let i = 0; i < 20; i++) step(); if (m && m.debugWin) m.debugWin(); else console.log('JOURNEY no debugWin ' + S.modeName); for (let i = 0; i < 20; i++) step(); setTimeout(tick, 300); return; }
+        setTimeout(tick, 300);
+      };
+      startLevel(fi * 4); setTimeout(tick, 200);
+    }
+    if (HASH === '#worlds') console.log('WORLDS ' + G.WORLDS.map((w, i) => i + ':' + w.key + (w.modes ? '(' + w.modes.join('/') + ')' : '')).join(' ') + ' N=' + N + ' puzzles=' + Object.keys(G.PZ.defs).length + ' modes=' + Object.keys(G.modes || {}).join(','));
+    const shopM = /^#shop(outfits)?$/.exec(HASH); if (shopM) { S.money = 1234; G.eco.owned.shield = true; G.eco.owned.o_insel = true; hideAll(); showGlobe(0); refreshCostumes(); openShop(shopM[1] ? 'outfits' : 'rocket'); }
     const rocketM = /^#rocket(?:=([\d.]+))?(i)?$/.exec(HASH);
     if (rocketM) { S.lives = 4; startFlight(24); const n = Math.round((+rocketM[1] || 0) * 60); for (let i = 0; i < n; i++) { if (rocketM[2] && G.rocket.ship) G.rocket.ship.inv = 9; step(); } console.log('ROCKET_BOOT t=' + G.rocket.t.toFixed(1) + ' phase=' + G.rocket.phase + ' enemies=' + G.rocket.enemies.length + ' hp=' + G.rocket.ship.hp); }
     const launchM = /^#launch(?:=([\d.]+))?$/.exec(HASH);
@@ -321,15 +461,16 @@
     if (HASH === '#keks') { save.ach.first = true; save.ach.coin = true; hideAll(); showGlobe(0); renderKeks(); $('#keks').hidden = false; }
     const puzzleM = /^#puzzle(\d+)(solve)?$/.exec(HASH);
     if (puzzleM) { const idx = +puzzleM[1] - 1; S.wi = Math.floor(idx / 4); S.li = idx % 4; hideAll(); S.lives = 4; E.load(S.wi, S.li, false); S.mode = 'play'; if (G.L.puzzle) { E.enterRoom(2); if (puzzleM[2]) { for (const b of G.L.puzzle.order) E.ringBell(G.L.puzzle.bells[b]); } } console.log('PUZZLE_BOOT puzzle=' + (G.L.puzzle ? G.L.puzzle.kind + ' order=' + G.L.puzzle.order.join('') + ' bells=' + G.L.puzzle.bells.join(',') + ' solved=' + G.L.puzzle.solved : 'none')); }
-    const simM = /^#sim(\d+)([tex]*)$/.exec(HASH), testM = /^#(test|end|room)(\d+)(?:g=(\w+))?(?:x=(\d+))?$/.exec(HASH);
+    const simM = /^#sim(\d+)([tex]*)$/.exec(HASH), testM = /^#(test|end|room)(\d+)(?:g=(\w+))?(?:x=(\d+))?(?:y=(\d+))?$/.exec(HASH);
     if (testM || simM) {
       const idx = Math.max(0, Math.min(N - 1, +(testM ? testM[2] : simM[1]) - 1));
       S.wi = Math.floor(idx / 4); S.li = idx % 4; hideAll(); S.lives = 4; E.load(S.wi, S.li, false); S.mode = 'play';
       if (testM && testM[1] === 'end') { P.x = (G.L.towerX || G.L.goalX) - 120; S.cam = Math.max(0, P.x - G.VW * 0.4); }
       if (testM && testM[4]) { P.x = +testM[4] * T; S.cam = Math.max(0, Math.min(G.L.mainW * T - G.VW, P.x - G.VW * 0.4)); }
+      if (testM && testM[5]) { P.y = +testM[5] * T - P.h; S.camY = Math.max(0, Math.min(G.L.h * T - 240, P.y + P.h / 2 - 132)); }
       if (testM && testM[1] === 'room' && G.L.bonus) E.enterRoom(1);
       if (testM && testM[3] && G.gad) G.gad.give(testM[3]);
-      if (simM && simM[2].includes('e')) { P.x = (G.L.arenaX || (G.L.goalX - 200)) + 4; S.cam = Math.max(0, P.x - G.VW * 0.4); }
+      if (simM && simM[2].includes('e')) { P.x = (G.L.arenaX || (G.L.goalX - 200)) + 4; if (G.L.arenaX) P.y = (G.L.arenaRow + 1) * T - P.h - 1; S.cam = Math.max(0, P.x - G.VW * 0.4); }
       const caps = G.L.cols.filter(c => c[9] === 'g').length, cannons = G.ents.filter(e => e.kind === 'cannon').length;
       console.log('POOKIE_BOOT level=' + G.L.name + ' (' + G.L.sub + ') w=' + G.L.w + ' mainW=' + G.L.mainW + ' ents=' + G.ents.length + ' start=' + P.x + ',' + P.y + ' arena=' + (G.L.arenaX || '-') + ' door=' + (G.L.doorX || '-') + ' capsules=' + caps + ' cannons=' + cannons + ' bonus=' + (G.L.bonus ? G.L.bonus.pipeCol + '>' + G.L.bonus.roomCol : '-'));
     }
@@ -367,7 +508,8 @@
       const gad = G.ents.find(e => e.kind === 'gadget'); let got = null;
       run(70); input.right = true; for (let k = 0; k < 150 && !P.gadget; k++) step(); got = P.gadget;
       log('capsule', !!gad && !!got, 'tile=' + G.L.cols[gx][9] + ' gadgetEnt=' + (gad ? gad.id : '-') + ' got=' + got);
-      load(4); const can = G.ents.find(e => e.kind === 'cannon'); place(can.x - 60, 13 * T - 14); run(2); input.right = true; input.run = true; let maxX = 0, launched = false, landed = false; for (let i = 0; i < 240; i++) { step(); maxX = Math.max(maxX, P.x); if (P.launch > 0) launched = true; if (launched && P.launch <= 0 && P.onGround) { landed = true; break; } }
+      let canLv = 4; for (let li = 4; li < 20; li++) { load(li); if (G.ents.some(e => e.kind === 'cannon')) { canLv = li; break; } }
+      load(canLv); const can = G.ents.find(e => e.kind === 'cannon'); place(can.x - 60, 13 * T - 14); run(2); input.right = true; input.run = true; let maxX = 0, launched = false, landed = false; for (let i = 0; i < 240; i++) { step(); maxX = Math.max(maxX, P.x); if (P.launch > 0) launched = true; if (launched && P.launch <= 0 && P.onGround) { landed = true; break; } }
       log('cannon', launched && landed && !P.dead && maxX > can.x + 140, 'launched=' + launched + ' landed=' + landed + ' maxX=' + maxX.toFixed(0) + ' cannonX=' + can.x.toFixed(0) + ' dead=' + P.dead);
       load(1); let en = G.ents.find(e => e.kind === 'walker' && e.alive); G.gad.give('star', true); place(en.x - 30, en.y); input.right = true; run(40);
       log('star', !en.alive && !P.dead && P.gadget === 'star', 'enemyAlive=' + en.alive + ' dead=' + P.dead);
@@ -399,8 +541,160 @@
       hideAll(); S.mode = 'dive'; let hubEntered = false; G.dive.start(1, () => { hubEntered = true; showHub(1, true); }); for (let i = 0; i < 200 && !hubEntered; i++) step();
       log('dive', hubEntered && S.mode === 'hub' && P.skydive, 'entered=' + hubEntered + ' mode=' + S.mode + ' t=' + G.dive.t.toFixed(1));
       log('globe', !!globeOk, 'ok=' + globeOk);
+      /* vertical sections: climb every chimney of several levels with a ledge-hopping controller (real physics, real input) */
+      const climbLevels = (HASH.match(/climb=([\d,]+)/) || [0, ''])[1].split(',').filter(Boolean).map(x => +x - 1); if (!climbLevels.length) G.WORLDS.forEach((W, wi) => { if (!W.modes && !W.rocket) for (let li = 1; li <= 2; li++) climbLevels.push(wi * 4 + li); });
+      for (const li of climbLevels) { const r = climbAll(li); log('climb-' + (li + 1), r.ok, r.info); }
+      { const r = wallJumpTest(); log('walljump', r.ok, r.info); }
+      { const r = waterfallTest(); log('waterfall', r.ok, r.info); }
+      G.WORLDS.forEach((W, wi) => { if (W.boss && W.boss.arena === 'sky') { let r = skyTest(wi, true); log('sky-jet-' + W.key, r.ok, r.info); r = skyTest(wi, false); log('sky-clouds-' + W.key, r.ok, r.info); } if (W.boss && W.boss.arena === 'cave') { const r = caveArenaTest(wi); log('cave-arena-' + W.key, r.ok, r.info); } });
     } catch (e) { console.log('FLOW ERROR ' + e.message + ' ' + (e.stack || '').split('\n')[1]); }
     console.log('FLOW DONE');
+  }
+  /* ledge-hopping controller for the climb tests: from the current position reach the landing range [x0, x1] at height yTop */
+  function hopTo(tg, maxFrames) {
+    const clear = () => { for (const k in input) input[k] = false; input.run = isTouch; input.touchMode = isTouch; };
+    let f = 0, jumped = false, dbl = false;
+    while (f++ < maxFrames) {
+      clear();
+      const feet = P.y + P.h, cx = P.x + P.w / 2, onTarget = tg.done ? tg.done() : (P.onGround && Math.abs(feet - tg.yTop) < 2 && P.x + P.w > tg.x0 + 2 && P.x < tg.x1 - 2);
+      if (tg.launch === undefined) tg.launch = cx;
+      if (onTarget) return true;
+      const above = feet <= tg.yTop - 2;
+      /* below the target: line up beside it (tg.launch), jump, double jump near the apex; above it: steer onto it */
+      const goal = above ? (tg.x0 + tg.x1) / 2 : tg.launch;
+      if (Math.abs(goal - cx) > 3) { if (goal > cx) input.right = true; else input.left = true; }
+      if (P.onGround && !above && Math.abs(goal - cx) <= 6 && !jumped) { input.jumpEdge = true; input.jumpKeyEdge = true; input.jump = true; jumped = true; }
+      if (!P.onGround && !above && !dbl && P.vy > -1.0 && P.jumps === 1) { input.jumpEdge = true; input.jumpKeyEdge = true; dbl = true; }
+      if (P.onGround && jumped && f > 4) { jumped = false; dbl = false; }
+      step();
+      if (P.dead) return false;
+    }
+    return false;
+  }
+  function climbAll(li) {
+    S.wi = Math.floor(li / 4); S.li = li % 4; S.lives = 9; E.load(S.wi, S.li, false); S.mode = 'play'; hideAll();
+    const L = G.L, cols = L.cols, T2 = T, info = [];
+    let ok = true, found = 0;
+    /* cave chimneys: deep columns whose rows 13..26 are open and that sit right before ground at row 13 */
+    for (let x = 1; x < L.w - 5; x++) {
+      if (cols[x].length > 30 && cols[x][27] !== '#') continue;   /* the waterfall's mushroom chimney has its own test */
+      if (!(L.deep && L.deep[x] && L.deep[x + 3] && !(L.deep[x + 4]) && cols[x + 4][13] !== '-' && cols[x][13] === '-' && cols[x][20] !== '#' && cols[x - 1][5] === '#')) continue;
+      found++;
+      /* ledges inside the 4 columns, from the bottom up, then the surface on the right */
+      const ledges = []; for (let y = 26; y > 13; y--) { const a = cols[x][y] === '=', b = cols[x + 2][y] === '='; if (a) ledges.push({x0: x * T2, x1: (x + 2) * T2, yTop: y * T2, launch: (x + 3) * T2}); if (b) ledges.push({x0: (x + 2) * T2, x1: (x + 4) * T2, yTop: y * T2, launch: (x + 1) * T2}); }
+      ledges.push({x0: (x + 4) * T2, x1: (x + 7) * T2, yTop: 13 * T2, done: () => P.onGround && P.y + P.h <= 13 * T2 + 1 && P.x >= (x + 4) * T2 - 4});
+      P.x = (x + 2) * T2 + 2; P.y = 27 * T2 - P.h; P.vx = P.vy = 0; P.inv = 99; for (let i = 0; i < 3; i++) step();
+      for (let i = 0; i < ledges.length; i++) { if (!hopTo(ledges[i], 360)) { ok = false; info.push('cave@' + x + ' stuck at step ' + i + ' y=' + P.y.toFixed(0)); break; } }
+      if (ok) info.push('cave@' + x + ' ' + ledges.length + ' hops');
+    }
+    /* surface chimneys: a 1-wide pillar, a 3-wide shaft, a plateau of the same height */
+    for (let x = 1; x < L.w - 6; x++) {
+      const pil = cols[x], top = pil.indexOf('#'); if (top < 2 || top > 9) continue;
+      if (!(cols[x - 1][top] === '-' && cols[x + 1][top] !== '#' && cols[x + 2][top] !== '#' && cols[x + 3][top] !== '#' && cols[x + 4][top] === '#' && cols[x + 5][top] === '#' && cols[x + 1][13] === '#')) continue;
+      found++;
+      const ledges = []; for (let y = 12; y > top; y--) { if (cols[x + 3][y] === '=') ledges.push({x0: (x + 3) * T2, x1: (x + 4) * T2, yTop: y * T2, launch: (x + 1.5) * T2}); if (cols[x + 1][y] === '=') ledges.push({x0: (x + 1) * T2, x1: (x + 2) * T2, yTop: y * T2, launch: (x + 3) * T2}); }
+      ledges.push({x0: (x + 4) * T2, x1: (x + 8) * T2, yTop: top * T2, done: () => P.onGround && P.y + P.h <= top * T2 + 1 && P.x >= (x + 4) * T2 - 4});
+      P.x = (x + 2) * T2 + 2; P.y = 13 * T2 - P.h; P.vx = P.vy = 0; P.inv = 99; for (let i = 0; i < 3; i++) step();
+      let k = true; for (let i = 0; i < ledges.length; i++) { if (!hopTo(ledges[i], 360)) { k = false; ok = false; info.push('kamin@' + x + ' stuck at step ' + i + ' y=' + P.y.toFixed(0)); break; } }
+      if (k) info.push('kamin@' + x + ' ' + ledges.length + ' hops');
+    }
+    if (!found) { ok = false; info.push('no vertical section found'); }
+    return {ok, info: G.L.name + ': ' + info.join('; ')};
+  }
+  /* the chocolate waterfall: parachute down (steering off the ledges), land beside the pool, bounce up the mushrooms */
+  function waterfallTest() {
+    const wi = G.WORLDS.findIndex(w => w.key === 'schoko'); if (wi < 0) return {ok: false, info: 'no schoko world'};
+    const li = G.WORLDS[wi].waterfall; S.wi = wi; S.li = li; E.load(wi, li, false); S.mode = 'play'; hideAll();
+    const wf = G.L.waterfall; if (!wf) return {ok: false, info: 'no waterfall'};
+    const chute = G.ents.find(e => e.kind === 'chute'); P.x = chute.x - 30; P.y = 13 * T - P.h; P.inv = 99999; P.vx = P.vy = 0;
+    const clear = () => { for (const k in input) input[k] = false; };
+    let f = 0, phase = 'walk', fallT = 0, maxY = 0, landed = null, lastB = 999; const trail = [];
+    const midX = (wf.x0 + wf.x1) / 2;
+    while (f++ < 60 * 90) {
+      clear();
+      if (phase === 'walk') { input.right = true; if (P.x > wf.x0 + 4) phase = 'fall'; }
+      else if (phase === 'fall') {
+        fallT++; maxY = Math.max(maxY, P.y);
+        /* stay over a landing pad near the bottom, otherwise drift away from the wall we are on */
+        if (P.y > wf.bottom - 70) { if (P.x + 6 < wf.x0 + 3.5 * T) input.left = true; else if (P.x + 6 > wf.x1 - 3.5 * T) input.right = true; else input.right = true; }
+        else if (P.onGround) { if (P.x + 6 < midX) input.right = true; else input.left = true; }
+        if (P.onGround && P.y + P.h >= wf.bottom - 2) { phase = 'tunnel'; landed = {x: P.x, t: fallT}; }
+      }
+      else if (phase === 'tunnel') {
+        input.right = true;
+        /* in the mushroom chimney: steer toward the next mushroom above while rising */
+        const cx0 = Math.floor(wf.x1 / T) + 5; if (P.x >= cx0 * T - 8) phase = 'bounce';
+      }
+      else if (phase === 'bounce') {
+        const cx0 = Math.floor(wf.x1 / T) + 5, row = Math.floor((P.y + P.h) / T);
+        if (P.bounceT > 0.45) lastB = Math.round((P.y + P.h) / T);
+        let target = null; for (let y = Math.min(lastB - 1, G.L.h - 1); y > 0 && !target; y--) for (let k = 0; k < 4; k++) if (G.L.cols[cx0 + k][y] === 'b') { target = {x: (cx0 + k) * T + 8, y, k}; break; }
+        /* rise beside the next ledge (not under it), drift onto it once above */
+        let tx = target ? target.x : (cx0 + 6) * T; if (target && P.y + P.h > target.y * T - 2) tx = (cx0 + (target.k <= 1 ? 2.5 : 0.8)) * T;
+        /* standing on the floor next to the first mushroom: hop onto it */
+        if (P.onGround && target && target.y >= row - 2) { tx = target.x; input.jumpEdge = true; input.jumpKeyEdge = true; input.jump = true; }
+        if (P.vy < -2 && !target) input.right = true; else if (Math.abs(tx - (P.x + 6)) > 2) { if (tx > P.x + 6) input.right = true; else input.left = true; }
+        if (P.onGround && P.y + P.h <= 13 * T + 1 && P.x > (cx0 + 4) * T) return {ok: true, info: 'parachute fall ' + (landed.t / 60).toFixed(1) + 's, landed x=' + landed.x.toFixed(0) + ', bounced up to the surface after ' + (f / 60).toFixed(1) + 's'};
+      }
+      if (phase === 'bounce' && f % 12 === 0) trail.push(Math.round(P.x / T * 10) / 10 + ',' + Math.round((P.y + P.h) / T * 10) / 10 + (P.onGround ? 'g' : '') + (P.wallSlide ? 'w' : '')); if (trail.length > 40) trail.shift();
+      step(); if (P.dead) return {ok: false, info: 'died in phase ' + phase + ' at x=' + P.x.toFixed(0) + ' y=' + P.y.toFixed(0) + ' why=' + JSON.stringify(S.lastDeath)};
+    }
+    return {ok: false, info: 'timeout in phase ' + phase + ' x=' + P.x.toFixed(0) + ' y=' + P.y.toFixed(0) + ' trail ' + trail.join(' ')};
+  }
+  /* sky arenas: reach the floating island with the jetpack, and without it over the cloud steps */
+  function skyTest(wi, useJet) {
+    S.wi = wi; S.li = 3; E.load(wi, 3, false); S.mode = 'play'; hideAll(); const L2 = G.L, top = L2.arenaRow + 1;
+    const jet = G.ents.find(e => e.kind === 'gadget' && e.id === 'jet'); if (!jet) return {ok: false, info: 'no jetpack'};
+    const boss = G.ents.find(e => e.kind === 'boss'); if (boss) boss.alive = false;
+    const onIsland = () => P.onGround && Math.abs(P.y + P.h - top * T) < 2 && P.x >= L2.arenaX - T;
+    if (!useJet) jet.alive = false;
+    P.x = jet.x - 40; P.y = 13 * T - P.h; P.vx = P.vy = 0; P.inv = 99999;
+    if (useJet) {
+      let f = 0; while (f++ < 900) { for (const k in input) input[k] = false; const over = P.x + P.w / 2 > L2.arenaX + T, high = P.y + P.h < top * T - 24; input.right = !over || P.x < L2.arenaX + 3 * T; if (P.gadget === 'jet' && !(over && high) && !(high && P.vy < -1)) input.jump = true; if (P.gadget === 'jet' && P.onGround && !onIsland()) { input.jumpEdge = true; input.jumpKeyEdge = true; } step(); if (P.dead) return {ok: false, info: 'died'}; if (onIsland()) return {ok: true, info: 'flew to the island in ' + (f / 60).toFixed(1) + 's, fuel left ' + P.fuel}; }
+      return {ok: false, info: 'jet: x=' + P.x.toFixed(0) + ' y=' + P.y.toFixed(0) + ' gadget=' + P.gadget};
+    }
+    /* cloud steps: every '=' block above the abyss before the island, in order */
+    const steps = []; const ax = Math.floor(L2.arenaX / T); for (let x = Math.floor(jet.x / T) + 1; x < ax; x++) for (let y = 4; y < 13; y++) if (L2.cols[x][y] === '=' && (steps.length === 0 || steps[steps.length - 1].row !== y || steps[steps.length - 1].x1 !== x)) { const last = steps[steps.length - 1]; if (last && last.row === y && last.x1 === x) last.x1 = x + 1; else steps.push({row: y, x0: x, x1: x + 1}); }
+    let edge = (() => { let x = Math.floor(jet.x / T); while (L2.cols[x + 1][13] === '#') x++; return (x + 1) * T - 8; })();
+    const targets = steps.map(st => { const t = {x0: st.x0 * T, x1: st.x1 * T, yTop: st.row * T, launch: edge}; edge = st.x1 * T - 7; return t; }); targets.push({x0: L2.arenaX - T, x1: L2.arenaX + 6 * T, yTop: top * T, launch: edge});
+    for (let i = 0; i < targets.length; i++) { if (!hopTo(targets[i], 400)) return {ok: false, info: 'clouds: stuck at step ' + i + '/' + targets.length + ' x=' + P.x.toFixed(0) + ' y=' + P.y.toFixed(0)}; }
+    return {ok: true, info: 'reached the island over ' + steps.length + ' cloud steps'};
+  }
+  /* cave arenas: after the boss, climb the chimney behind the gate back to the tower */
+  function caveArenaTest(wi) {
+    S.wi = wi; S.li = 3; E.load(wi, 3, false); S.mode = 'play'; hideAll(); const L2 = G.L, cols = L2.cols;
+    const boss = G.ents.find(e => e.kind === 'boss'); if (boss) boss.alive = false; E.openGate(); S.camLock = null;
+    const gx = Math.floor(L2.arenaEnd / T); const x = gx + 1;   /* chimney columns x..x+3 */
+    const ledges = []; for (let y = 26; y > 13; y--) { if (cols[x][y] === '=') ledges.push({x0: x * T, x1: (x + 2) * T, yTop: y * T, launch: (x + 3) * T}); if (cols[x + 2][y] === '=') ledges.push({x0: (x + 2) * T, x1: (x + 4) * T, yTop: y * T, launch: (x + 1) * T}); }
+    ledges.push({x0: (x + 4) * T, x1: (x + 7) * T, yTop: 13 * T, done: () => P.onGround && P.y + P.h <= 13 * T + 1 && P.x >= (x + 4) * T - 4});
+    P.x = (gx - 3) * T; P.y = 27 * T - P.h; P.vx = P.vy = 0; P.inv = 99999; for (let i = 0; i < 3; i++) step();
+    /* walk through the open gate into the chimney */
+    let f = 0; while (f++ < 200 && P.x < (x + 1) * T) { for (const k in input) input[k] = false; input.right = true; step(); }
+    for (let i = 0; i < ledges.length; i++) { if (!hopTo(ledges[i], 400)) return {ok: false, info: 'stuck at ledge ' + i + '/' + ledges.length + ' x=' + P.x.toFixed(0) + ' y=' + P.y.toFixed(0)}; }
+    for (f = 0; f < 600 && !G.goalSeq; f++) { for (const k in input) input[k] = false; input.right = true; step(); }
+    return {ok: !!G.goalSeq, info: G.goalSeq ? 'climbed out and reached the tower door' : 'did not reach the door x=' + P.x.toFixed(0)};
+  }
+  /* pure wall jumps up a cave chimney (ignoring the ledges): press into a wall while falling, jump off, switch sides */
+  function wallJumpTest() {
+    for (let li = 4; li < 24; li++) {
+      S.wi = Math.floor(li / 4); S.li = li % 4; E.load(S.wi, S.li, false); S.mode = 'play';
+      const L = G.L, cols = L.cols; let x0 = -1;
+      for (let x = 1; x < L.w - 5; x++) if (L.deep && L.deep[x] && L.deep[x + 3] && !L.deep[x + 4] && cols[x + 4][13] !== '-' && cols[x][13] === '-' && cols[x - 1][5] === '#') { x0 = x; break; }
+      if (x0 < 0) continue;
+      for (let y = 14; y < 27; y++) for (let k = 0; k < 4; k++) if (cols[x0 + k][y] === '=') cols[x0 + k][y] = '-';   /* remove the ledges */
+      P.x = (x0 + 2) * T + 2; P.y = 27 * T - P.h; P.inv = 99; P.vx = P.vy = 0; for (let i = 0; i < 3; i++) step();
+      let dir = 1, best = P.y, f = 0;
+      while (f++ < 900) {
+        for (const k in input) input[k] = false;
+        if (dir > 0) input.right = true; else input.left = true;
+        if (P.onGround && f % 20 === 1) { input.jumpEdge = true; input.jump = true; }
+        if (P.wallSlide) { input.jumpEdge = true; input.jumpKeyEdge = true; input.jump = true; dir = -dir; }
+        step(); best = Math.min(best, P.y);
+        if (P.onGround && P.y + P.h <= 13 * T + 1 && P.x > (x0 + 3) * T) return {ok: true, info: L.name + ' chimney x=' + x0 + ' climbed by wall jumps in ' + f + ' frames'};
+      }
+      return {ok: false, info: L.name + ' best y=' + best.toFixed(0) + ' (surface feet at ' + 13 * T + ')'};
+    }
+    return {ok: false, info: 'no cave chimney found'};
   }
   /* look-ahead runner for headless tests: holds right, waits for hazards, hops on enemies, stomps bosses */
   function runSim() {
@@ -412,6 +706,8 @@
       const boss = G.ents.find(e => e.kind === 'boss' && e.active);
       if (boss && HASH.includes('x') && !runSim.cheated) { runSim.cheated = true; runSim.cheatT = t; G.entsMod.bossHit(boss, 99); console.log('SIM_CHEAT boss defeated at t=' + t.toFixed(1)); }
       if (runSim.cheated && !S.gateOpen && t > runSim.cheatT + 1.5) { E.openGate(); console.log('SIM_GATE opened at t=' + t.toFixed(1)); }
+      if (G.L.pz && !G.L.pz.solved && P.x > (G.L.pz.stationCol - 1) * T && P.x < G.L.pz.gateCol * T) { E.openPzGate(); console.log('SIM_PUZZLE gate opened ' + G.L.pz.id); }
+      for (const vc of (G.L.vchunks || [])) if (!vc.done && (!vc.afterBoss || S.gateOpen) && P.x + P.w >= vc.x0 - 6 && P.x < vc.x0 + 40) { vc.done = true; P.x = vc.exitX; P.y = vc.exitY; P.vx = 0; P.vy = 0; console.log('SIM_SKIP vertical section to x=' + vc.exitX); }
       if (P.launch > 0 && !runSim.launched) { runSim.launched = true; launches++; } if (P.launch <= 0) runSim.launched = false;
       if (P.gadget && gadgets[gadgets.length - 1] !== P.gadget) gadgets.push(P.gadget);
       if (P.onGround && !P.cannon) {
@@ -437,7 +733,7 @@
       if (need && jumpHold <= 0 && P.onGround) { input.jumpEdge = true; input.jumpKeyEdge = true; jumpHold = 18; }
       input.jump = jumpHold > 0; if (jumpHold > 0) jumpHold--;
       /* a human would double-jump when falling into a gap: the bot does too */
-      if (!P.onGround && P.vy > 1.2 && P.jumps === 1 && !P.pound && !P.cannon) { const bx = Math.floor((P.x + 6) / T), by = Math.floor((P.y + P.h + 10) / T); const platBelow = G.ents.some(e => (e.kind === 'platformH' || e.kind === 'platformV') && P.x + P.w > e.x && P.x < e.x + e.w && e.y > P.y + P.h && e.y - (P.y + P.h) < 48); if (!solidAt(bx, by) && !solidAt(bx, by + 1) && !platBelow) { input.jumpEdge = true; input.jumpKeyEdge = true; } }
+      if (!P.onGround && P.vy > 1.2 && P.jumps === 1 && !P.pound && !P.cannon) { const bx = Math.floor((P.x + 6) / T), by = Math.floor((P.y + P.h + 10) / T); const platBelow = G.ents.some(e => (e.kind === 'platformH' || e.kind === 'platformV') && P.x + P.w > e.x && P.x < e.x + e.w && e.y > P.y + P.h && e.y - (P.y + P.h) < 48); let pit = true; for (let r = Math.floor((P.y + P.h) / T); r <= 14; r++) { const tt = tileAt(bx, r), tt2 = tileAt(bx + (P.vx > 0 ? 1 : -1), r); if (solidAt(bx, r) || tt === '~' || solidAt(bx + (P.vx > 0 ? 1 : -1), r)) { pit = tt === '~' && tt2 === '~'; break; } } if (pit && !platBelow) { input.jumpEdge = true; input.jumpKeyEdge = true; } }
       if (tileAt(Math.floor((P.x + 6) / T), Math.floor((P.y + 4) / T)) === 'v' && !P.climbing) { input.up = true; } else input.up = P.climbing;
       if (!runSim.trace) runSim.trace = [];
       runSim.trace.push(`f${i} x${P.x.toFixed(0)} y${P.y.toFixed(0)} g${P.onGround ? 1 : 0} vx${P.vx.toFixed(1)} vy${P.vy.toFixed(1)} need${need ? 1 : 0} wait${wait ? 1 : 0} hold${jumpHold} fx${fx} t${tileAt(fx, fy)}${tileAt(fx + 1, fy)}`); if (runSim.trace.length > 24) runSim.trace.shift();

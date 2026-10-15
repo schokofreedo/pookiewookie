@@ -15,33 +15,39 @@
       const src = custom || G.buildLevel(wi, li);
       const W0 = G.WORLDS[wi], skin = W0.skins ? (W0.skins[src.hub || src.rocket ? 0 : li] || null) : null;
       const world = skin ? Object.assign({}, W0, skin) : W0;   /* planets: own palette, sky and gravity on top of the world */
-      L = G.L = {w: src.cols.length, wi, li, world, tower: src.tower, name: src.name, sub: src.sub, par: src.par, cols: src.cols.map(c => c.slice()), rescued: false, starXs: [], bonus: src.bonus || null, puzzle: src.puzzle ? Object.assign({progress: 0, solved: false, lit: [0, 0, 0, 0], demo: null, demoCd: 0}, src.puzzle) : null, mainW: src.bonus ? src.bonus.roomCol : (src.puzzle ? src.puzzle.roomCol : src.cols.length), hub: !!src.hub, rocket: !!src.rocket, daily: src.daily || null, grav: (skin && skin.grav) || 1};
+      L = G.L = {w: src.cols.length, wi, li, world, tower: src.tower, name: src.name, sub: src.sub, par: src.par, cols: src.cols.map(c => c.slice()), rescued: false, starXs: [], h: src.cols[0] ? src.cols[0].length : MH, deep: src.deep || null, vchunks: src.vchunks || [], pz: src.pz ? Object.assign({}, src.pz) : null, waterfall: src.waterfall || null, bonus: src.bonus || null, puzzle: src.puzzle ? Object.assign({progress: 0, solved: false, lit: [0, 0, 0, 0], demo: null, demoCd: 0}, src.puzzle) : null, mainW: src.bonus ? src.bonus.roomCol : (src.puzzle ? src.puzzle.roomCol : src.cols.length), hub: !!src.hub, rocket: !!src.rocket, daily: src.daily || null, grav: (skin && skin.grav) || 1};
       P.skydive = false; P.victory = false; S.outfit = S.outfitOverride || W0.key;
       G.ents = []; G.parts = []; G.bumps = []; G.crumbles = []; G.goalSeq = null;
       S.bossActive = false; S.gateOpen = false; S.camLock = null; S.wind = 0; S.room = 0; S.honey = 0; S.flash = 0;
       if (G.gad) G.gad.clear(true); A().fast = false; A().slow = false;
-      P.pound = false; P.poundT = 0; P.poundLand = false; P.launch = 0; P.cannon = null; P.cannonCd = 0; P.combo = 0; P.pipeCd = 0; P.hidden = false; P.jetting = false; P.wallSlide = false; P.wallJumpT = 0; P.wallCoyote = 0;
+      P.pound = false; P.poundT = 0; P.poundLand = false; P.flip = 0; P.chute = false; P.chuteOpen = 0; P.launch = 0; P.cannon = null; P.cannonCd = 0; P.combo = 0; P.pipeCd = 0; P.hidden = false; P.jetting = false; P.wallSlide = false; P.wallJumpT = 0; P.wallCoyote = 0;
       if (!fromCheckpoint) { S.stars = [false, false, false]; S.checkpoint = null; }
-      for (let cx = 0; cx < L.w; cx++) for (let cy = 0; cy < MH; cy++) {
+      for (let cx = 0; cx < L.w; cx++) for (let cy = 0; cy < L.h; cy++) {
         const ch = L.cols[cx][cy];
         if (ch === 'R') { P.x = cx * T + 2; P.y = cy * T + (T - P.h); L.cols[cx][cy] = '-'; }
         else if ('EGMSCVTJDBN'.includes(ch)) { const e = G.entsMod.make(ch, cx, cy, L.world, wi * 4 + li); if (e) G.ents.push(e); L.cols[cx][cy] = '-'; }
         else if (ch === 'F' && !L.goalX) L.goalX = cx * T;
         else if (ch === 'W') { L.doorX = cx * T; L.cols[cx][cy] = '-'; }
         else if (ch === 'U') L.towerX = cx * T;
-        else if (ch === 'A') { L.arenaX = cx * T; L.cols[cx][cy] = '-'; }
+        else if (ch === 'A') { L.arenaX = cx * T; L.arenaRow = cy; L.cols[cx][cy] = '-'; }
+        else if (ch === 'u') { G.ents.push({kind: 'chute', x: cx * T + 1, y: cy * T + 1, w: 14, h: 14, alive: true, anim: 0}); L.cols[cx][cy] = '-'; }
+        else if (ch === 'j') { G.ents.push({kind: 'gadget', id: 'jet', x: cx * T + 1, y: cy * T + 1, w: 14, h: 14, vx: 0, vy: 0, alive: true, anim: 0, fixed: true}); L.cols[cx][cy] = '-'; }
         else if (ch === '*') L.starXs.push(cx);
       }
       L.starXs.sort((a, b) => a - b);
-      if (fromCheckpoint && S.checkpoint) { P.x = S.checkpoint.x; P.y = S.checkpoint.y; for (let cy = 0; cy < MH; cy++) if (L.cols[S.checkpoint.cx][cy] === 'K') L.cols[S.checkpoint.cx][cy] = 'k'; for (const sx of L.starXs) { const idx = L.starXs.indexOf(sx); if (S.stars[idx]) for (let cy = 0; cy < MH; cy++) if (L.cols[sx][cy] === '*') L.cols[sx][cy] = '-'; } }
+      if (L.arenaX) { let ex = Math.floor(L.arenaX / T); while (ex < L.w - 1 && !L.cols[ex].includes('Z')) ex++; L.arenaEnd = ex * T; }
+      P.blaster = false;
+      if (L.pz && G.flow && G.flow.isSolved && G.flow.isSolved(L.pz.id)) E.openPzGate(true);
+      if (fromCheckpoint && S.checkpoint) { P.x = S.checkpoint.x; P.y = S.checkpoint.y; for (let cy = 0; cy < L.h; cy++) if (L.cols[S.checkpoint.cx][cy] === 'K') L.cols[S.checkpoint.cx][cy] = 'k'; for (const sx of L.starXs) { const idx = L.starXs.indexOf(sx); if (S.stars[idx]) for (let cy = 0; cy < MH; cy++) if (L.cols[sx][cy] === '*') L.cols[sx][cy] = '-'; } }
       P.vx = P.vy = 0; P.dead = false; P.inv = 0; P.facing = 1; P.climbing = false; P.h = P.big ? 24 : 14; P.sx = P.sy = 1;
-      S.time = src.par; S.timeAcc = 0; S.cam = Math.max(0, P.x - G.VW * 0.4); S.voiceT = 3; S.shake = 0;
+      S.time = src.par; S.timeAcc = 0; S.camY = 0; S.cam = Math.max(0, P.x - G.VW * 0.4); S.voiceT = 3; S.shake = 0;
       A().setWorld(L.world.music); A().setBoss(false);
       return L;
     },
-    tileAt(cx, cy) { if (cx < 0 || cx >= L.w) return '#'; if (cy < 0 || cy >= MH) return '-'; return L.cols[cx][cy]; },
+    tileAt(cx, cy) { if (cx < 0 || cx >= L.w) return '#'; if (cy >= L.h) return '-'; if (cy < 0) { const t = L.cols[cx][0]; return (t === 'Z' || t === 'z' || t === '#') ? t : '-'; } return L.cols[cx][cy]; },
     solidAt(cx, cy) { return SOLID.has(E.tileAt(cx, cy)); },
-    setTile(cx, cy, ch) { if (cx >= 0 && cx < L.w && cy >= 0 && cy < MH) L.cols[cx][cy] = ch; },
+    setTile(cx, cy, ch) { if (cx >= 0 && cx < L.w && cy >= 0 && cy < L.h) L.cols[cx][cy] = ch; },
+    isDeep(cx) { return !!(L.deep && L.deep[cx]); },
     overlap(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; },
     moveX(e) {
       e.x += e.vx; e.hitWall = false;
@@ -86,17 +92,18 @@
       for (const e of G.ents) if (e.alive && e.stompable !== undefined && Math.floor((e.y + e.h + 1) / T) === cy && Math.floor((e.x + e.w / 2) / T) === cx) E.kill(e, true);
     },
     collectHeart(cx, cy, fromBox) {
+      if (G.eco) G.eco.add(1, cx * T, cy * T, true);
       S.hearts++; S.score += 100; A().sfx.heart();
       G.parts.push({kind: 'heart', x: cx * T + 4, y: cy * T - (fromBox ? 8 : 0), vy: -2.6, t: 0.7});
       if (S.hearts >= 50) { S.hearts -= 50; S.lives++; A().sfx.oneUp(); E.toast('1 UP'); }
     },
     collectStar(cx, cy) {
-      const idx = Math.max(0, L.starXs.indexOf(cx)); S.stars[idx] = true; S.score += 2000; A().sfx.star(); E.toast('Sternkeks!');
+      const idx = Math.max(0, L.starXs.indexOf(cx)); S.stars[idx] = true; if (G.eco) G.eco.add(30, cx * T, cy * T - 10); S.score += 2000; A().sfx.star(); E.toast('Sternkeks!');
       for (let i = 0; i < 12; i++) G.parts.push({kind: 'star', x: cx * T + 8, y: cy * T + 8, vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 2.5, t: 0.9});
     },
     kill(e, byBump, ptsOverride) {
       if (!e.alive) return; e.alive = false; e.dieT = 0; e.flip = !!byBump;
-      const pts = ptsOverride !== undefined ? ptsOverride : (e.points || 100); S.score += pts; if (pts) E.toast(P.combo > 1 && !byBump && ptsOverride !== undefined ? '×' + P.combo + '  +' + pts : '+' + pts, e.x, e.y - 8);
+      const pts = ptsOverride !== undefined ? ptsOverride : (e.points || 100); S.score += pts; if (G.eco && e.kind !== 'shot' && e.kind !== 'bean') G.eco.add(3, e.x, e.y - 18); if (pts) E.toast(P.combo > 1 && !byBump && ptsOverride !== undefined ? '×' + P.combo + '  +' + pts : '+' + pts, e.x, e.y - 8);
       for (let i = 0; i < 6; i++) G.parts.push({kind: e.kind === 'flyer' ? 'star' : 'puff', x: e.x + e.w / 2, y: e.y + 6, vx: (Math.random() - 0.5) * 2.5, vy: -1 - Math.random() * 2, t: 0.8});
     },
 
@@ -112,7 +119,7 @@
       if (P.dead) return;
       S.lastDeath = {why, x: Math.round(P.x), y: Math.round(P.y)};
       P.dead = true; P.deathT = 0; P.vy = -6.5; P.vx = 0; P.big = false; P.coffee = false; P.wings = false; P.climbing = false; S.timeAcc = 0;
-      P.pound = false; P.launch = 0; P.cannon = null; P.hidden = false; P.jetting = false; P.wallSlide = false; if (G.gad) G.gad.clear(true); S.honey = 0; A().slow = false; A().fast = false;
+      P.pound = false; P.launch = 0; P.cannon = null; P.hidden = false; P.jetting = false; P.wallSlide = false; P.flip = 0; P.blaster = false; if (G.gad) G.gad.clear(true); S.honey = 0; A().slow = false; A().fast = false;
       A().stopMusic(); A().sfx.sad(); A().sfx.die(); G.flow.speak(G.SAD[Math.floor(Math.random() * G.SAD.length)], {sad: true});
     },
     /* ground pound landing: shockwave, blocks below get hit, nearby enemies flattened */
@@ -144,7 +151,7 @@
     solvePuzzle() {
       const pz = L.puzzle; pz.solved = true; A().sfx.puzzleSolved(); S.score += 1500; E.toast('Gelöst!'); G.flow.speak('I solved it!', {happy: true});
       for (let i = 0; i < 4; i++) pz.lit[i] = 2;
-      for (let cx = 0; cx < L.w; cx++) for (let cy = 0; cy < MH; cy++) if (L.cols[cx][cy] === 'z') { L.cols[cx][cy] = '-'; for (let i = 0; i < 3; i++) G.parts.push({kind: 'spark', x: cx * T + 8, y: cy * T + 4 + i * 4, vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2, t: 0.8, col: '#c9a0ff'}); }
+      for (let cx = 0; cx < L.w; cx++) for (let cy = 0; cy < L.h; cy++) if (L.cols[cx][cy] === 'z') { L.cols[cx][cy] = '-'; for (let i = 0; i < 3; i++) G.parts.push({kind: 'spark', x: cx * T + 8, y: cy * T + 4 + i * 4, vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2, t: 0.8, col: '#c9a0ff'}); }
       if (G.flow.achieve) G.flow.achieve('puzzle');
     },
     fireCannon(e) {
@@ -156,6 +163,8 @@
       if (P.dead) { P.deathT += 1 / 60; if (P.deathT > 0.35) { P.vy += 0.3; P.y += P.vy; } if (P.deathT > 3) G.flow.afterDeath(); return; }
       if (G.goalSeq) return;
       if (G.gad) G.gad.update();
+      /* at the puzzle station: the up key (not the jump key) or down opens the puzzle instead of jumping */
+      if (P.onGround && L.pz && G.flow.openPuzzle && E.nearStation() && ((input.up && input.jumpEdge && !input.jumpKeyEdge && !input.touchMode) || input.downEdge)) { input.jumpEdge = false; input.downEdge = false; input.up = false; input.jump = false; P.jumpBuf = 0; G.flow.openPuzzle(L.pz.id, () => E.openPzGate()); return; }
       if (P.cannonCd > 0) P.cannonCd--; if (P.pipeCd > 0) P.pipeCd--; if (P.wallJumpT > 0) P.wallJumpT--;
       if (P.flip > 0) { P.flip = Math.max(0, P.flip - 1 / 26); if (P.onGround) P.flip = 0; }
       /* inside a honey cannon: wait, then fly */
@@ -203,19 +212,21 @@
       /* jumps have a fixed height (no holding); a second jump is allowed in the air */
       if (P.jumpBuf > 0 && P.coyote > 0) { P.vy = -(6.1 + Math.abs(P.vx) * 0.25) * jm; P.coyote = 0; P.jumpBuf = 0; P.onGround = false; P.jumps = 1; P.sx = 0.8; P.sy = 1.25; if (P.big || jm > 1) A().sfx.bigJump(); else A().sfx.jump(); E.puff(P.x + 6, P.y + P.h, 3, '#fff'); }
       else if (P.jumpBuf > 0 && !P.onGround && !P.climbing && !P.wallSlide && P.wallCoyote <= 0 && (P.jumps || 1) < 2) { P.jumps = (P.jumps || 1) + 1; P.vy = -5.4 * jm; P.jumpBuf = 0; P.sx = 0.8; P.sy = 1.25; P.flip = 1; A().sfx.doubleJump(); G.parts.push({kind: 'ring', x: P.x + 6, y: P.y + P.h, t: 0.3, float: true, vx: 0, vy: 0}); E.puff(P.x + 6, P.y + P.h, 4, '#fff'); }
-      /* climbing claws: slide down walls, kick off them */
-      P.wallSlide = false;
-      if (P.gadget === 'claws' && !P.onGround && !P.climbing) {
+      /* wall slide and wall jump (everyone); the climbing claws make Wookie stick and climb */
+      P.wallSlide = false; if (P.onGround) P.lastWallDir = 0;
+      if (!P.onGround && !P.climbing && !P.pound && P.launch <= 0) {
         const cyA = Math.floor((P.y + 3) / T), cyB = Math.floor((P.y + P.h - 3) / T);
         const wl = E.solidAt(Math.floor((P.x - 1) / T), cyA) || E.solidAt(Math.floor((P.x - 1) / T), cyB), wr = E.solidAt(Math.floor((P.x + P.w + 1) / T), cyA) || E.solidAt(Math.floor((P.x + P.w + 1) / T), cyB);
         const wd = (dir < 0 && wl) ? -1 : ((dir > 0 && wr) ? 1 : 0);
         if (wd && P.vy > 0) { P.wallSlide = true; P.wallDir = wd; P.wallCoyote = 8; if (S.frames % 4 === 0) { E.puff(P.x + (wd > 0 ? P.w : 0), P.y + P.h - 2, 1, '#fff'); A().sfx.slide(); } }
         else if (P.wallCoyote > 0) P.wallCoyote--;
-        if (P.jumpBuf > 0 && (P.wallSlide || P.wallCoyote > 0)) { P.vy = -5.8 * jm; P.vx = -P.wallDir * 3.0; P.facing = -P.wallDir; P.wallJumpT = 10; P.jumpBuf = 0; P.wallSlide = false; P.wallCoyote = 0; P.jumps = 1; A().sfx.wallJump(); E.puff(P.x + (P.wallDir > 0 ? P.w : 0), P.y + P.h / 2, 4, '#fff'); }
+        if (P.wallSlide && P.gadget === 'claws' && (input.up || input.jump) && !input.jumpEdge) { P.vy = -1.3; }
+        if (P.jumpBuf > 0 && (P.wallSlide || P.wallCoyote > 0)) { const same = P.lastWallDir === P.wallDir; P.vy = (same ? -4.6 : -5.8) * jm; P.vx = -P.wallDir * 3.0; P.facing = -P.wallDir; P.wallJumpT = 10; P.jumpBuf = 0; P.wallSlide = false; P.wallCoyote = 0; P.lastWallDir = P.wallDir; if (same) P.jumps = 2; P.jumps = 1; A().sfx.wallJump(); E.puff(P.x + (P.wallDir > 0 ? P.w : 0), P.y + P.h / 2, 4, '#fff'); }
       } else P.wallCoyote = 0;
       P.gliding = P.wings && !P.onGround && P.vy > 0 && input.jump && !P.jetting;
       if (P.bounceT > 0) P.bounceT -= 1 / 60;
-      P.vy += (P.vy < 0 ? 0.28 : 0.42) * (L.grav || 1); if (P.vy > 6.5) P.vy = 6.5; if (P.gliding && P.vy > 1.1) P.vy = 1.1; if (P.wallSlide && P.vy > 1.0) P.vy = 1.0;
+      P.vy += (P.vy < 0 ? 0.28 : 0.42) * (L.grav || 1); if (P.vy > 6.5) P.vy = 6.5; if (P.gliding && P.vy > 1.1) P.vy = 1.1; if (P.wallSlide && P.vy > (P.gadget === 'claws' ? 0.55 : 1.6)) P.vy = P.gadget === 'claws' ? 0.55 : 1.6;
+      if (P.chute) { const wf = L.waterfall, inShaft = wf && P.x + P.w > wf.x0 - 8 && P.x < wf.x1 + 8 && P.y + P.h < wf.bottom - 2; if (P.onGround) { P.chuteOpen = 0; if (!inShaft && P.y + P.h > 13 * T + 2 || (wf && P.y + P.h >= wf.bottom - 2)) P.chute = false; } else if (P.vy > 0.2) { P.chuteOpen = Math.min(1, (P.chuteOpen || 0) + 0.08); if (P.vy > 0.95) P.vy = 0.95; } }
       if (G.gad) G.gad.jet(input);
       E.moveX(P); E.moveY(P, true);
       /* moving platforms carry Wookie */
@@ -236,8 +247,8 @@
         else if (ch === 'K') { E.setTile(cx, cy, 'k'); S.checkpoint = {x: cx * T + 2, y: cy * T + T - 14, cx}; A().sfx.checkpoint(); E.toast('Checkpoint!'); }
         else if (ch === '~' && P.y + P.h > cy * T + 6) { for (let i = 0; i < 8; i++) G.parts.push({kind: 'splash', x: P.x + 6, y: cy * T + 4, vx: (Math.random() - 0.5) * 3, vy: -2 - Math.random() * 2, t: 0.7, col: L.world.liquid.b}); A().sfx.splash(); E.die('liquid'); return; }
       }
-      if (P.y > MH * T + 20) { E.die('pit'); return; }
-      if (P.poundLand) { P.poundLand = false; E.shockwave(); }
+      if ((P.y > MH * T + 20 && !E.isDeep(Math.floor((P.x + P.w / 2) / T))) || P.y > L.h * T + 20) { E.die('pit'); return; }
+      if (P.poundLand) { P.poundLand = false; E.shockwave(); if (E.nearStation() && G.flow.openPuzzle) { G.flow.openPuzzle(L.pz.id, () => E.openPzGate()); return; } }
       if (P.onGround) P.combo = 0;
       if (!S.room) {
         if (L.goalX && P.x + P.w / 2 >= L.goalX + 4) E.startPost();
@@ -248,17 +259,25 @@
       if ((L.bonus || L.puzzle) && input.down && P.onGround && P.pipeCd <= 0 && !P.pound) { const pc = Math.floor((P.x + P.w / 2) / T), pr = Math.floor((P.y + P.h + 1) / T), ch = E.tileAt(pc, pr); if (ch === 'P' && L.bonus) { E.enterRoom(S.room ? 0 : 1); return; } if (ch === '&' && L.puzzle) { E.enterRoom(S.room ? 0 : 2); return; } }
       if (P.throwT > 0) P.throwT -= 1 / 60;
       if (P.coffee && input.runEdge && P.throwT <= 0 && G.ents.filter(e => e.kind === 'bean' && e.alive).length < 2) { P.throwT = 0.25; A().sfx.throwBean(); G.ents.push({kind: 'bean', x: P.x + (P.facing > 0 ? P.w : -6), y: P.y + 6, w: 6, h: 6, vx: P.facing * 3.8, vy: -1, alive: true, t: 3}); }
-      if (P.gadget === 'sling' && input.runEdge && P.throwT <= 0 && G.ents.filter(e => e.kind === 'honeyshot' && e.alive).length < 2) { P.throwT = 0.22; A().sfx.shoot(); P.sx = 1.2; G.ents.push({kind: 'honeyshot', x: P.x + (P.facing > 0 ? P.w : -8), y: P.y + (P.big ? 10 : 4), w: 8, h: 8, vx: P.facing * 4.6, vy: 0, alive: true, t: 1.1, anim: 0}); }
+      /* honey blaster: the gadget, or the boss weapon (faster, aims at the boss in front of Wookie, holding Shift auto-fires) */
+      const wantShot = input.runEdge || (P.blaster && input.run && !input.touchMode && S.frames % 9 === 0);
+      if ((P.gadget === 'sling' || P.blaster) && wantShot && P.throwT <= 0 && G.ents.filter(e => e.kind === 'honeyshot' && e.alive).length < (P.blaster ? 4 : 2)) {
+        P.throwT = P.blaster ? 0.15 : 0.22; A().sfx.shoot(); P.sx = 1.2;
+        let vx = P.facing * 4.6, vy = 0;
+        const b = P.blaster && G.ents.find(e => e.kind === 'boss' && e.active);
+        if (b) { const dx = b.x + b.w / 2 - (P.x + P.w / 2), dy = b.y + b.h / 2 - (P.y + 6); if (Math.sign(dx) === P.facing) { const a = Math.max(-1.0, Math.min(0.6, Math.atan2(dy, Math.abs(dx)))); vx = P.facing * 5 * Math.cos(a); vy = 5 * Math.sin(a); } }
+        G.ents.push({kind: 'honeyshot', x: P.x + (P.facing > 0 ? P.w : -8), y: P.y + (P.big ? 10 : 4), w: 8, h: 8, vx, vy, alive: true, t: P.blaster ? 1.4 : 1.1, anim: 0});
+      }
       if (P.inv > 0) P.inv -= 1 / 60;
       if (Math.abs(P.vx) > 0.1 && P.onGround) { P.anim += Math.abs(P.vx) * 0.12; if (S.frames % 10 === 0 && Math.abs(P.vx) > 2) E.puff(P.x + (P.facing > 0 ? 0 : 12), P.y + P.h, 1, P.ground === 'ice' ? '#dff' : '#fff'); } else if (P.onGround) P.anim = 0;
     },
     startPost() {
-      G.goalSeq = {t: 0, phase: 'slide'}; P.x = L.goalX - P.w + 3; P.vx = 0; P.vy = 0; P.climbing = false;
+      G.goalSeq = {t: 0, phase: 'slide'}; P.x = L.goalX - P.w + 3; P.vx = 0; P.vy = 0; P.climbing = false; P.flip = 0;
       const bonus = Math.max(100, Math.round((13 * T - P.y) / T) * 100); S.score += bonus; E.toast('+' + bonus); A().stopMusic(); A().sfx.flag();
       for (const e of G.ents) e.frozen = true;
     },
     startDoor() {
-      G.goalSeq = {t: 0, phase: L.world.boss.final ? 'rescue' : 'door'}; P.vx = 0; P.vy = 0; A().stopMusic();
+      G.goalSeq = {t: 0, phase: L.world.boss.final ? 'rescue' : 'door'}; P.vx = 0; P.vy = 0; P.flip = 0; A().stopMusic();
       for (const e of G.ents) e.frozen = true;
       if (L.world.boss.final) { A().sfx.rescue(); L.rescued = true; G.ents.push({kind: 'pookie', x: L.doorX + 20, y: 13 * T - 14, w: 12, h: 14, alive: true, anim: 0, vx: 0}); G.flow.speak('Pookie!', {pitch: 1.9, rate: 0.9}); setTimeout(() => { if (G.goalSeq) G.flow.speak('Wookie!', {pitch: 2.0, rate: 0.95}); }, 1400); }
       else { A().sfx.flag(); G.flow.speak(L.world.doorLine || 'Pookie is in another tower...', {sad: !L.world.doorLine}); }
@@ -275,9 +294,16 @@
         if (g.t > 5) { g.phase = 'card'; G.flow.levelClear(); }
       }
     },
+    /* the puzzle gate opens for good once its puzzle is solved */
+    openPzGate(silent) {
+      if (!L.pz) return; L.pz.solved = true;
+      for (let cy = 0; cy < L.h; cy++) if (L.cols[L.pz.gateCol][cy] === 'z') { L.cols[L.pz.gateCol][cy] = '-'; if (!silent) for (let i = 0; i < 2; i++) G.parts.push({kind: 'spark', x: L.pz.gateCol * T + 8, y: cy * T + 4 + i * 6, vx: (Math.random() - 0.5) * 2.5, vy: -1 - Math.random() * 2, t: 0.9, col: i ? '#ffd84a' : '#c9a0ff'}); }
+      if (!silent) { A().sfx.gate(); S.shake = 4; }
+    },
+    nearStation() { if (!L.pz || L.pz.solved) return false; const sx = L.pz.stationCol * T + 8; return Math.abs(P.x + P.w / 2 - sx) < 20 && P.y + P.h > 11 * T && P.y < 14 * T; },
     openGate() {
-      S.gateOpen = true; S.camLock = null; A().sfx.gate(); A().setBoss(false);
-      for (let cx = 0; cx < L.w; cx++) for (let cy = 0; cy < MH; cy++) if (L.cols[cx][cy] === 'Z') { L.cols[cx][cy] = '-'; for (let i = 0; i < 3; i++) G.parts.push({kind: 'crumb', x: cx * T + 4 + i * 4, y: cy * T + 4, vx: (Math.random() - 0.5) * 2, vy: -2 - Math.random() * 2, t: 1}); }
+      S.gateOpen = true; S.camLock = null; P.blaster = false; for (const e of G.ents) if (e.kind === 'beam' || e.kind === 'warn' || (e.kind === 'shot' && e.boss)) e.alive = false; A().sfx.gate(); A().setBoss(false);
+      for (let cx = 0; cx < L.w; cx++) for (let cy = 0; cy < L.h; cy++) if (L.cols[cx][cy] === 'Z') { L.cols[cx][cy] = '-'; for (let i = 0; i < 3; i++) G.parts.push({kind: 'crumb', x: cx * T + 4 + i * 4, y: cy * T + 4, vx: (Math.random() - 0.5) * 2, vy: -2 - Math.random() * 2, t: 1}); }
     },
     updateParts() {
       for (let i = G.parts.length - 1; i >= 0; i--) { const p = G.parts[i]; p.t -= 1 / 60; if (p.kind === 'text') p.y += p.vy; else if (p.float || p.kind === 'rain') { p.y += p.vy; p.x += p.vx || 0; } else { p.vy = (p.vy || 0) + (p.kind === 'heart' ? 0.22 : 0.18); p.y += p.vy; p.x += p.vx || 0; } if (p.t <= 0) G.parts.splice(i, 1); }
@@ -302,6 +328,9 @@
       const rm = E.room(S.room), minX = rm ? rm.roomCol * T : 0, maxX = rm ? (rm.roomEnd || L.w) * T - G.VW : L.mainW * T - G.VW;
       S.cam += (Math.max(minX, Math.min(maxX, target)) - S.cam) * 0.12;
       if (S.flash > 0) S.flash = Math.max(0, S.flash - 0.04);
+      /* the camera follows downwards in deep sections (caves, waterfalls) and stays on the band elsewhere */
+      let ty = 0; if (L.h > MH && !S.room && (E.isDeep(Math.floor((P.x + P.w / 2) / T)) || P.y + P.h > MH * T + 8)) ty = P.y + P.h / 2 - MH * T * 0.55;
+      ty = Math.max(0, Math.min(L.h * T - MH * T, ty)); S.camY = (S.camY || 0) + (ty - (S.camY || 0)) * (Math.abs(P.vy) > 4 ? 0.22 : 0.12); if (Math.abs(S.camY - ty) < 0.05) S.camY = ty;
     },
   };
 })();
