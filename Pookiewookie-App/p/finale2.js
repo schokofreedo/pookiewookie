@@ -1243,7 +1243,7 @@
         ctx.globalAlpha = 1;
       }
       /* rolling credits: they roll up from below and come to rest centred, all four lines on screen */
-      const lines = [['The Starway Home', 30, '#ffd84a', null, 0], [tr('Ein Spiel von Schokofreedo Games', 'A game by Schokofreedo Games'), 13, '#fff4e0', null, 30], ['Toffo & Mallo', 18, '#ff9eb0', 'bears', 74], [tr('Danke fürs Spielen', 'Thanks for playing'), 20, '#ffd84a', 'heart', 120], [tr('Toffos Stimme: Alba MacKenna · CC BY 4.0', 'Toffo’s voice: Alba MacKenna · CC BY 4.0'), 8, '#e6c9d6', null, 146]];
+      const lines = [['The Starway Home', 30, '#ffd84a', null, 0], [tr('Ein Spiel von Schokofreedo Games', 'A game by Schokofreedo Games'), 13, '#fff4e0', null, 30], ['Toffo & Mallo', 18, '#ff9eb0', 'bears', 74], [tr('Danke fürs Spielen', 'Thanks for playing'), 20, '#ffd84a', 'heart', 120]];
       const ct = lt - 6.2; if (ct > 0) {
         const span = lines[lines.length - 1][4], restY = VH / 2 - span / 2 - 4, y = Math.max(restY, VH + 24 - ct * 34);
         for (const [txt, px, col, extra, dy] of lines) {

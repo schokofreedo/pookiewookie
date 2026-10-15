@@ -162,7 +162,7 @@
   /* ---------- sonic logo ---------- */
   let bus = null;
   function score(b) {
-    const a = A(); if (!a || !a.ctx || a.muted) return; const c = a.ctx, t0 = c.currentTime + 0.04;
+    const a = A(); if (!a || !a.ctx || a.muted) return; const c = a.ctx, t0 = c.currentTime + 0.04; b.t0 = t0;
     bus = c.createGain(); bus.gain.value = 0.85; b.bus = bus;
     const comp = c.createDynamicsCompressor(); comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 3.5; comp.attack.value = 0.004; comp.release.value = 0.3; bus.connect(comp).connect(a.master);
     const rev = c.createConvolver(), n = Math.floor(c.sampleRate * 1.9), ir = c.createBuffer(2, n, c.sampleRate);
@@ -225,7 +225,7 @@
   const brand = G.brand = {
     t: 0, done: null, fired: {}, started: false, skipT: -1, still: false, DUR,
     start(done) {
-      this.done = done; this.t = 0; this.fired = {}; this.skipT = -1; parts = [];
+      this.done = done; this.t = 0; this.fired = {}; this.skipT = -1; parts = []; this.t0 = undefined; this.waitT = 0; this.lastCT = 0;
       if (STILL && !this.still) { this.still = true; return; }
       this.started = true; this.still = false;
       try { if (this.bus) this.bus.gain.setTargetAtTime(0.0001, A().ctx.currentTime, 0.05); this.bus = null; score(this); } catch (e) {}
@@ -239,7 +239,15 @@
     once(id, fn) { if (!this.fired[id] && this.skipT < 0) { this.fired[id] = true; try { fn(); } catch (e) {} } },
     update() {
       if (!this.started) return;
-      this.t += 1 / 60; const t = this.t;
+      /* the pictures follow the sound's clock: phones (iOS) start their audio a moment after the tap and add output latency,
+         so hold the first frame until the audio really runs, then stay locked to it (frame stepping only without audio) */
+      const c = A() && A().ctx;
+      if (this.t0 !== undefined && c && this.skipT < 0) {
+        const ct = c.currentTime;
+        if (c.state === 'running' && ct > (this.lastCT || 0)) { this.lastCT = ct; this.waitT = 0; const at = ct - this.t0 - ((c.outputLatency || 0) + (c.baseLatency || 0)); this.t = Math.max(this.t, Math.min(at, this.t + 0.25)); }
+        else if ((this.waitT += 1 / 60) > 1) { this.t0 = undefined; if (c.state !== 'running') try { if (this.bus) this.bus.gain.value = 0; } catch (e) {} }   /* the audio clock never got going: play on with the frame clock */
+      } else this.t += 1 / 60;
+      const t = this.t;
       if (this.skipT >= 0) this.skipT += 1 / 60;
       if (t > T.hit) this.once('hit', () => {
         const fx = X(FLOOR[0]), fy = Y(FLOOR[1]);

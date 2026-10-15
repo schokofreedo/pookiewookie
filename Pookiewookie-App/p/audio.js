@@ -8,7 +8,7 @@
     init() {
       if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
       const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
-      const c = this.ctx = new Ctx();
+      const c = this.ctx = new Ctx(); try { if (c.state !== 'running') c.resume(); } catch (e) {}   /* phones: wake the audio inside the tap */
       this.master = c.createGain(); this.master.gain.value = 0.6; this.master.connect(c.destination);
       this.music = c.createGain(); this.music.gain.value = 0.5; this.music.connect(this.master);
       const b = c.createBuffer(1, c.sampleRate, c.sampleRate), d = b.getChannelData(0);

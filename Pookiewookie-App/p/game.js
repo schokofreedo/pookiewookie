@@ -455,7 +455,7 @@
   $('#stage').addEventListener('pointerdown', () => { if (S.mode === 'boot') startBrand(); else if (S.mode === 'brand') G.brand.skip(); else if (S.mode === 'story') G.story.skip(); else if (S.mode === 'dive') { if (G.dive.launching) G.rocket.lt = Math.max(G.rocket.lt || 0, 3.0); else if (!G.dive.rocketMode) G.dive.t = Math.max(G.dive.t, 2.15); } else if (S.mode === 'card' && cardT > 0.4) beginPlay(); });
   $('#card').addEventListener('pointerdown', () => { if (S.mode === 'card' && cardT > 0.4) beginPlay(); });
   /* touch browsers only grant fullscreen on pointerup/touchend: try again there, and on the first title button */
-  if (isTouch) ['pointerup', 'touchend'].forEach(ev => document.addEventListener(ev, () => { if (!document.fullscreenElement && S.mode !== 'boot') goFullscreen(); }, {passive: true}));
+  if (isTouch) ['pointerup', 'touchend'].forEach(ev => document.addEventListener(ev, () => { try { const ac = A().ctx; if (ac && ac.state !== 'running') ac.resume(); } catch (e) {} if (!document.fullscreenElement && S.mode !== 'boot') goFullscreen(); }, {passive: true}));   /* iOS unlocks audio on touchend */
   function advance() {
     if (S.mode === 'title') { if (!$('#shop').hidden || !$('#settings').hidden || !$('#keks').hidden) return; A().init(); A().sfx.select(); hideAll(); showGlobe(); if (isTouch) goFullscreen(); }
     else if (S.mode === 'card' && cardT > 0.4) beginPlay();
