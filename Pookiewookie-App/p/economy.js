@@ -1,4 +1,4 @@
-/* Pookiewookie: Taler. Earned from hearts, star cookies, defeated enemies, level clears, the rocket and the chase; spent in the shop
+/* The Starway Home: Taler. Earned from hearts, star cookies, defeated enemies, level clears, the rocket and the chase; spent in the shop
    on rocket parts and outfits. The wallet lives in G.S.money and is persisted by game.js through G.flow.moneyChanged. */
 (function () {
   const G = window.PW = window.PW || {};

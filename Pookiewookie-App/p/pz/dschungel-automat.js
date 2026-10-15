@@ -1,11 +1,12 @@
-/* Pookiewookie puzzle: "Der Affen-Spielautomat" (Dschungel, slot 0).
+/* The Starway Home puzzle: "Der Affen-Spielautomat" (Dschungel, slot 0).
    A wooden jungle slot machine with 3 reels. Every reel carries the same 8 symbols in a fixed order (shown as a strip beside it).
    Three levers turn the reels by fixed amounts (brass plates). Goal: three bananas on the payline with at most 10 coins.
    Start and lever amounts are generated so that a solution exists within 10 pulls but needs at least 5 (checked by search). */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, N = 8, COINS = 10;
-  const NAMES = ['Banane', 'Kokosnuss', 'Affe', 'Blume', 'Papagei', 'Ananas', 'Schlange', 'Kirsche'];
+  const NAMES = tr(['Banane', 'Kokosnuss', 'Affe', 'Blume', 'Papagei', 'Ananas', 'Schlange', 'Kirsche'], ['Banana', 'Coconut', 'Monkey', 'Flower', 'Parrot', 'Pineapple', 'Snake', 'Cherry']);
   const OL = '#2a1508';
   const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
   const mod = (a, n) => ((a % n) + n) % n;
@@ -160,10 +161,10 @@
   G.PZ = G.PZ || {register() {}};
   G.PZ.register({
     id: 'dschungel-automat', world: 'dschungel', slot: 0,
-    title: 'Der Affen-Spielautomat',
-    intro: 'Drei Bananen auf die rote Linie! Jeder Hebel dreht Walze 1, 2 und 3 um die Zahlen auf seinem Schild weiter. Jeder Zug kostet eine von 10 Münzen.',
-    letter: 'Jeder Hebel dreht die Walzen immer gleich weit. Die Reihenfolge ist also egal – es zählt nur, wie oft du an welchem Hebel ziehst. Erst rechnen, dann ziehen!',
-    hint: 'Zähle für jede Walze, wie viele Felder sie noch bis zur Banane braucht (im Kreis gezählt: nach der Kirsche kommt wieder die Banane, 8 Felder sind eine Runde). Für jede Walze muss gelten: (wie oft A × Zahl von A) + (wie oft B × Zahl von B) + (wie oft C × Zahl von C) = genau diese Felderzahl, oder 8, 16, 24 mehr. Probier für A der Reihe nach 0, 1, 2 … und rechne aus, was B und C dann noch schaffen müssen.',
+    title: tr('Der Affen-Spielautomat', 'The Monkey Slot Machine'),
+    intro: tr('Drei Bananen auf die rote Linie! Jeder Hebel dreht Walze 1, 2 und 3 um die Zahlen auf seinem Schild weiter. Jeder Zug kostet eine von 10 Münzen.', 'Three bananas on the red line! Each lever turns reels 1, 2 and 3 forward by the numbers on its plate. Every pull costs one of your 10 coins.'),
+    letter: tr('Jeder Hebel dreht die Walzen immer gleich weit. Die Reihenfolge ist also egal – es zählt nur, wie oft du an welchem Hebel ziehst. Erst rechnen, dann ziehen!', 'Each lever always turns the reels the same distance. So the order doesn’t matter – all that counts is how often you pull which lever. Count first, then pull!'),
+    hint: tr('Zähle für jede Walze, wie viele Felder sie noch bis zur Banane braucht (im Kreis gezählt: nach der Kirsche kommt wieder die Banane, 8 Felder sind eine Runde). Für jede Walze muss gelten: (wie oft A × Zahl von A) + (wie oft B × Zahl von B) + (wie oft C × Zahl von C) = genau diese Felderzahl, oder 8, 16, 24 mehr. Probier für A der Reihe nach 0, 1, 2 … und rechne aus, was B und C dann noch schaffen müssen.', 'For each reel, count how many steps it still needs to reach the banana (counted in a circle: after the cherry comes the banana again, 8 steps make one round). For each reel this must be true: (pulls of A × A’s number) + (pulls of B × B’s number) + (pulls of C × C’s number) = exactly that number of steps, or 8, 16, 24 more. Try 0, 1, 2 … for A in turn and work out what B and C still have to do.'),
     station(c, x, y, t, solved) {
       c.save(); c.translate(x, y); c.lineJoin = 'round';
       c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(0, 0, 16, 3, 0, 0, TAU); c.fill();
@@ -243,7 +244,7 @@
       function drawCoins(now) {
         const x = L.coinX, y = L.coinY;
         rr(c, x - 62, y, 124, 176, 18); c.fillStyle = 'rgba(42,21,8,.55)'; c.fill(); c.strokeStyle = 'rgba(255,216,74,.35)'; c.lineWidth = 2; c.stroke();
-        txt(c, 'Münzen', x, y + 17, 16, '#ffe9a8', 'center', 600);
+        txt(c, tr('Münzen', 'Coins'), x, y + 17, 16, '#ffe9a8', 'center', 600);
         for (let i = 0; i < COINS; i++) {
           const have = i < st.coins, cy = y + 136 - i * 9.5;
           c.save(); c.translate(x, cy); c.globalAlpha = have ? 1 : 0.18;
@@ -268,7 +269,7 @@
         const sx = x + w / 2, sy = y + 22;
         rr(c, sx - 120, sy - 18, 240, 34, 17); c.fillStyle = '#ffd84a'; c.fill(); c.strokeStyle = OL; c.lineWidth = 3; c.stroke();
         for (let i = 0; i < 12; i++) { const bx = sx - 108 + i * 19.6, on = (Math.floor(now * 6) + i) % 3 === 0 || st.won; c.beginPath(); c.arc(bx, sy - 18, 3.2, 0, TAU); c.fillStyle = on ? '#fff7c0' : '#e8a020'; c.fill(); }
-        txt(c, 'BANANEN-JACKPOT', sx, sy, 19, '#e0457b', 'center', 700);
+        txt(c, tr('BANANEN-JACKPOT', 'BANANA JACKPOT'), sx, sy, 19, '#e0457b', 'center', 700);
         /* reels */
         for (let i = 0; i < 3; i++) drawReel(i, now);
         /* payline */
@@ -281,7 +282,7 @@
         rr(c, x + w / 2 - 70, ty, 140, 22, 10); c.fillStyle = '#3a2010'; c.fill(); c.strokeStyle = OL; c.lineWidth = 2; c.stroke();
         rr(c, x + w / 2 - 22, ty + 7, 44, 7, 3); c.fillStyle = '#120804'; c.fill();
         for (const d of st.coinDrop) { const k = clamp((now - d.t0) / 0.35, 0, 1); if (k >= 1) continue; c.save(); c.translate(x + w / 2, ty + 10 - 40 * (1 - k)); c.scale(1, 1); c.beginPath(); c.ellipse(0, 0, 9, 9 * (1 - k * 0.8), 0, 0, TAU); c.fillStyle = '#ffd84a'; c.fill(); c.strokeStyle = '#a0782a'; c.lineWidth = 2; c.stroke(); c.restore(); }
-        txt(c, 'Züge: ' + st.total, x + w - 54, ty + 11, 14, '#fff4e0', 'center', 600);
+        txt(c, tr('Züge: ', 'Pulls: ') + st.total, x + w - 54, ty + 11, 14, '#fff4e0', 'center', 600);
       }
 
       function drawReel(i, now) {
@@ -345,14 +346,14 @@
           for (const [sx, sy] of [[x - pw / 2 + 7, py + 7], [x + pw / 2 - 7, py + 7], [x - pw / 2 + 7, py + ph - 7], [x + pw / 2 - 7, py + ph - 7]]) { c.beginPath(); c.arc(sx, sy, 2.2, 0, TAU); c.fillStyle = '#8a5a14'; c.fill(); }
           txt(c, 'ABC'[i] + ':', x, py + 16, 17, '#5a3408', 'center', 700);
           txt(c, st.lev[i].join(' · '), x, py + 40, 20, '#3a2004', 'center', 700);
-          txt(c, st.pulls[i] + '× gezogen', x, py + 60, 11, '#6a4410', 'center', 600);
+          txt(c, tr(st.pulls[i] + '× gezogen', 'pulled ' + st.pulls[i] + '×'), x, py + 60, 11, '#6a4410', 'center', 600);
         }
       }
 
       function drawButton() {
         const b = L.btn;
         rr(c, b.x, b.y, b.w, b.h, b.h / 2); c.fillStyle = st.busy ? 'rgba(255,111,156,.4)' : '#ff6f9c'; c.fill(); c.strokeStyle = '#7a3b57'; c.lineWidth = 3; c.stroke();
-        txt(c, 'Neu mischen', b.x + b.w / 2, b.y + b.h / 2 + 1, 15, '#fff', 'center', 700);
+        txt(c, tr('Neu mischen', 'Shuffle'), b.x + b.w / 2, b.y + b.h / 2 + 1, 15, '#fff', 'center', 700);
       }
 
       /* ---------------- actions ---------------- */
@@ -378,9 +379,9 @@
         if (st.pos.every(p => p === 0)) return win();
         if (st.coins <= 0) {
           st.mood = 'laugh'; st.moodT = performance.now() / 1000;
-          api.wrong('Keine Münzen mehr! Der Affe lacht.');
+          api.wrong(tr('Keine Münzen mehr! Der Affe lacht.', 'No coins left! The monkey laughs.'));
           try { G.audio.tone(520, 0.12, {type: 'square', gain: 0.08}); G.audio.tone(620, 0.12, {type: 'square', gain: 0.08, delay: 0.13}); G.audio.tone(520, 0.12, {type: 'square', gain: 0.08, delay: 0.26}); G.audio.tone(700, 0.2, {type: 'square', gain: 0.08, delay: 0.39}); } catch (e) {}
-          later(() => { st.mood = 'idle'; newGame(true); api.msg('Neue Runde: 10 frische Münzen, neue Startbilder. Erst rechnen, dann ziehen!', 'info'); }, 1700);
+          later(() => { st.mood = 'idle'; newGame(true); api.msg(tr('Neue Runde: 10 frische Münzen, neue Startbilder. Erst rechnen, dann ziehen!', 'New round: 10 fresh coins, new starting pictures. Count first, then pull!'), 'info'); }, 1700);
         }
       }
       function win() {
@@ -431,7 +432,7 @@
       }
       function onDown(e) {
         e.preventDefault(); const p = pt(e);
-        const b = L.btn; if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h) { if (!st.busy && !st.done) { sfx(api, 'select'); newGame(true); api.msg('Neu gemischt: 10 Münzen, neue Startbilder.', 'info'); draw(); } return; }
+        const b = L.btn; if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h) { if (!st.busy && !st.done && st.coins > 0) { sfx(api, 'select'); newGame(true); api.msg(tr('Neu gemischt: 10 Münzen, neue Startbilder.', 'Shuffled: 10 coins, new starting pictures.'), 'info'); draw(); } return; }
         const i = hitLever(p);
         if (i >= 0) {
           if (st.coins <= 0 || st.busy) { sfx(api, 'bump'); return; }
@@ -452,11 +453,12 @@
           timers.forEach(clearTimeout); timers.length = 0;
           /* wait for a running spin, then play the shortest pull sequence from the current position (coins refilled) */
           const go = () => {
+            if (st.done) return;   /* the spin we waited for already hit the jackpot */
             if (st.busy) { later(go, 120); return; }
             st.mood = 'idle'; st.coins = COINS;
             let sol = minSolve(st.pos, st.lev, COINS);
             if (!sol) { st.pos = st.start.slice(); st.vis = st.pos.slice(); sol = minSolve(st.pos, st.lev, COINS); }
-            api.msg('So geht es: ' + sol.cnt.map((n, i) => n + '× ' + 'ABC'[i]).join(', '), 'info');
+            api.msg(tr('So geht es: ', 'Here’s how: ') + sol.cnt.map((n, i) => n + '× ' + 'ABC'[i]).join(', '), 'info');
             /* all pulls at once: one combined spin */
             const now = performance.now() / 1000;
             st.busy = true; st.coins -= sol.n; st.total += sol.n; sol.cnt.forEach((n, i) => { st.pulls[i] += n; if (n) st.leverAnim[i] = now + i * 0.12; });

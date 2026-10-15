@@ -1,9 +1,10 @@
-/* Pookiewookie puzzle: "Die Chili-Praline" (Schoko, slot 0).
+/* The Starway Home puzzle: "Die Chili-Praline" (Schoko, slot 0).
    Chomp on a 5x5 chocolate bar against the Schoko-Maus. The bottom-left piece is a red-hot chili praline.
    A bite eats the tapped piece plus every piece above it and to its right. Whoever has to eat the chili loses.
    The player starts; the mouse plays perfectly (the game is solved by memoized search over staircase states). */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, NC = 5, NR = 5, OL = '#2a1508';
   const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
   function rr(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
@@ -110,10 +111,10 @@
   G.PZ = G.PZ || {register() {}};
   G.PZ.register({
     id: 'schoko-chomp', world: 'schoko', slot: 0,
-    title: 'Die Chili-Praline',
-    intro: 'Ihr beißt abwechselnd ab: Ein Stück verschwindet mit allen Stücken darüber und rechts davon. Wer zum Schluss die Chili-Praline essen muss, verliert. Du fängst an!',
-    letter: 'Auf einer quadratischen Tafel beiß zuerst schräg neben die Chili – und danach sei ein Spiegel.',
-    hint: 'Beiß als Erstes das Stück schräg rechts über der Chili ab. Dann bleibt ein L übrig: ein Arm nach oben, einer nach rechts, beide gleich lang. Was die Maus von einem Arm abbeißt, beißt du danach vom anderen Arm genauso viel ab. So sind beide Arme immer gleich lang – und am Ende bleibt der Maus nur die Chili.',
+    title: tr('Die Chili-Praline', 'The Chili Chocolate'),
+    intro: tr('Ihr beißt abwechselnd ab: Ein Stück verschwindet mit allen Stücken darüber und rechts davon. Wer zum Schluss die Chili-Praline essen muss, verliert. Du fängst an!', 'Take turns taking bites: a piece disappears together with every piece above it and to its right. Whoever has to eat the chili chocolate at the end loses. You go first!'),
+    letter: tr('Auf einer quadratischen Tafel beiß zuerst schräg neben die Chili – und danach sei ein Spiegel.', 'On a square bar, first bite diagonally next to the chili – and after that, be a mirror.'),
+    hint: tr('Beiß als Erstes das Stück schräg rechts über der Chili ab. Dann bleibt ein L übrig: ein Arm nach oben, einer nach rechts, beide gleich lang. Was die Maus von einem Arm abbeißt, beißt du danach vom anderen Arm genauso viel ab. So sind beide Arme immer gleich lang – und am Ende bleibt der Maus nur die Chili.', 'First bite off the piece diagonally up and to the right of the chili. That leaves an L: one arm going up, one going right, both the same length. Whatever the mouse bites off one arm, you then bite exactly as much off the other arm. That way both arms always stay the same length – and in the end only the chili is left for the mouse.'),
     station(c, x, y, t, solved) {
       c.save(); c.translate(x, y); c.lineJoin = 'round';
       c.beginPath(); c.ellipse(0, -2, 17, 4.5, 0, 0, TAU); c.fillStyle = '#fff'; c.fill(); c.strokeStyle = '#b8a8c0'; c.lineWidth = 1; c.stroke();
@@ -235,18 +236,18 @@
         /* armed hint */
         if (st.armed && st.turn === 'player') {
           const ax = clamp(L.bx + (st.armed[0] + 0.5) * L.cs, L.bx + 64, L.bx + L.bw - 64), ay = cellY(st.armed[1]) + L.cs / 2, up = st.armed[1] < NR - 1;
-          const ly = ay + (up ? -0.8 : 0.8) * L.cs; rr(c, ax - 66, ly - 14, 132, 28, 14); c.fillStyle = '#fff4e0'; c.fill(); c.strokeStyle = '#7a3b57'; c.lineWidth = 2.5; c.stroke(); txt(c, 'Nochmal tippen!', ax, ly + 1, 15, '#7a3b57', 'center', 700);
+          const ly = ay + (up ? -0.8 : 0.8) * L.cs; rr(c, ax - 66, ly - 14, 132, 28, 14); c.fillStyle = '#fff4e0'; c.fill(); c.strokeStyle = '#7a3b57'; c.lineWidth = 2.5; c.stroke(); txt(c, tr('Nochmal tippen!', 'Tap again!'), ax, ly + 1, 15, '#7a3b57', 'center', 700);
         }
         /* empty foil after the last bite: crumbs and the result */
         if (st.h.every(v => v === 0) && st.gone.every(q => t > q.t0 + 0.35)) {
           c.fillStyle = 'rgba(107,58,30,.55)';
           for (let k = 0; k < 26; k++) { const x = L.bx + 14 + ((k * 97) % (L.bw - 28)), y = L.by + 14 + ((k * 61) % (L.bh - 28)); c.save(); c.translate(x, y); c.rotate(k); c.fillRect(-2 - (k % 3), -2, 4 + (k % 3) * 2, 4); c.restore(); }
           const bob = Math.sin(t * 4) * 3;
-          if (st.done) { txt(c, 'Gewonnen!', L.cx, L.by + L.bh / 2 - 18 + bob, 40, '#ffd84a', 'center', 700, OL); txt(c, 'Die Maus hat die Chili!', L.cx, L.by + L.bh / 2 + 22, 17, '#7a3b57', 'center', 700); }
-          else { txt(c, 'Autsch, scharf!', L.cx, L.by + L.bh / 2 - 18 + bob, 34, '#ff4a3a', 'center', 700, OL); txt(c, 'Gleich gibt es eine neue Tafel …', L.cx, L.by + L.bh / 2 + 22, 16, '#7a3b57', 'center', 700); }
+          if (st.done) { txt(c, tr('Gewonnen!', 'You win!'), L.cx, L.by + L.bh / 2 - 18 + bob, 40, '#ffd84a', 'center', 700, OL); txt(c, tr('Die Maus hat die Chili!', 'The mouse got the chili!'), L.cx, L.by + L.bh / 2 + 22, 17, '#7a3b57', 'center', 700); }
+          else { txt(c, tr('Autsch, scharf!', 'Ouch, spicy!'), L.cx, L.by + L.bh / 2 - 18 + bob, 34, '#ff4a3a', 'center', 700, OL); txt(c, tr('Gleich gibt es eine neue Tafel …', 'A new bar is coming right up …'), L.cx, L.by + L.bh / 2 + 22, 16, '#7a3b57', 'center', 700); }
         }
 
-        /* Wookie */
+        /* Toffo */
         const wx = L.wx, wy = L.floorY;
         if (st.turn === 'player' && !st.done) { c.beginPath(); c.ellipse(wx, wy + 2, 46, 11, 0, 0, TAU); c.fillStyle = 'rgba(255,216,74,' + (0.45 + 0.25 * Math.sin(t * 5)) + ')'; c.fill(); }
         c.beginPath(); c.ellipse(wx, wy + 2, 30, 7, 0, 0, TAU); c.fillStyle = 'rgba(60,30,10,.25)'; c.fill();
@@ -254,15 +255,15 @@
         if (G.draw && G.draw.drawBearAt) { try { G.draw.drawBearAt(c, wx, wy, {scale: 3.4, facing: 1, frame: t * 8, t, pose: wpose, mood: st.wook === 'hot' ? 'sad' : 'happy', outfit: 'schoko'}); } catch (e) { fallbackBear(c, wx, wy, 3.4, false); } }
         else fallbackBear(c, wx, wy, 3.4, false);
         if (st.wook === 'hot') { c.fillStyle = 'rgba(255,40,40,.35)'; c.beginPath(); c.arc(wx + 3, wy - 50, 26, 0, TAU); c.fill(); for (const d of [-1, 1]) { const p = (t * 2) % 1; c.globalAlpha = 1 - p; c.strokeStyle = '#fff'; c.lineWidth = 3; c.beginPath(); c.moveTo(wx + d * 20, wy - 76 - p * 18); c.quadraticCurveTo(wx + d * 26, wy - 84 - p * 18, wx + d * 20, wy - 92 - p * 18); c.stroke(); c.globalAlpha = 1; } }
-        txt(c, 'Du', wx, wy + 24, 17, '#7a3b57', 'center', 700);
+        txt(c, tr('Du', 'You'), wx, wy + 24, 17, '#7a3b57', 'center', 700);
         /* Mouse */
         const mx = L.mx, my = L.floorY;
         if (st.turn === 'mouse' && !st.done) { c.beginPath(); c.ellipse(mx, my + 2, 46, 11, 0, 0, TAU); c.fillStyle = 'rgba(255,216,74,' + (0.45 + 0.25 * Math.sin(t * 5)) + ')'; c.fill(); }
         c.beginPath(); c.ellipse(mx, my + 2, 30, 7, 0, 0, TAU); c.fillStyle = 'rgba(60,30,10,.25)'; c.fill();
         drawMouse(c, mx, my, 1.55, st.mood, t, -1);
-        txt(c, 'Schoko-Maus', mx, my + 24, 17, '#7a3b57', 'center', 700);
+        txt(c, tr('Schoko-Maus', 'Choco Mouse'), mx, my + 24, 17, '#7a3b57', 'center', 700);
         /* turn bubble */
-        const bubble = st.done ? null : (st.turn === 'player' ? ['Du bist dran!', wx, wy - 118] : (st.turn === 'mouse' ? ['Hmm … ich überlege …', mx, my - 122] : null));
+        const bubble = st.done ? null : (st.turn === 'player' ? [tr('Du bist dran!', 'Your turn!'), wx, wy - 118] : (st.turn === 'mouse' ? [tr('Hmm … ich überlege …', 'Hmm … let me think …'), mx, my - 122] : null));
         if (bubble) {
           c.font = '700 15px "Fredoka", sans-serif'; const bw = c.measureText(bubble[0]).width + 24, bx = clamp(bubble[1] - bw / 2, 4, LW - bw - 4), by = bubble[2];
           rr(c, bx, by - 16, bw, 32, 16); c.fillStyle = '#fff4e0'; c.fill(); c.strokeStyle = '#7a3b57'; c.lineWidth = 2.5; c.stroke();
@@ -271,7 +272,7 @@
         }
         /* reset button */
         const b = L.btn; rr(c, b.x, b.y, b.w, b.h, b.h / 2); c.fillStyle = '#ff6f9c'; c.fill(); c.strokeStyle = '#7a3b57'; c.lineWidth = 3; c.stroke();
-        txt(c, 'Neue Tafel', b.x + b.w / 2, b.y + b.h / 2 + 1, 15, '#fff', 'center', 700);
+        txt(c, tr('Neue Tafel', 'New bar'), b.x + b.w / 2, b.y + b.h / 2 + 1, 15, '#fff', 'center', 700);
         /* particles */
         for (const p of st.parts) {
           c.globalAlpha = clamp(p.life * 2, 0, 1);
@@ -295,7 +296,7 @@
         st.h = bite(st.h, c0, r0); st.bites++;
         noise(0.12, {type: 'bandpass', freq: 1800, q: 1.2, gain: 0.35}); noise(0.1, {type: 'bandpass', freq: 900, q: 1, gain: 0.3, delay: 0.09});
         tone(who === 'mouse' ? 880 : 520, 0.06, {type: 'triangle', gain: 0.08, delay: 0.05});
-        st.parts.push({kind: 'text', s: who === 'mouse' ? 'knusper!' : 'mampf!', x: L.bx + (c0 + 0.5) * L.cs, y: cellY(r0) + 4, vx: 0, vy: -0.8, r: 18, col: who === 'mouse' ? '#e6dce4' : '#ffd84a', life: 0.9});
+        st.parts.push({kind: 'text', s: who === 'mouse' ? tr('knusper!', 'crunch!') : tr('mampf!', 'chomp!'), x: L.bx + (c0 + 0.5) * L.cs, y: cellY(r0) + 4, vx: 0, vy: -0.8, r: 18, col: who === 'mouse' ? '#e6dce4' : '#ffd84a', life: 0.9});
       }
       function playerBite(i, j) {
         if (st.turn !== 'player' || st.done) return;
@@ -303,7 +304,7 @@
         if (i === 0 && j === 0) {
           if (!onlyChili(st.h)) {   /* never eat the chili by accident while other pieces are left */
             tone(200, 0.12, {type: 'triangle', gain: 0.08}); st.chiliWarn = now();
-            api.msg('Finger weg! Die Chili isst nur, wer muss.', 'bad'); return;
+            api.msg(tr('Finger weg! Die Chili isst nur, wer muss.', 'Paws off! Only whoever has to eats the chili.'), 'bad'); return;
           }
           eatChili('player'); return;
         }
@@ -319,7 +320,7 @@
         later(() => {
           st.mouseHL = null; applyBite(m[0], m[1], 'mouse');
           later(() => { if (st.mood === 'chomp') st.mood = 'idle'; }, 400);
-          if (onlyChili(st.h)) { st.turn = 'wait'; api.msg('Oh oh … nur noch die Chili ist übrig!', 'bad'); later(() => eatChili('player'), 900); return; }
+          if (onlyChili(st.h)) { st.turn = 'wait'; api.msg(tr('Oh oh … nur noch die Chili ist übrig!', 'Uh-oh … only the chili is left!'), 'bad'); later(() => eatChili('player'), 900); return; }
           st.turn = 'player';
         }, st.quick ? 250 : 650);
       }
@@ -329,17 +330,17 @@
         st.flash = 1; noise(0.5, {type: 'lowpass', freq: 3000, freqTo: 300, gain: 0.3});
         const x = L.bx + L.cs / 2, y = cellY(0) + L.cs / 2;
         for (let k = 0; k < 24; k++) st.parts.push({kind: 'crumb', x, y, vx: (rnd() - 0.5) * 7, vy: -2 - rnd() * 5, rot: rnd() * 3, vr: 0.3, r: 2 + rnd() * 3, life: 1 + rnd() * 0.6, col: ['#ff2a2a', '#ff8a3a', '#ffd84a'][k % 3]});
-        st.parts.push({kind: 'text', s: 'SCHARF!', x: who === 'mouse' ? L.mx : L.wx, y: L.floorY - 135, vx: 0, vy: -0.5, r: 30, col: '#ff4a3a', life: 1.6});
+        st.parts.push({kind: 'text', s: tr('SCHARF!', 'SPICY!'), x: who === 'mouse' ? L.mx : L.wx, y: L.floorY - 135, vx: 0, vy: -0.5, r: 30, col: '#ff4a3a', life: 1.6});
         if (who === 'mouse') {
           st.mood = 'hot'; st.wook = 'win'; st.done = true;
           tone(1200, 0.4, {type: 'sawtooth', gain: 0.06, slide: 300}); tone(523, 0.2, {type: 'triangle', gain: 0.12, delay: 0.4}); tone(659, 0.2, {type: 'triangle', gain: 0.12, delay: 0.52}); tone(784, 0.35, {type: 'triangle', gain: 0.12, delay: 0.64});
           for (let k = 0; k < 30; k++) st.parts.push({kind: 'spark', x: L.cx + (rnd() - 0.5) * LW * 0.8, y: L.top + rnd() * 240, vx: 0, vy: -0.6, life: 0.8 + rnd() * 0.8, col: ['#ffd84a', '#ff9eb0', '#9be7a5', '#fff'][k % 4]});
-          api.msg('Die Maus muss die Chili essen – SCHARF!', 'good');
+          api.msg(tr('Die Maus muss die Chili essen – SCHARF!', 'The mouse has to eat the chili – SPICY!'), 'good');
           later(() => api.solved(), 1200);
         } else {
           st.wook = 'hot'; st.mood = 'giggle';
-          api.wrong('Die Maus kichert … nochmal!');
-          later(() => { reset(); api.msg('Neue Tafel – du fängst wieder an.', 'info'); }, 1800);
+          api.wrong(tr('Die Maus kichert … nochmal!', 'The mouse giggles … try again!'));
+          later(() => { reset(); api.msg(tr('Neue Tafel – du fängst wieder an.', 'New bar – you go first again.'), 'info'); }, 1800);
         }
       }
 
@@ -362,8 +363,9 @@
       /* ---------------- input ---------------- */
       function pt(e) { const r = cv.getBoundingClientRect(); return {x: (e.clientX - r.left) / sc, y: (e.clientY - r.top) / sc}; }
       function onDown(e) {
-        e.preventDefault(); const p = pt(e);
-        const b = L.btn; if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h) { if (!st.done && st.turn !== 'over' && st.turn !== 'wait') { try { api.sfx('select'); } catch (er) {} reset(); api.msg('Neue Tafel – du fängst an.', 'info'); draw(); } return; }
+        e.preventDefault(); if (st.quick) return;   /* bought solution is playing: a tap on "Neue Tafel" would cancel it */
+        const p = pt(e);
+        const b = L.btn; if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h) { if (!st.done && st.turn !== 'over' && st.turn !== 'wait') { try { api.sfx('select'); } catch (er) {} reset(); api.msg(tr('Neue Tafel – du fängst an.', 'New bar – you go first.'), 'info'); draw(); } return; }
         const cell = cellAt(p);
         if (!cell || st.turn !== 'player' || st.done) { st.armed = null; draw(); return; }
         if (e.pointerType === 'mouse') { playerBite(cell[0], cell[1]); draw(); return; }
@@ -394,7 +396,7 @@
             if (!wins(st.h)) { reset(); }
             const m = bestMove(st.h, rnd, true);
             if (!m) return;
-            api.msg(st.bites === 0 ? 'Erst schräg neben die Chili beißen …' : '… dann spiegeln!', 'info');
+            api.msg(st.bites === 0 ? tr('Erst schräg neben die Chili beißen …', 'First bite diagonally next to the chili …') : tr('… dann spiegeln!', '… then mirror!'), 'info');
             playerBite(m[0], m[1]);
             later(play, 200);
           };

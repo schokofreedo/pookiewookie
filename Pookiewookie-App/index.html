@@ -7,15 +7,17 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Pookiewookie">
+<meta name="apple-mobile-web-app-title" content="Starway Home">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Pookiewookie</title>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
+<title>The Starway Home</title>
+<link rel="preload" href="p/fonts/fredoka-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="p/brand/logo.png" as="image">
 <link rel="stylesheet" href="p/puzzles.css">
 <style>
+/* Fredoka (SIL Open Font License) ships with the game: works offline and loads nothing from third-party servers */
+@font-face{font-family:'Fredoka';font-style:normal;font-weight:300 700;font-display:swap;src:url(p/fonts/fredoka-latin.woff2) format('woff2')}
 /* Layout: an HD canvas with the 480x270 logical world scaled to fit, a WebGL globe stacked on top for the world menu, soft rounded overlays. Pastel bakery palette. */
 :root{
   --bg:#2b1d33; --fg:#fff7ef; --muted:#e6c9d6; --pink:#ff9eb0; --rose:#ff6f9c; --mint:#9be7a5; --sky:#8fd3ff; --cream:#fff4e0; --gold:#ffd84a; --plum:#7a3b57;
@@ -101,7 +103,7 @@ summary{cursor:pointer;font:700 14px/1.4 var(--font);color:var(--pink)}
 body.touch #touch{display:none}
 body.touch.playing #touch{display:flex}
 body.touch #corner{display:none;bottom:auto;top:max(6px,env(safe-area-inset-top,0px));right:auto;left:50%;transform:translateX(-50%)}
-body.touch.playing #corner,body.touch.onglobe #corner{display:flex}
+body.touch.playing #corner{display:flex}
 body.touch #corner button{padding:6px 10px;font-size:11px}
 body.touch #corner button:not(#btnPause){display:none}
 #rotate div{width:min(84vw,460px);overflow-wrap:anywhere}
@@ -164,6 +166,87 @@ body.touch #globeUI .gfoot p{display:none}
 .node.sel{border-color:var(--gold);box-shadow:0 0 0 4px rgba(255,216,74,.5);transform:translateY(-3px)}
 #map .foot{display:flex;gap:8px;justify-content:center;margin:16px auto 0;max-width:900px;flex-wrap:wrap}
 @media(max-width:640px){.card{padding:18px 16px;border-radius:18px}.keys{grid-template-columns:1fr}.nodes{grid-template-columns:repeat(2,minmax(0,1fr))}.node span{font-size:11px}}
+/* ---------- main menu dashboard: sits on the stage, sized in logical units (--u = px per logical px) ---------- */
+#title{position:absolute;inset:0;z-index:2;pointer-events:none;--u:2px;color:#fff;font-family:var(--font)}
+#title *{box-sizing:border-box}
+#title button{font-family:var(--font);-webkit-tap-highlight-color:transparent}
+.m-top{position:absolute;left:calc(var(--u)*10);right:calc(var(--u)*10);top:calc(var(--u)*7);display:flex;align-items:flex-start;justify-content:space-between;gap:calc(var(--u)*6)}
+.m-brand{display:grid;justify-items:center;animation:mIn .7s cubic-bezier(.2,1.4,.4,1) both}
+.m-logo{margin:0;display:grid;justify-items:center;font:700 calc(var(--u)*21)/.92 var(--font);letter-spacing:.02em;filter:drop-shadow(0 calc(var(--u)*2.2) 0 #10143a) drop-shadow(0 0 calc(var(--u)*9) rgba(255,200,90,.45));animation:logoBob 3.4s ease-in-out infinite;transform-origin:30% 80%}
+.m-logo span{-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;-webkit-text-stroke:calc(var(--u)*.8) #1b2050;padding:0 calc(var(--u)*1)}
+.m-logo .l1{background-image:linear-gradient(180deg,#fff8c8 0%,#ffe066 40%,#ffb02e 75%,#ff7a1a 100%)}
+.m-logo .l1 i{font-style:normal;font-size:.5em;vertical-align:.55em;margin-right:.18em}
+.m-logo .l2{font-size:1.18em;background-image:linear-gradient(180deg,#f4fbff 0%,#a8e2ff 40%,#4aa0ff 75%,#2a5cff 100%)}
+.m-tag{margin:calc(var(--u)*2) 0 0 calc(var(--u)*2);padding:calc(var(--u)*1.6) calc(var(--u)*6);border-radius:999px;background:linear-gradient(90deg,#ffd84a,#ffb347);color:#5a2a10;font:700 calc(var(--u)*6.4)/1 var(--font);letter-spacing:.06em;text-transform:uppercase;box-shadow:0 calc(var(--u)*1.4) 0 #9a5a10}
+.m-pills{display:flex;gap:calc(var(--u)*4);align-items:center;animation:mIn .7s .1s cubic-bezier(.2,1.4,.4,1) both}
+.m-pill{pointer-events:auto;display:flex;align-items:center;gap:calc(var(--u)*3);height:calc(var(--u)*18);padding:0 calc(var(--u)*7) 0 calc(var(--u)*3);border-radius:999px;background:rgba(24,8,36,.5);border:1px solid rgba(255,255,255,.24);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;font:700 calc(var(--u)*8.6)/1 var(--font);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 calc(var(--u)*2) calc(var(--u)*6) rgba(0,0,0,.25);cursor:pointer}
+.m-pill svg{width:calc(var(--u)*12.5);height:calc(var(--u)*12.5);flex:none}
+.m-pill.m-round{width:calc(var(--u)*18);padding:0;justify-content:center}
+.m-pill.m-round svg{transition:transform .5s}.m-pill.m-round:hover svg{transform:rotate(90deg)}
+.m-pill.bump{animation:bump .5s}
+.m-side{position:absolute;right:calc(var(--u)*10);top:calc(var(--u)*34);bottom:calc(var(--u)*9);width:calc(var(--u)*236);display:flex;flex-direction:column;gap:calc(var(--u)*6)}
+.m-play{pointer-events:auto;position:relative;overflow:hidden;flex:none;border:0;border-radius:calc(var(--u)*14);padding:calc(var(--u)*8) calc(var(--u)*12) calc(var(--u)*7);text-align:left;color:#fff;cursor:pointer;background:linear-gradient(135deg,#ff9a3d 0%,#ff4f8b 52%,#b23cff 100%);box-shadow:0 calc(var(--u)*3.4) 0 #5e1a4f,0 calc(var(--u)*8) calc(var(--u)*20) rgba(255,80,140,.45),inset 0 calc(var(--u)*1.2) 0 rgba(255,255,255,.5);display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:calc(var(--u)*9);row-gap:calc(var(--u)*1.5);animation:mIn .7s .15s cubic-bezier(.2,1.4,.4,1) both,playPulse 2.6s 1s ease-in-out infinite}
+.m-play::after{content:"";position:absolute;top:-50%;bottom:-50%;left:-40%;width:28%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);animation:shine 3.8s 1.2s ease-in-out infinite;pointer-events:none}
+.m-play:active{transform:translateY(calc(var(--u)*2));box-shadow:0 calc(var(--u)*1.4) 0 #5e1a4f,0 calc(var(--u)*4) calc(var(--u)*12) rgba(255,80,140,.4)}
+.m-play .pi{grid-row:span 3;width:calc(var(--u)*36);height:calc(var(--u)*36);border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 calc(var(--u)*2) 0 rgba(90,20,70,.35),0 0 0 calc(var(--u)*3) rgba(255,255,255,.25)}
+.m-play .pi svg{width:52%;height:52%;margin-left:12%;fill:#ff4f8b}
+.m-play b{font:700 calc(var(--u)*18)/1 var(--font);letter-spacing:.06em;text-shadow:0 calc(var(--u)*1.2) 0 rgba(90,20,70,.45)}
+.m-play small{font:600 calc(var(--u)*6.8)/1.25 var(--font);opacity:.96;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-bar{display:block;height:calc(var(--u)*4.2);border-radius:99px;background:rgba(40,0,40,.28);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}
+.m-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#fff7b0,#ffd84a);border-radius:inherit;transition:width .8s cubic-bezier(.2,1,.3,1)}
+.m-event{pointer-events:auto;flex:none;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:calc(var(--u)*6);align-items:center;height:calc(var(--u)*27);padding:0 calc(var(--u)*9) 0 calc(var(--u)*6);border:0;border-radius:calc(var(--u)*12);color:#fff;text-align:left;cursor:pointer;background:linear-gradient(120deg,#2a1450 0%,#5a2a8a 45%,#ff7a1a 100%);box-shadow:0 calc(var(--u)*2.4) 0 #1c0c38,0 0 calc(var(--u)*12) rgba(255,140,40,.45),inset 0 1px 0 rgba(255,255,255,.35);animation:mIn .6s .2s cubic-bezier(.2,1.4,.4,1) both}
+.m-event .ev-ico{grid-row:span 2;font-size:calc(var(--u)*17);line-height:1;filter:drop-shadow(0 0 calc(var(--u)*4) rgba(255,160,40,.8));animation:badge 1.6s ease-in-out infinite}
+.m-event .ev-t{display:grid;min-width:0}.m-event b{font:700 calc(var(--u)*8.4)/1.1 var(--font)}.m-event small{font:600 calc(var(--u)*5.8)/1.2 var(--font);opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-event .ev-bar{grid-column:2;height:calc(var(--u)*3);border-radius:99px;background:rgba(0,0,0,.3);overflow:hidden}.m-event .ev-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffd84a,#ff8a2a);border-radius:inherit}
+.m-tiles{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:calc(var(--u)*6);flex:1;min-height:0}
+.m-tile{pointer-events:auto;position:relative;overflow:hidden;min-height:0;border-radius:calc(var(--u)*12);border:1px solid rgba(255,255,255,.24);background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.05) 60%);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#fff;text-align:left;padding:calc(var(--u)*5) calc(var(--u)*8);display:flex;flex-direction:column;justify-content:flex-end;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 calc(var(--u)*3) calc(var(--u)*10) rgba(20,0,30,.3);transition:transform .15s,background .2s;animation:mIn .6s cubic-bezier(.2,1.4,.4,1) both}
+.m-tile:nth-child(1){animation-delay:.22s}.m-tile:nth-child(2){animation-delay:.28s}.m-tile:nth-child(3){animation-delay:.34s}.m-tile:nth-child(4){animation-delay:.4s}
+.m-tile:hover{transform:translateY(-2px);background:linear-gradient(160deg,rgba(255,255,255,.3),rgba(255,255,255,.08) 60%)}
+.m-tile:active{transform:scale(.96)}
+.m-tile .ti{position:absolute;right:calc(var(--u)*6);top:calc(var(--u)*5);width:calc(var(--u)*21);height:calc(var(--u)*21);border-radius:calc(var(--u)*7);display:grid;place-items:center;color:#fff;box-shadow:0 calc(var(--u)*1.6) 0 rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.45)}
+.m-tile .ti svg{width:64%;height:64%}
+.t-daily .ti{background:linear-gradient(140deg,#ffb347,#ff5a3c)}.t-shop .ti{background:linear-gradient(140deg,#7af0b0,#22b88a)}.t-keks .ti{background:linear-gradient(140deg,#ffe27a,#f0a020)}.t-story .ti{background:linear-gradient(140deg,#b9a2ff,#7a5af0)}
+.t-keks .ti svg{color:#fff3d0}
+.m-tile b{font:700 calc(var(--u)*10.4)/1.1 var(--font);text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.m-tile small{font:600 calc(var(--u)*6.4)/1.25 var(--font);color:rgba(255,255,255,.82);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-badge{position:absolute;left:calc(var(--u)*6);top:calc(var(--u)*5);padding:calc(var(--u)*1.4) calc(var(--u)*4);border-radius:999px;background:#ff3d6e;color:#fff;font:700 calc(var(--u)*5.6)/1 var(--font);font-style:normal;letter-spacing:.06em;box-shadow:0 0 0 calc(var(--u)*1) rgba(255,255,255,.6);animation:badge 1.4s ease-in-out infinite}
+.m-faces{position:absolute;left:calc(var(--u)*7);top:calc(var(--u)*6);display:flex}
+.m-faces canvas{width:calc(var(--u)*19);height:calc(var(--u)*19);border-radius:50%;margin-right:calc(var(--u)*-5);background:radial-gradient(circle at 50% 35%,#fff7,#fff2);box-shadow:0 0 0 calc(var(--u)*1.1) rgba(255,255,255,.55),0 calc(var(--u)*1.5) calc(var(--u)*3) rgba(0,0,0,.25)}
+.m-badge~.m-faces{top:calc(var(--u)*15)}
+.m-kbar{margin-top:calc(var(--u)*3);height:calc(var(--u)*3.2)}
+.m-row{display:flex;gap:calc(var(--u)*5);flex:none}
+.m-sm{pointer-events:auto;flex:1;height:calc(var(--u)*18);border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(24,8,36,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;font:600 calc(var(--u)*6.6)/1 var(--font);cursor:pointer;white-space:nowrap}
+.m-sm:hover{background:rgba(255,255,255,.16)}
+.m-heroui{position:absolute;left:calc(var(--u)*10);bottom:calc(var(--u)*7);width:var(--heroW,calc(var(--u)*214));display:grid;justify-items:center;gap:calc(var(--u)*3.5)}
+.m-hrow{display:flex;align-items:center;gap:calc(var(--u)*6)}
+.m-hname{display:grid;justify-items:center;min-width:calc(var(--u)*92);text-align:center}
+.m-hname b{font:700 calc(var(--u)*12)/1 var(--font);letter-spacing:.08em;text-transform:uppercase;text-shadow:0 calc(var(--u)*1.4) 0 rgba(40,0,40,.55)}
+.m-hname small{margin-top:calc(var(--u)*1.5);font:600 calc(var(--u)*6.4)/1.2 var(--font);color:rgba(255,255,255,.85);max-width:calc(var(--u)*120)}
+.m-arrow{pointer-events:auto;width:calc(var(--u)*21);height:calc(var(--u)*21);border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(24,8,36,.5);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0}
+.m-arrow svg{width:55%;height:55%}.m-arrow:active{transform:scale(.9)}
+.m-hbtn{pointer-events:auto;height:calc(var(--u)*17);padding:0 calc(var(--u)*11);border-radius:999px;border:0;font:700 calc(var(--u)*7.2)/1 var(--font);cursor:pointer;color:#5a2a10;background:linear-gradient(180deg,#ffe680,#ffc23a);box-shadow:0 calc(var(--u)*2) 0 #a8620e,0 0 calc(var(--u)*10) rgba(255,210,80,.45)}
+.m-hbtn.on{background:rgba(155,231,165,.25);color:#d9ffe0;box-shadow:inset 0 0 0 1px rgba(155,231,165,.7);cursor:default}
+.m-hbtn.pick{background:linear-gradient(180deg,#9bf0b0,#3fc47a);color:#0e3a20;box-shadow:0 calc(var(--u)*2) 0 #1e7a48}
+.m-hbtn.poor{filter:saturate(.6);opacity:.85}
+.m-hbtn.nope{animation:pzshake .35s}
+.m-herotap{position:absolute;left:var(--heroTapL,0);top:calc(var(--u)*70);width:calc(var(--u)*90);height:calc(var(--u)*130);background:transparent;border:0;pointer-events:auto;cursor:pointer}
+@keyframes logoBob{0%,100%{transform:rotate(-1.5deg) translateY(0)}50%{transform:rotate(1deg) translateY(calc(var(--u)*-2))}}
+@keyframes mIn{from{opacity:0;transform:translateY(calc(var(--u)*10)) scale(.94)}to{opacity:1;transform:none}}
+@keyframes playPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.1)}}
+@keyframes shine{0%,55%{left:-40%}85%,100%{left:130%}}
+@keyframes badge{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@keyframes bump{0%{transform:scale(1)}30%{transform:scale(1.18)}100%{transform:scale(1)}}
+body.inmenu #corner{display:none!important}
+body.noanim #title *{animation:none!important}
+.sel{margin-left:8px;padding:6px 10px;border-radius:10px;border:2px solid var(--line);background:#3b2543;color:var(--fg);font:600 13px/1.2 var(--font)}
+#settings .card{max-width:520px;text-align:left}#settings h2{text-align:center}
+#settings .btnrow{margin-top:14px}
+/* run pad without its shell: just the two white triangles (a dark rim keeps them visible on bright skies) */
+.dpad{background:transparent!important;border:0!important}
+.dpad i{display:none}
+.dpad span{display:grid;place-items:center;opacity:.95}
+.dpad svg{width:30px;height:30px;fill:#fff;stroke:rgba(40,10,40,.55);stroke-width:1.2;stroke-linejoin:round;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
+.hico{width:38px;height:38px;border-radius:10px;background:radial-gradient(circle at 50% 35%,rgba(255,255,255,.28),rgba(255,255,255,.06));display:block}
 </style>
 </head>
 <body>
@@ -171,56 +254,77 @@ body.touch #globeUI .gfoot p{display:none}
 <div id="stage">
   <canvas id="c" width="480" height="270"></canvas>
   <canvas id="globe" hidden></canvas>
+  <div id="title" class="menu" hidden>
+    <div class="m-top">
+      <div class="m-brand"><h1 class="m-logo" aria-label="The Starway Home"><span class="l1"><i>THE</i>STARWAY</span><span class="l2">HOME</span></h1><span class="m-tag" data-en="Rescue Mallo!">Rette Mallo!</span></div>
+      <div class="m-pills">
+        <button class="m-pill" id="mMoney" type="button" aria-label="Taler, zum Shop" data-en-aria="Coins, open the shop"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ffd84a" stroke="#b07a10" stroke-width="2"/><circle cx="12" cy="12" r="6.2" fill="none" stroke="#f0b020" stroke-width="1.6"/><path d="M9.3 9.4h5.4M12 9.4v6" stroke="#8a5a08" stroke-width="2" stroke-linecap="round"/></svg><span id="mMoneyN">0</span></button>
+        <div class="m-pill"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z" fill="#ffd84a" stroke="#b07a10" stroke-width="1.6" stroke-linejoin="round"/></svg><span id="mStars">0</span></div>
+        <button class="m-pill m-round" id="mLang" type="button" aria-label="Sprache / Language">DE</button>
+        <button class="m-pill m-round" id="mSettings" type="button" aria-label="Einstellungen" data-en-aria="Settings"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg></button>
+      </div>
+    </div>
+    <div class="m-heroui">
+      <div class="m-hrow"><button class="m-arrow" id="mPrev" type="button" aria-label="Vorheriger Held" data-en-aria="Previous hero"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="m-hname"><b id="mHeroName">Toffo</b><small id="mHeroPerk">Bär · Allrounder</small></div><button class="m-arrow" id="mNext" type="button" aria-label="Nächster Held" data-en-aria="Next hero"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+      <button class="m-hbtn" id="mHeroBtn" type="button" data-en="Your hero">Dein Held</button>
+    </div>
+    <button class="m-herotap" id="mHeroTap" type="button" aria-label="Held springen lassen" data-en-aria="Make the hero jump"></button>
+    <div class="m-side">
+      <button class="m-play" id="btnStart" type="button"><span class="pi"><svg viewBox="0 0 24 24"><path d="M8 4.8v14.4l11.6-7.2z"/></svg></span><b data-en="PLAY">SPIELEN</b><small id="mNextLvl">Welt 1 · Zuckerwattewiese</small><span class="m-bar"><i id="mBar"></i></span></button>
+      <button class="m-event" id="mEvent" type="button" hidden><span class="ev-ico">🎃</span><span class="ev-t"><b data-en="Halloween event: Spooky Night">Halloween-Event: Gruselnacht</b><small id="mEventS"></small></span><span class="ev-bar"><i id="mEventBar"></i></span></button>
+      <div class="m-tiles">
+        <button class="m-tile t-daily" id="mDaily" type="button"><span class="ti"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></svg></span><b data-en="Daily Level">Tageslevel</b><small id="mDailyS" data-en="New every day">Jeden Tag neu</small></button>
+        <button class="m-tile t-shop" id="mShop" type="button"><span class="ti"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M18 6h-2a4 4 0 0 0-8 0H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm-6-2a2 2 0 0 1 2 2h-4a2 2 0 0 1 2-2zm-3 7a1 1 0 0 1-1-1V8h2v2a1 1 0 0 1-1 1zm6 0a1 1 0 0 1-1-1V8h2v2a1 1 0 0 1-1 1z"/></svg></span><em class="m-badge" id="mShopBadge" hidden>NEU</em><span class="m-faces" id="mFaces"></span><b>Shop</b><small data-en="Heroes · Rocket · Outfits">Helden · Rakete · Outfits</small></button>
+        <button class="m-tile t-keks" id="btnKeks" type="button"><span class="ti"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.6a9.4 9.4 0 1 0 9.4 9.6 3.2 3.2 0 0 1-3.6-3 3.2 3.2 0 0 1-3.2-3.4A3.2 3.2 0 0 1 12 2.6z"/><g fill="#7a3b1d"><circle cx="8.4" cy="9.6" r="1.3"/><circle cx="12.6" cy="14.2" r="1.4"/><circle cx="8" cy="15.4" r="1.1"/><circle cx="16.2" cy="16.4" r="1"/></g></svg></span><b data-en="Cookie Jar">Keksdose</b><small id="mKeks">0 von 14</small><span class="m-bar m-kbar"><i id="mKeksBar"></i></span></button>
+        <button class="m-tile t-story" id="mStory" type="button"><span class="ti"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg></span><b>Story</b><small data-en="How it all began">Wie alles begann</small></button>
+      </div>
+      <div class="m-row"><button class="m-sm btnFull" type="button" data-en="Fullscreen">Vollbild</button><button class="m-sm" id="mMute" type="button" data-en="Sound off">Ton aus</button><button class="m-sm" id="btnVoice" type="button" data-en="Test voice">Stimme testen</button></div>
+    </div>
+  </div>
   <div id="globeUI" hidden>
-    <div class="ghead"><h2>Wähle eine Welt</h2><p id="gprog"></p></div>
+    <div class="ghead"><h2 data-en="Choose a world">Wähle eine Welt</h2><p id="gprog"></p></div>
     <div id="markers"></div>
-    <div class="gfoot"><button id="btnDaily" class="btn" type="button">Tageslevel</button><button class="btn btnShop" type="button">Shop</button><button id="btnKeks" class="btn ghost" type="button">Keksdose</button><button id="btnGlobeBack" class="btn ghost" type="button">Hauptmenü</button><button id="btnReset" class="btn ghost" type="button">Spielstand löschen</button><p>Ziehen = drehen · ← → wählen · Enter oder Klick = reinfliegen</p></div>
+    <div class="gfoot"><button id="btnGlobeBack" class="btn ghost" type="button" data-en="‹ Menu">‹ Menü</button><button id="btnDaily" class="btn" type="button">Tageslevel</button><button class="btn btnShop" type="button">Shop</button><p data-en="Drag = rotate · ← → choose · Enter or click = fly in">Ziehen = drehen · ← → wählen · Enter oder Klick = reinfliegen</p></div>
   </div>
 </div>
-<div id="bubble">Where is my Pookie?</div>
+<div id="bubble">Where is my Mallo?</div>
 <div id="banner"></div>
 
-<div id="title" class="ov">
+<div id="settings" class="ov" hidden>
   <div class="card">
-    <h1>Pookiewookie</h1>
-    <p class="sub">Wookie sucht seine Pookie · 10 Welten · 40 Level · 20 Rätsel · U-Boot · Raketenflug · großes Finale</p>
-    <p>Pookie, die weiße Bärin, wurde vom Sternenpiraten entführt. Wookie hüpft durch Zuckerwattewiese und Kokosinsel, taucht mit dem U-Boot durchs Korallenmeer, klettert durch Dschungel und Schokoladenland, rutscht übers Schneeland, trotzt der Lavawelt und dem Wolkenschloss und fliegt mit der Rakete bis zum Saturn. Und danach? Ein Schwarzes Loch, die Schoko-Mafia und ein langer Weg nach Hause.</p>
-    <div class="keys">
-      <span><b>← →</b> laufen · <b>↑</b> klettern / springen</span><span><b>Leer</b> / <b>K</b> springen · in der Luft nochmal = Doppelsprung</span>
-      <span><b>Shift</b> / <b>X</b> rennen · schießen (Kaffee, Honigschleuder)</span><span><b>↓</b> in der Luft = Stampfer · auf Gold-Röhre = Bonusraum</span>
-      <span><b>Esc</b> / <b>P</b> Pause · <b>F</b> Vollbild</span><span>Kapsel anstoßen = Gadget ziehen · Honigkanone = reinlaufen</span>
+    <h2 data-en="Settings">Einstellungen</h2>
+    <div class="settings">
+      <label class="chk"><input type="checkbox" id="chkSound" checked> <span data-en="Sound and music">Ton und Musik</span></label>
+      <label class="chk"><span data-en="Language">Sprache</span> <select id="selLang" class="sel"><option value="de">Deutsch</option><option value="en">English</option></select></label>
+      <label class="chk"><input type="checkbox" id="chkVoice" checked> <span data-en="Voice (real recordings, English)">Stimme (echte Sprachaufnahmen, Englisch)</span></label>
+      <label class="chk"><input type="checkbox" id="chkAssist"> <span data-en="Assist mode: start every level with a bubble shield">Hilfe-Modus: jedes Level mit Schutzblase starten</span></label>
+      <label class="chk" id="rowHaptic"><input type="checkbox" id="chkHaptic" checked> <span data-en="Vibrate on hits">Vibration bei Treffern</span></label>
+      <label class="chk"><span data-en="Toffo’s outfit">Toffos Outfit</span> <select id="selCostume" class="sel"></select></label>
+      <label class="chk"><span data-en="Toffo’s look">Toffos Look</span> <select id="selStyle" class="sel"><option value="cool">Cool</option><option value="abenteurer" data-en="Adventurer">Abenteurer</option></select></label>
+      <small id="coinCount"></small>
     </div>
-    <p class="touchhelp">Handy quer halten. Links ◀ ▶ laufen. Rechts: A springen (in der Luft nochmal = Salto), ▼ Stampfer in der Luft und Bonus-Röhren, B schießen. An Ranken hält A fest und klettert. Level starten: springen und mit ▼ auf das Schild stampfen. Auf dem Globus: Welt antippen.</p>
-    <details>
-      <summary>Einstellungen</summary>
-      <div class="settings">
-        <label class="chk"><input type="checkbox" id="chkVoice" checked> Wookie spricht (echte Sprachaufnahmen)</label>
-        <label class="chk"><input type="checkbox" id="chkAssist"> Hilfe-Modus: Wookie startet jedes Level mit Schutzblase</label>
-        <label class="chk">Kostüm <select id="selCostume" style="margin-left:8px;padding:6px 10px;border-radius:10px;border:2px solid var(--line);background:#3b2543;color:var(--fg);font:600 13px/1.2 var(--font)"></select> <small id="coinCount" style="margin-left:8px"></small></label>
-        <label class="chk">Wookies Look <select id="selStyle" style="margin-left:8px;padding:6px 10px;border-radius:10px;border:2px solid var(--line);background:#3b2543;color:var(--fg);font:600 13px/1.2 var(--font)"><option value="cool">Cool (neu)</option><option value="abenteurer">Abenteurer</option></select></label>
-        <small>Ton und Stimme starten nach dem ersten Klick. Die Buttons unten rechts schalten Ton und Vollbild.</small>
-      </div>
-    </details>
-    <div class="btnrow">
-      <button id="btnStart" class="btn" type="button">Zum Globus</button>
-      <button id="btnVoice" class="btn ghost" type="button">Stimme testen</button>
-      <button class="btn ghost btnFull" type="button">Vollbild</button>
+    <div class="keys" style="margin-top:14px">
+      <span data-en="<b>← →</b> run · <b>↑</b> climb"><b>← →</b> laufen · <b>↑</b> klettern</span><span data-en="<b>Space</b> jump · again in the air = somersault"><b>Leer</b> springen · in der Luft nochmal = Salto</span>
+      <span data-en="<b>Shift</b> sprint and shoot"><b>Shift</b> rennen und schießen</span><span data-en="<b>↓</b> in the air = ground pound"><b>↓</b> in der Luft = Stampfer</span>
+      <span data-en="<b>Esc</b> / <b>P</b> pause"><b>Esc</b> / <b>P</b> Pause</span><span data-en="<b>F</b> fullscreen"><b>F</b> Vollbild</span>
     </div>
-    <p class="sub" style="margin:12px 0 0;font-size:12px">ein Schokofreedo Games Spiel · A = Sprung, in der Luft nochmal A = Doppelsprung</p>
+    <p class="touchhelp" data-en="Left ◀ ▶ run (just slide your thumb across). Right: A jump, A again in the air = somersault, B shoot, ▼ ground pound. To start a level: jump and stomp the sign with ▼.">Links ◀ ▶ laufen (Daumen einfach rüberschieben). Rechts: A springen, in der Luft nochmal A = Salto, B schießen, ▼ Stampfer. Level starten: springen und mit ▼ aufs Schild stampfen.</p>
+    <div class="btnrow"><button id="btnSettingsClose" class="btn" type="button" data-en="Done">Fertig</button><button id="btnReset" class="btn ghost" type="button" data-en="Delete progress">Spielstand löschen</button></div>
+    <p class="sub" style="margin:10px 0 0;font-size:12px">Schokofreedo Games · The Starway Home · Version 16<a id="lnkPrivacy" href="privacy.html" target="_blank" rel="noopener" style="color:var(--pink);margin-left:10px" hidden data-en="Privacy">Datenschutz</a></p>
   </div>
 </div>
 
 <div id="map" class="ov" hidden>
-  <div class="head"><div><h2>Weltkarte</h2><p id="map-progress"></p></div><p class="sub" style="margin:0">Pfeile wählen · Enter startet</p></div>
+  <div class="head"><div><h2 data-en="World map">Weltkarte</h2><p id="map-progress"></p></div><p class="sub" style="margin:0" data-en="Arrows choose · Enter starts">Pfeile wählen · Enter startet</p></div>
   <div id="worlds"></div>
-  <div class="foot"><button id="btnMapBack" class="btn ghost" type="button" style="margin:0">Hauptmenü</button></div>
+  <div class="foot"><button id="btnMapBack" class="btn ghost" type="button" style="margin:0" data-en="Main menu">Hauptmenü</button></div>
 </div>
 
 <div id="card" class="ov" hidden>
   <div class="card">
     <p id="card-world">Welt 1 · Zuckerwattewiese</p>
     <h2 id="card-title">1. Erste Hüpfer</h2>
-    <p id="card-lives">Wookie × 4</p>
+    <p id="card-lives">Toffo × 4</p>
   </div>
 </div>
 
@@ -229,27 +333,27 @@ body.touch #globeUI .gfoot p{display:none}
     <h2>Pause</h2>
     <p id="pause-level">Welt 1-1</p>
     <div class="menu">
-      <button id="btnResume" class="btn" type="button">Fortsetzen</button>
-      <button id="btnRestart" class="btn ghost" type="button">Level neu starten</button>
-      <button id="btnPauseMap" class="btn ghost" type="button">Zurück zur Welt</button>
-      <button id="btnPauseGlobe" class="btn ghost" type="button">Zum Globus</button>
+      <button id="btnResume" class="btn" type="button" data-en="Resume">Fortsetzen</button>
+      <button id="btnRestart" class="btn ghost" type="button" data-en="Restart level">Level neu starten</button>
+      <button id="btnPauseMap" class="btn ghost" type="button" data-en="Back to the world">Zurück zur Welt</button>
+      <button id="btnPauseGlobe" class="btn ghost" type="button" data-en="To the globe">Zum Globus</button>
       <button class="btn ghost btnShop" type="button">Shop</button>
-      <button id="btnPauseTitle" class="btn ghost" type="button">Hauptmenü</button>
-      <button class="btn ghost btnFull" type="button">Vollbild</button>
-      <button class="btn ghost btnVoiceToggle" type="button">Stimme aus</button>
-      <button id="btnPauseMute" class="btn ghost" type="button">Ton aus</button>
+      <button id="btnPauseTitle" class="btn ghost" type="button" data-en="Main menu">Hauptmenü</button>
+      <button class="btn ghost btnFull" type="button" data-en="Fullscreen">Vollbild</button>
+      <button class="btn ghost btnVoiceToggle" type="button" data-en="Voice off">Stimme aus</button>
+      <button id="btnPauseMute" class="btn ghost" type="button" data-en="Sound off">Ton aus</button>
     </div>
-    <p class="sub" style="margin:0">Esc oder P: weiterspielen</p>
+    <p class="sub" style="margin:0" data-en="Esc or P: keep playing">Esc oder P: weiterspielen</p>
   </div>
 </div>
 
 <div id="shop" class="ov" hidden>
   <div class="card shop">
     <h2>Shop</h2>
-    <p class="sub">Du hast <b id="shop-money">0</b> Taler · Taler gibt es für Herzen, Gegner, Sternkekse, Level und Raketenflüge</p>
-    <div class="tabs"><button class="tab on" data-tab="rocket" type="button">Rakete</button><button class="tab" data-tab="outfits" type="button">Outfits</button></div>
+    <p class="sub" data-en="You have <b id=&quot;shop-money&quot;>0</b> coins · earn coins with hearts, enemies, star cookies, levels and rocket flights">Du hast <b id="shop-money">0</b> Taler · Taler gibt es für Herzen, Gegner, Sternkekse, Level und Raketenflüge</p>
+    <div class="tabs"><button class="tab" data-tab="heroes" type="button" data-en="Heroes">Helden</button><button class="tab on" data-tab="rocket" type="button" data-en="Rocket">Rakete</button><button class="tab" data-tab="outfits" type="button">Outfits</button></div>
     <ul id="shop-list" class="shoplist"></ul>
-    <button id="btnShopClose" class="btn" type="button">Fertig</button>
+    <button id="btnShopClose" class="btn" type="button" data-en="Done">Fertig</button>
   </div>
 </div>
 
@@ -257,62 +361,63 @@ body.touch #globeUI .gfoot p{display:none}
   <div class="pzbox">
     <header class="pzhead"><span id="pz-world"></span><h2 id="pz-title"></h2><p id="pz-intro"></p></header>
     <div id="pz-root"></div>
-    <footer class="pzfoot"><span id="pz-msg"></span><button id="pz-tip" class="btn ghost" type="button">Pookies Tipp</button><button id="pz-tip2" class="btn ghost" type="button">Großer Tipp</button><button id="pz-solve" class="btn ghost" type="button">Lösung</button><button id="pz-close" class="btn ghost" type="button">Zurück</button></footer>
+    <footer class="pzfoot"><span id="pz-msg"></span><button id="pz-tip" class="btn ghost" type="button" data-en="Mallo’s hint">Mallos Tipp</button><button id="pz-tip2" class="btn ghost" type="button" data-en="Big hint">Großer Tipp</button><button id="pz-solve" class="btn ghost" type="button" data-en="Solution">Lösung</button><button id="pz-close" class="btn ghost" type="button" data-en="Back">Zurück</button></footer>
   </div>
 </div>
 
 <div id="letter" class="ov" hidden>
   <div class="card letter">
-    <h2 id="letter-title">Brief von Pookie</h2>
+    <h2 id="letter-title" data-en="Letter from Mallo">Brief von Mallo</h2>
     <p id="letter-text"></p>
-    <button id="btnLetterClose" class="btn" type="button">Alles klar, Pookie!</button>
+    <button id="btnLetterClose" class="btn" type="button" data-en="Got it, Mallo!">Alles klar, Mallo!</button>
   </div>
 </div>
 
 <div id="keks" class="ov" hidden>
   <div class="card">
-    <h2>Keksdose</h2>
+    <h2 data-en="Cookie Jar">Keksdose</h2>
     <p class="sub" id="keks-count"></p>
     <ul id="keks-list" class="keks"></ul>
-    <button id="btnKeksClose" class="btn" type="button">Schließen</button>
+    <button id="btnKeksClose" class="btn" type="button" data-en="Close">Schließen</button>
   </div>
 </div>
 
 <div id="clear" class="ov" hidden>
   <div class="card">
-    <h2 id="clear-title">Level geschafft</h2>
+    <h2 id="clear-title" data-en="Level complete">Level geschafft</h2>
     <p id="clear-stars">☆ ☆ ☆</p>
     <dl id="clear-stats"></dl>
-    <button id="clear-next" class="btn" type="button">Nächstes Level</button>
-    <button id="clear-map" class="btn ghost" type="button">Zurück zur Welt</button>
+    <button id="clear-next" class="btn" type="button" data-en="Next level">Nächstes Level</button>
+    <button id="clear-map" class="btn ghost" type="button" data-en="Back to the world">Zurück zur Welt</button>
   </div>
 </div>
 
 <div id="over" class="ov" hidden>
   <div class="card">
-    <h2>Wookie ist traurig</h2>
-    <p class="sub">Pookie wartet immer noch. Dein Fortschritt bleibt gespeichert.</p>
+    <h2 data-en="Toffo is sad">Toffo ist traurig</h2>
+    <p class="sub" data-en="Mallo is still waiting. Your progress is saved.">Mallo wartet immer noch. Dein Fortschritt bleibt gespeichert.</p>
     <p id="over-score"></p>
-    <button id="btnOver" class="btn" type="button">Zum Globus</button>
+    <button id="btnOver" class="btn" type="button" data-en="To the globe">Zum Globus</button>
   </div>
 </div>
 
 <div id="win" class="ov" hidden>
   <div class="card">
-    <h2>Pookie ist gerettet!</h2>
-    <p class="sub">Wookie und Pookie sind wieder zusammen. ♥ Alle Sternkekse gesammelt? Der Globus zeigt es dir.</p>
+    <h2 data-en="Mallo is saved!">Mallo ist gerettet!</h2>
+    <p class="sub" data-en="Toffo and Mallo are together again. ♥ Collected every star cookie? The globe will tell you.">Toffo und Mallo sind wieder zusammen. ♥ Alle Sternkekse gesammelt? Der Globus zeigt es dir.</p>
     <p id="win-score"></p>
-    <button id="btnWin" class="btn" type="button">Zum Globus</button>
+    <button id="btnWin" class="btn" type="button" data-en="To the globe">Zum Globus</button>
   </div>
 </div>
 
 <div id="touch">
-  <div><div id="dpad" class="dpad" aria-label="Laufen: Daumen nach links oder rechts schieben"><span>◀</span><i></i><span>▶</span></div></div>
-  <div class="rpad"><button type="button" data-k="down" aria-label="Stampfer">▼<small>Stampf</small></button><div class="col"><button type="button" data-k="run" aria-label="Schuss">B<small>Schuss</small></button><button type="button" class="big" data-k="jumpkey" aria-label="Springen">A<small>Sprung</small></button></div></div>
+  <div><div id="dpad" class="dpad" aria-label="Laufen: Daumen nach links oder rechts schieben" data-en-aria="Run: slide your thumb left or right"><span><svg viewBox="0 0 20 20"><path d="M15.5 2.8L3.6 10l11.9 7.2z"/></svg></span><i></i><span><svg viewBox="0 0 20 20"><path d="M4.5 2.8L16.4 10 4.5 17.2z"/></svg></span></div></div>
+  <div class="rpad"><button type="button" data-k="down" aria-label="Stampfer">▼<small data-en="Stomp">Stampf</small></button><div class="col"><button type="button" data-k="run" aria-label="Schuss">B<small data-en="Shoot">Schuss</small></button><button type="button" class="big" data-k="jumpkey" aria-label="Springen">A<small data-en="Jump">Sprung</small></button></div></div>
 </div>
-<div id="rotate"><div><span>📱</span>Bitte das Handy quer halten, dann geht's los.</div></div>
-<div id="corner"><button id="btnPause" type="button">Pause</button><button class="btnFull" type="button">Vollbild</button><button id="btnMute" type="button">Ton aus</button></div>
+<div id="rotate"><div><span>📱</span><em style="font-style:normal" data-en="Turn your phone sideways to play.">Bitte das Handy quer halten, dann geht's los.</em></div></div>
+<div id="corner"><button id="btnPause" type="button">Pause</button><button class="btnFull" type="button" data-en="Fullscreen">Vollbild</button><button id="btnMute" type="button" data-en="Sound off">Ton aus</button></div>
 
+<script src="p/i18n.js"></script>
 <script src="p/worlds.js"></script>
 <script src="p/audio.js"></script>
 <script src="p/voicelines.js"></script>
@@ -325,10 +430,14 @@ body.touch #globeUI .gfoot p{display:none}
 <script src="p/draw.js"></script>
 <script src="p/fx.js"></script>
 <script src="p/art.js"></script>
+<script src="p/halloween.js"></script>
 <script src="p/globe.js"></script>
 <script src="p/hub.js"></script>
 <script src="p/rocket.js"></script>
 <script src="p/brand.js"></script>
+<script src="p/heroes.js"></script>
+<script src="p/story.js"></script>
+<script src="p/menu.js"></script>
 <script src="p/pz/dschungel-automat.js"></script>
 <script src="p/pz/dschungel-pfad.js"></script>
 <script src="p/pz/finale-tresor.js"></script>

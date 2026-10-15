@@ -1,10 +1,11 @@
-/* Pookiewookie: Korallenmeer (world 'unterwasser'). Wookie pilots a little yellow submarine.
+/* The Starway Home: Korallenmeer (world 'unterwasser'). Toffo pilots a little yellow submarine.
    li 0 Korallenriff (bright reef, teaches the controls), li 1 Das Schiffswrack (tight wreck, mines, eels, pump-console puzzle gate),
    li 2 Der Tiefseegraben (vertical descent into the dark with a headlight, temple puzzle gate), li 3 Die Krakenhöhle (boss "Kraken Krawall").
    Self-contained mode: own 16 px tile map (hand-designed sections + seeded variation), physics, enemies, rendering (cached chunks) and HUD. */
 (function () {
   const G = window.PW = window.PW || {};
   G.modes = G.modes || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de), KRAKEN = tr('Kraken Krawall', 'Kraken Kaboom');
   const T = 16, VH = 270, TAU = Math.PI * 2, DT = 1 / 60, CK = 16, CP = CK * T;
   const HW = 11, HH = 7;                      /* sub hit box half size */
   const VW = () => G.VW || 480;
@@ -50,7 +51,7 @@
   function sandify(M, y0) { for (let y = M.h - 1; y >= 1; y--) for (let x = 0; x < M.w; x++) if (y >= y0 && get(M, x, y) === 1 && get(M, x, y - 1) === 0) { put(M, x, y, 4); if (get(M, x, y + 1) === 1) put(M, x, y + 1, 4); } }
 
   /* ============================== levels ============================== */
-  const NAMES = ['Korallenriff', 'Das Schiffswrack', 'Der Tiefseegraben', 'Die Krakenhöhle'];
+  const NAMES = [tr('Korallenriff', 'Coral Reef'), tr('Das Schiffswrack', 'The Shipwreck'), tr('Der Tiefseegraben', 'The Deep Trench'), tr('Die Krakenhöhle', "The Kraken's Lair")];   /* fallback; the HUD prefers the names from worlds.js */
   const THEMES = [
     {rock: ['#e59a7c', '#c47566', '#a35a5e'], hl: '#ffd2b4', sand: ['#f8dc9c', '#e6bf80', '#cfa36a'], sandHl: '#fff2cc', wood: ['#a5703f', '#7f522c', '#613c20'], woodHl: '#d09a60', ol: '#5a2a3a',
       bg: ['#9eeaff', '#4fc0ea', '#1d86c2'], ray: 0.34, snow: 'rgba(255,255,255,.55)', far: 'rgba(40,140,190,.45)', mid: 'rgba(25,110,150,.55)'},
@@ -279,7 +280,7 @@
     s.hp--; s.inv = 1.5; st.shake = 6;
     const dx = s.x - fx, dy = s.y - fy, d = Math.hypot(dx, dy) || 1; s.vx = dx / d * 2.4; s.vy = dy / d * 2.4;
     say('hurt'); bubbles(s.x, s.y, 14, 14, true); burst(s.x, s.y, 8, '#ffd84a', 2);
-    if (s.hp <= 0) { st.phase = 'dead'; st.deadT = 0; say('die'); try { st.opts.speak && st.opts.speak('Oh no... Pookie...'); } catch (e) {} }
+    if (s.hp <= 0) { st.phase = 'dead'; st.deadT = 0; say('die'); try { st.opts.speak && st.opts.speak('Oh no... Mallo...'); } catch (e) {} }
   }
 
   function explode(x, y, r, src) {
@@ -482,7 +483,7 @@
       if (d < rad && (st.phase === 'play' || st.phase === 'won')) {
         it.got = true;
         if (it.k === 'pearl') { st.pearls++; try { st.opts.money && st.opts.money(1); } catch (e) {} popText(it.x, it.y - 6, '+1', '#fff4e0'); say('coin'); burst(it.x, it.y, 4, '#fff', 1); }
-        else if (it.k === 'star' || it.k === 'drift') { st.stars[it.i] = true; say('star'); burst(it.x, it.y, 14, '#ffd84a', 2.2); ringFx(it.x, it.y, 26, '#ffd84a'); popText(it.x, it.y - 12, 'Sternmuschel!', '#ffd84a'); }
+        else if (it.k === 'star' || it.k === 'drift') { st.stars[it.i] = true; say('star'); burst(it.x, it.y, 14, '#ffd84a', 2.2); ringFx(it.x, it.y, 26, '#ffd84a'); popText(it.x, it.y - 12, tr('Sternmuschel!', 'Star shell!'), '#ffd84a'); }
         else if (it.k === 'air') { if (s.hp < s.maxHp) { s.hp++; popText(it.x, it.y - 10, '+♥', '#ff9eb0'); } else { st.bonus += 100; popText(it.x, it.y - 10, '+100', '#ffd84a'); } say('heart'); bubbles(it.x, it.y, 16, 12, true); }
       }
     }
@@ -506,7 +507,7 @@
       }
       /* bumping into the locked door: tell the player what to do */
       const gx = (g.x0 + g.x1 + 1) / 2 * T, gy = (g.y0 + g.y1 + 1) / 2 * T, hw = (g.x1 - g.x0 + 1) * T / 2 + HW + 6, hh = (g.y1 - g.y0 + 1) * T / 2 + HH + 6;
-      if (Math.abs(s.x - gx) < hw && Math.abs(s.y - gy) < hh && st.doorTipT <= 0) { st.doorTipT = 4; toast(g.kind === 'bulk' ? 'Verriegelt! Halte an der Messing-Pumpe und drücke ▼ zum Andocken.' : 'Das Tempeltor ist versiegelt. Halte am Steinschrein und drücke ▼.', 3); }
+      if (Math.abs(s.x - gx) < hw && Math.abs(s.y - gy) < hh && st.doorTipT <= 0) { st.doorTipT = 4; toast(g.kind === 'bulk' ? tr('Verriegelt! Halte an der Messing-Pumpe und drücke ▼ zum Andocken.', 'Locked! Stop at the brass pump and press ▼ to dock.') : tr('Das Tempeltor ist versiegelt. Halte am Steinschrein und drücke ▼.', 'The temple gate is sealed. Stop at the stone shrine and press ▼.'), 3); }
     }
   }
 
@@ -550,7 +551,7 @@
     st.boss = {x: 408, y: 360, by: 128, hp: 20, max: 20, ph: 1, st: 'intro', t: 0, seq: [], seqT: 0, seqEnd: 0, hitsWin: 0, flash: 0, mouth: 0, glow: 0, ink: 0, whirl: 0, tents: [], blobs: [], inhale: 0, rage: 0, look: 0, crown: null};
     s.x = 90; s.y = 130;
     for (const [cx, cy] of [[90, 60], [90, 210], [250, 200], [150, 40]]) for (let i = 0; i < 4; i++) st.items.push({k: 'pearl', x: cx + Math.cos(i * 1.6) * 16, y: cy + Math.sin(i * 1.6) * 10, t: i});
-    try { st.opts.banner && st.opts.banner('Kraken Krawall', 2.6, 'Triff ihn mit Torpedos, wenn seine Augen leuchten!'); } catch (e) {}
+    try { st.opts.banner && st.opts.banner(KRAKEN, 2.6, tr('Triff ihn mit Torpedos, wenn seine Augen leuchten!', 'Hit him with torpedoes when his eyes glow!')); } catch (e) {}
     say('appear');
   }
   function bossSeq() {
@@ -580,7 +581,7 @@
       if (B.seqT > B.seqEnd && !B.tents.length) { B.st = 'vuln'; B.t = 0; B.hitsWin = 0; tone(660, 0.18, {type: 'triangle', gain: 0.08}); tone(990, 0.22, {type: 'triangle', gain: 0.07, delay: 0.1}); }
     } else if (B.st === 'vuln') {
       B.glow = Math.min(1, B.glow + DT * 5); B.mouth = Math.min(1, B.mouth + DT * 4);
-      if (B.t > (B.ph === 3 ? 2.3 : 2.8) || B.hitsWin >= 4) { B.glow = 0.6; if (B.hitsWin >= 4) toast('Kraken Krawall kneift die Augen zu!', 1.6); bossSeq(); }
+      if (B.t > (B.ph === 3 ? 2.3 : 2.8) || B.hitsWin >= 4) { B.glow = 0.6; if (B.hitsWin >= 4) toast(tr('Kraken Krawall kneift die Augen zu!', 'Kraken Kaboom squeezes his eyes shut!'), 1.6); bossSeq(); }
     }
     if (B.inhale > 0) { B.inhale -= DT; B.mouth = 0.3; if (st.fr % 3 === 0) { const a = Math.random() * TAU; st.parts.push({k: 'b', x: B.x - 30 + Math.cos(a) * 60, y: B.y + 20 + Math.sin(a) * 50, vx: -Math.cos(a) * 1.6, vy: -Math.sin(a) * 1.6, t: 0, life: 0.5, r: 1.5, ph: 0}); } }
     if (B.ink > 0) B.ink = Math.max(0, B.ink - DT * 0.13);
@@ -628,29 +629,29 @@
       const ca = Math.cos(spr), sa = Math.sin(spr), vx = dx / d * sp, vy = dy / d * sp;
       B.blobs.push({x: ox, y: oy, vx: vx * ca - vy * sa, vy: vx * sa + vy * ca, t: 0}); B.mouth = 0.6;
       tone(220, 0.12, {type: 'square', gain: 0.04, slide: 120});
-    } else if (ev.k === 'whirl') { B.whirl = 3.4; toast('Strudel! Halte dagegen!', 1.8); noise(1.6, {type: 'bandpass', freq: 300, freqTo: 900, gain: 0.07}); }
+    } else if (ev.k === 'whirl') { B.whirl = 3.4; toast(tr('Strudel! Halte dagegen!', 'Whirlpool! Push against it!'), 1.8); noise(1.6, {type: 'bandpass', freq: 300, freqTo: 900, gain: 0.07}); }
   }
   function bossTorp(tp) {
     const B = st.boss; if (B.st === 'intro' || B.st === 'dead') return false;
     if (tp.x > B.x - 46 && Math.abs(tp.y - B.y) < 56) {
       tp.dead = true;
       if (B.st === 'vuln') {
-        B.hp--; B.hitsWin++; B.flash = 0.2; st.shake = 4; say('bossHit'); explode(tp.x, tp.y, 20, 'torp'); popText(tp.x - 8, tp.y - 12, 'Treffer!', '#ffd84a');
+        B.hp--; B.hitsWin++; B.flash = 0.2; st.shake = 4; say('bossHit'); explode(tp.x, tp.y, 20, 'torp'); popText(tp.x - 8, tp.y - 12, tr('Treffer!', 'Hit!'), '#ffd84a');
         for (let i = 0; i < 2; i++) st.items.push({k: 'pearl', x: tp.x - 24, y: tp.y + (Math.random() - 0.5) * 30, vx: -1.6 - Math.random() * 1.4, vy: (Math.random() - 0.5) * 1.6, t: 0});
         if (B.hp === 14 || B.hp === 7) {
           B.ph = B.hp === 14 ? 2 : 3; B.st = 'roar'; say('bossDown'); st.shake = 8; bossSeq(); B.seqT = -1.2;
-          toast(B.ph === 2 ? 'Kraken Krawall wird sauer! Versteck dich vor der Tinte hinter den Felsen!' : 'Kraken Krawall tobt! Pass auf den Strudel auf!', 3);
+          toast(B.ph === 2 ? tr('Kraken Krawall wird sauer! Versteck dich vor der Tinte hinter den Felsen!', 'Kraken Kaboom is getting angry! Hide from the ink behind the rocks!') : tr('Kraken Krawall tobt! Pass auf den Strudel auf!', 'Kraken Kaboom is raging! Watch out for the whirlpool!'), 3);
           st.items.push({k: 'drift', i: B.ph - 2, x: B.x - 60, y: B.y, vx: -1.6, vy: (Math.random() - 0.5) * 1, t: 0}, {k: 'air', x: B.x - 60, y: B.y + 30, vx: -2.2, vy: 0.4, t: 0});
         }
         if (B.hp <= 0) {
           B.st = 'dead'; B.t = 0; B.tents = []; B.blobs = []; B.whirl = 0; B.ink = 0; say('bossDown'); st.shake = 10; st.stars[2] = true;
           bubbles(B.x, B.y, 80, 120, true); B.crown = {x: B.x, y: B.y - 64, vx: -0.6, vy: -1.6, r: 0};
-          try { st.opts.speak && st.opts.speak("I'm coming, Pookie!"); } catch (e) {}
-          toast('Kraken Krawall ist besiegt!', 3);
+          try { st.opts.speak && st.opts.speak("I'm coming, Mallo!"); } catch (e) {}
+          toast(tr('Kraken Krawall ist besiegt!', 'Kraken Kaboom is defeated!'), 3);
         }
       } else {
         burst(tp.x, tp.y, 6, '#e8d8ff', 1.6); tone(1400, 0.06, {type: 'square', gain: 0.04}); tone(1900, 0.05, {type: 'square', gain: 0.03, delay: 0.04});
-        if (st.deflT <= 0) { st.deflT = 3; toast('Abgeprallt! Warte, bis seine Augen leuchten.', 2); }
+        if (st.deflT <= 0) { st.deflT = 3; toast(tr('Abgeprallt! Warte, bis seine Augen leuchten.', 'Bounced off! Wait until his eyes glow.'), 2); }
       }
       return true;
     }
@@ -994,7 +995,7 @@
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(x, y, 4, x, y, 44); g.addColorStop(0, 'rgba(255,240,160,.55)'); g.addColorStop(1, 'rgba(255,200,80,0)'); ctx.fillStyle = g; ctx.fillRect(x - 44, y - 44, 88, 88); ctx.restore();
     for (let i = 0; i < 6; i++) { const a = t * 1.5 + i * TAU / 6; ctx.fillStyle = i % 2 ? '#fff' : '#ffd84a'; starPath(ctx, x + Math.cos(a) * 24 * sq, y + Math.sin(a) * 26, 2.6, 0.8, 4, t); ctx.fill(); }
     ell(ctx, x, y, 15 * sq + 2, 22, 0, null, OL, 7); ell(ctx, x, y, 15 * sq + 2, 22, 0, null, '#ffd84a', 4.5); ell(ctx, x - 0.8, y - 1, 15 * sq + 2, 21, 0, null, 'rgba(255,255,255,.6)', 1.3);
-    outlined(ctx, 'Ziel', x, y - 32, 8, '#fff4e0');
+    outlined(ctx, tr('Ziel', 'Goal'), x, y - 32, 8, '#fff4e0');
   }
 
   function drawGate(ctx, g, t) {
@@ -1049,7 +1050,7 @@
     for (let i = 0; i < 3; i++) circ(ctx, x - 6 + i * 6, y - 10, 1.2, done ? '#9bffb0' : '#6ff0ff');
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; const lg = ctx.createRadialGradient(x, y - 20, 0, x, y - 20, 26); lg.addColorStop(0, done ? 'rgba(120,255,160,.35)' : 'rgba(100,230,255,.35)'); lg.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = lg; ctx.fillRect(x - 26, y - 46, 52, 52); ctx.restore();
   }
-  function prompt(ctx, x, y, t) { const b = Math.sin(t * 5) * 1.5; rr(ctx, x - 26, y - 8 + b, 52, 15, 7); ctx.fillStyle = 'rgba(74,34,58,.92)'; ctx.fill(); ctx.strokeStyle = '#ff9eb0'; ctx.lineWidth = 1.2; ctx.stroke(); outlined(ctx, '▼ andocken', x, y + b, 8, '#fff4e0'); }
+  function prompt(ctx, x, y, t) { const b = Math.sin(t * 5) * 1.5; rr(ctx, x - 26, y - 8 + b, 52, 15, 7); ctx.fillStyle = 'rgba(74,34,58,.92)'; ctx.fill(); ctx.strokeStyle = '#ff9eb0'; ctx.lineWidth = 1.2; ctx.stroke(); outlined(ctx, tr('▼ andocken', '▼ dock'), x, y + b, 8, '#fff4e0'); }
 
   function drawEnt(ctx, e, t) {
     const fl = e.flash > 0;
@@ -1163,7 +1164,7 @@
     ell(ctx, -5, -5.5, 6, 1.6, -0.1, 'rgba(255,255,255,.55)');
     /* nose lamp */
     rr(ctx, 13.5, -0.5, 4.5, 5, 2); ctx.fillStyle = '#9aa0b0'; ctx.fill(); ctx.strokeStyle = OL; ctx.lineWidth = 1; ctx.stroke(); circ(ctx, 17.2, 2, 1.8, '#fffbe0');
-    /* porthole with Wookie */
+    /* porthole with Toffo */
     const px = 3, py = -1.5;
     circ(ctx, px, py, 7.4, '#c8902a', OL, 1.3);
     ctx.save(); ctx.beginPath(); ctx.arc(px, py, 5.8, 0, TAU); ctx.clip();
@@ -1273,22 +1274,22 @@
     outlined(ctx, String(st.pearls), 23, 29.5, 9, '#fff4e0', 'left');
     for (let i = 0; i < 3; i++) { const x = 66 + i * 14, y = 29, on = st.stars[i]; ctx.beginPath(); ctx.moveTo(x, y + 4); for (let j = 0; j <= 6; j++) { const a = Math.PI * (1.08 + j * 0.84 / 6); ctx.lineTo(x + Math.cos(a) * 5.5, y + Math.sin(a) * 5.5); } ctx.closePath(); ctx.fillStyle = on ? '#ffd84a' : 'rgba(255,255,255,.16)'; ctx.fill(); ctx.strokeStyle = on ? '#8a5a10' : 'rgba(255,255,255,.35)'; ctx.lineWidth = 0.9; ctx.stroke(); if (on) { ctx.fillStyle = '#fff'; starPath(ctx, x, y - 1, 2, 0.9, 5); ctx.fill(); } }
     /* top-right: world + level name (+ depth in the trench) */
-    const nm = NAMES[st.li]; font(ctx, 9); const w = Math.max(ctx.measureText(nm).width, 50) + 18;
+    const Wd = (G.WORLDS || []).find(w => w.key === 'unterwasser'), nm = (Wd && Wd.levels && Wd.levels[st.li]) || NAMES[st.li]; font(ctx, 9); const w = Math.max(ctx.measureText(nm).width, 50) + 18;
     rr(ctx, vw - 6 - w, 5, w, L.vertical ? 33 : 22, 9); ctx.fillStyle = 'rgba(74,34,58,.78)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,158,176,.55)'; ctx.stroke();
-    outlined(ctx, 'Korallenmeer', vw - 6 - w / 2, 11.5, 6, '#ffb8c8'); outlined(ctx, nm, vw - 6 - w / 2, 20.5, 9, '#fff4e0');
-    if (L.vertical) { const m = Math.max(0, Math.round((s.y / T) * 4.5)); outlined(ctx, 'Tiefe ' + m + ' m', vw - 6 - w / 2, 31, 7, '#8fd3ff'); }
+    outlined(ctx, (Wd && Wd.name) || tr('Korallenmeer', 'Coral Sea'), vw - 6 - w / 2, 11.5, 6, '#ffb8c8'); outlined(ctx, nm, vw - 6 - w / 2, 20.5, 9, '#fff4e0');
+    if (L.vertical) { const m = Math.max(0, Math.round((s.y / T) * 4.5)); outlined(ctx, tr(`Tiefe ${m} m`, `Depth ${m} m`), vw - 6 - w / 2, 31, 7, '#8fd3ff'); }
     /* boss bar below the top-centre safe zone */
     if (L.boss && st.boss && st.boss.st !== 'intro') {
       const B = st.boss, bw = 150, bx = vw / 2 - bw / 2, by = 38;
-      outlined(ctx, 'Kraken Krawall', vw / 2, 32, 8, '#ffd84a');
+      outlined(ctx, KRAKEN, vw / 2, 32, 8, '#ffd84a');
       rr(ctx, bx - 2, by - 2, bw + 4, 10, 5); ctx.fillStyle = 'rgba(42,16,48,.85)'; ctx.fill(); ctx.strokeStyle = '#ff9eb0'; ctx.lineWidth = 1; ctx.stroke();
       const k = Math.max(0, B.hp / B.max); if (k > 0) { rr(ctx, bx, by, bw * k, 6, 3); const gg = ctx.createLinearGradient(bx, 0, bx + bw, 0); gg.addColorStop(0, '#c98aff'); gg.addColorStop(1, '#ff6f9c'); ctx.fillStyle = gg; ctx.fill(); }
       for (const m of [7, 14]) { ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(bx + bw * m / B.max - 0.5, by - 1, 1, 8); }
-      if (B.st === 'vuln') outlined(ctx, 'Jetzt! Die Augen leuchten!', vw / 2, by + 15, 8, '#fff6b0');
+      if (B.st === 'vuln') outlined(ctx, tr('Jetzt! Die Augen leuchten!', 'Now! His eyes are glowing!'), vw / 2, by + 15, 8, '#fff6b0');
     }
     /* messages */
     if (st.toast) { const a = Math.min(1, st.toast.t * 3); ctx.globalAlpha = a; msgBox(ctx, vw, st.toast.text, L.boss ? 72 : 52); ctx.globalAlpha = 1; }
-    else if (st.hintT > 0) { const a = Math.min(1, st.hintT); ctx.globalAlpha = a; msgBox(ctx, vw, st.opts.isTouch ? '◀ ▶ fahren · A steigen · ▼ tauchen · B Torpedo' : '← → fahren · ↑ steigen · ↓ tauchen · X Torpedo', 52); ctx.globalAlpha = 1; }
+    else if (st.hintT > 0) { const a = Math.min(1, st.hintT); ctx.globalAlpha = a; msgBox(ctx, vw, st.opts.isTouch ? tr('◀ ▶ fahren · A steigen · ▼ tauchen · B Torpedo', '◀ ▶ move · A rise · ▼ dive · B torpedo') : tr('← → fahren · ↑ steigen · ↓ tauchen · X Torpedo', '← → move · ↑ rise · ↓ dive · X torpedo'), 52); ctx.globalAlpha = 1; }
   }
   function msgBox(ctx, vw, text, y) {
     font(ctx, 8.5, 600); const maxW = Math.min(vw - 60, 330), words = text.split(' '), lines = []; let line = '';

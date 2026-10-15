@@ -1,11 +1,12 @@
-/* Pookiewookie puzzle: "Der Tresor des Paten" (world finale, slot 1).
+/* The Starway Home puzzle: "Der Tresor des Paten" (world finale, slot 1).
    Mastermind: a secret code of 4 different pralines out of 6, 8 attempts. Gold bean = right praline, right place;
    silver bean = right praline, wrong place (beans are unordered). Solved -> the dial spins and the door swings open. */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, FONT = '"Fredoka", sans-serif';
   const INK = '#1c1a22', PINK = '#ff9eb0', ROSE = '#ff6f9c', PLUM = '#7a3b57', GOLD = '#ffd84a', CREAM = '#fff4e0';
-  const NAMES = ['Trüffel', 'Herz', 'Nougat', 'Stern', 'Nuss', 'Himbeere'];
+  const NAMES = tr(['Trüffel', 'Herz', 'Nougat', 'Stern', 'Nuss', 'Himbeere'], ['Truffle', 'Heart', 'Nougat', 'Star', 'Nut', 'Raspberry']);
   const TRIES = 8;
 
   function rr(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
@@ -140,9 +141,9 @@
     function clearRow() { if (S.busy || S.won) return; S.cur = [0, 0, 0, 0]; S.cursor = 0; sfx('pop'); }
     function check() {
       if (S.busy || S.won) return;
-      if (S.cur.includes(0)) { api.msg('Leg erst in alle vier Fächer eine Praline.', 'bad'); sfx('bump'); return; }
+      if (S.cur.includes(0)) { api.msg(tr('Leg erst in alle vier Fächer eine Praline.', 'First put a praline in all four slots.'), 'bad'); sfx('bump'); return; }
       const key = S.cur.join('');
-      if (S.hist.some(h => h.g.join('') === key)) { api.msg('Diesen Code hast du schon probiert – der Tresor sagt dasselbe.', 'bad'); sfx('bump'); return; }
+      if (S.hist.some(h => h.g.join('') === key)) { api.msg(tr('Diesen Code hast du schon probiert – der Tresor sagt dasselbe.', 'You already tried this code – the safe will say the same thing.'), 'bad'); sfx('bump'); return; }
       const r = score(S.cur), row = {g: S.cur.slice(), gold: r.gold, silver: r.silver, at: performance.now()};
       S.hist.push(row); S.cur = [0, 0, 0, 0]; S.cursor = 0; S.busy = true; S.dialV += 14; sfx('tick');
       const n = r.gold + r.silver;
@@ -152,9 +153,9 @@
         if (r.gold === 4) { win(); return; }
         if (S.hist.length >= TRIES) {
           S.busy = true; S.reveal = 1;
-          api.wrong('Acht Versuche vorbei – der Tresor verriegelt sich und stellt einen neuen Code ein!');
-          later(() => { newCode(); S.busy = false; sfx('appear'); api.msg('Neuer Code! Du hast wieder 8 Versuche.', 'info'); draw(); }, 2600);
-        } else api.msg(r.gold + ' Gold, ' + r.silver + ' Silber. Noch ' + (TRIES - S.hist.length) + ' Versuche.', 'info');
+          api.wrong(tr('Acht Versuche vorbei – der Tresor verriegelt sich und stellt einen neuen Code ein!', 'All eight tries are used up – the safe locks itself and sets a new code!'));
+          later(() => { newCode(); S.busy = false; sfx('appear'); api.msg(tr('Neuer Code! Du hast wieder 8 Versuche.', 'New code! You have 8 tries again.'), 'info'); draw(); }, 2600);
+        } else api.msg(tr(r.gold + ' Gold, ' + r.silver + ' Silber. Noch ' + (TRIES - S.hist.length) + (TRIES - S.hist.length === 1 ? ' Versuch.' : ' Versuche.'), r.gold + ' gold, ' + r.silver + ' silver. ' + (TRIES - S.hist.length) + (TRIES - S.hist.length === 1 ? ' try left.' : ' tries left.')), 'info');
         draw();
       }, 260 + Math.max(1, n) * 140);
     }
@@ -162,7 +163,7 @@
       S.won = true; S.wonAt = performance.now(); S.busy = true; S.dialV += 40; sfx('star');
       for (let k = 1; k <= 6; k++) later(() => draw(), k * 160);
       try { if (G.audio && G.audio.sfx && G.audio.sfx.gate) G.audio.sfx.gate(); } catch (e) {}
-      api.msg('Klick-klack … der Tresor ist offen!', 'good');
+      api.msg(tr('Klick-klack … der Tresor ist offen!', 'Click-clack … the safe is open!'), 'good');
       later(() => { const L = Lay; burst(L.dx + L.dw / 2, L.dy + L.dh / 2, 40, [GOLD, '#fff', PINK, '#fff3a8'], 230); draw(); }, 500);
       later(() => api.solved(), 1250);
     }
@@ -202,7 +203,7 @@
       /* header plate */
       const ph = small ? 20 : 24, pw2 = Math.min(w * 0.5, 230);
       rr(ctx, x + w / 2 - pw2 / 2, y + 12, pw2, ph, 6); ctx.fillStyle = '#d4a63a'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#6a4a10'; ctx.stroke();
-      T(ctx, 'Versuch ' + Math.min(TRIES, S.hist.length + (S.won ? 0 : 1)) + ' / ' + TRIES, x + w / 2, y + 12 + ph / 2 + 1, small ? 11.5 : 13.5, '#2b1d05');
+      T(ctx, tr('Versuch ', 'Try ') + Math.min(TRIES, S.hist.length + (S.won ? 0 : 1)) + ' / ' + TRIES, x + w / 2, y + 12 + ph / 2 + 1, small ? 11.5 : 13.5, '#2b1d05');
       /* history: two columns of four */
       const top = y + 12 + ph + (small ? 6 : 10), bottomArea = small ? 58 : 76;
       const gh = y + h - 12 - bottomArea - top, rowH = gh / 4, colW = (w - 40) / 2;
@@ -240,7 +241,7 @@
       if (S.reveal && !S.won && S.hist.length >= TRIES) {
         const bw = Math.min(w - 40, 330), bh = small ? 44 : 54, bx = x + w / 2 - bw / 2, byy = y + h / 2 - bh / 2;
         rr(ctx, bx, byy, bw, bh, 12); ctx.fillStyle = 'rgba(255,95,109,.95)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
-        T(ctx, 'Der Code war:', bx + bw * 0.3, byy + bh / 2 + 1, small ? 13 : 15, '#fff', {stroke: 'rgba(0,0,0,.35)', sw: 3});
+        T(ctx, tr('Der Code war:', 'The code was:'), bx + bw * 0.3, byy + bh / 2 + 1, small ? 13 : 15, '#fff', {stroke: 'rgba(0,0,0,.35)', sw: 3});
         S.code.forEach((v, i) => drawPraline(ctx, v, bx + bw * 0.58 + i * bh * 0.62, byy + bh / 2, bh * 0.26, {shadow: false}));
       }
       ctx.restore();
@@ -253,9 +254,9 @@
       rr(ctx, x, y, w, cardH, 14); ctx.fillStyle = 'rgba(30,27,36,.92)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#d4a63a'; ctx.stroke();
       const dr = small ? Math.min(24, cardH * 0.34) : 34; dial(ctx, x + 12 + dr, y + cardH / 2 + 3, dr, S.dialA, S.won);
       const lx = x + dr * 2 + 24, ly = y + cardH / 2, fz = small ? 11 : 12.5;
-      bean(ctx, lx + 6, ly - (small ? 13 : 18), small ? 6 : 7.5, 2); T(ctx, 'richtig am richtigen Platz', lx + 18, ly - (small ? 13 : 18) + 1, fz, '#ffe9a8', {a: 'left', w: 600});
-      bean(ctx, lx + 6, ly + (small ? 13 : 18), small ? 6 : 7.5, 1); T(ctx, 'richtig, falscher Platz', lx + 18, ly + (small ? 13 : 18) + 1, fz, '#dfe5ee', {a: 'left', w: 600});
-      if (!small) T(ctx, 'Bohnen-Reihenfolge ist egal', lx + 6, ly + 1, 10.5, 'rgba(255,255,255,.5)', {a: 'left', w: 500});
+      bean(ctx, lx + 6, ly - (small ? 13 : 18), small ? 6 : 7.5, 2); T(ctx, tr('richtig am richtigen Platz', 'right one, right spot'), lx + 18, ly - (small ? 13 : 18) + 1, fz, '#ffe9a8', {a: 'left', w: 600});
+      bean(ctx, lx + 6, ly + (small ? 13 : 18), small ? 6 : 7.5, 1); T(ctx, tr('richtig, falscher Platz', 'right one, wrong spot'), lx + 18, ly + (small ? 13 : 18) + 1, fz, '#dfe5ee', {a: 'left', w: 600});
+      if (!small) T(ctx, tr('Bohnen-Reihenfolge ist egal', 'Bean order does not matter'), lx + 6, ly + 1, 10.5, 'rgba(255,255,255,.5)', {a: 'left', w: 500});
       y += cardH + (small ? 6 : 10);
       /* tray */
       const btnH = small ? 36 : 42, trayH = H - L.pad - btnH - (small ? 6 : 10) - y;
@@ -275,8 +276,8 @@
       }
       y += trayH + (small ? 6 : 10);
       const full = !S.cur.includes(0);
-      button(x, y, w * 0.36, btnH, clearRow, 'clr', 'Leeren', {disabled: S.busy || S.won || !S.cur.some(v => v)});
-      button(x + w * 0.36 + 8, y, w * 0.64 - 8, btnH, check, 'go', 'Prüfen', {col: full ? ROSE : '#a5677f', ink: '#fff', stroke: 'rgba(0,0,0,.3)', disabled: S.busy || S.won});
+      button(x, y, w * 0.36, btnH, clearRow, 'clr', tr('Leeren', 'Clear'), {disabled: S.busy || S.won || !S.cur.some(v => v)});
+      button(x + w * 0.36 + 8, y, w * 0.64 - 8, btnH, check, 'go', tr('Prüfen', 'Check'), {col: full ? ROSE : '#a5677f', ink: '#fff', stroke: 'rgba(0,0,0,.3)', disabled: S.busy || S.won});
     }
     function draw() {
       if (!Lay) layout();
@@ -305,7 +306,7 @@
       else if (e.key === 'Backspace') { let i = -1; for (let k = 3; k >= 0; k--) if (S.cur[k]) { i = k; break; } if (i >= 0) tapSlot(i); }
       else if (e.key === 'Enter') check();
       else return;
-      draw();
+      e.preventDefault(); draw();
     }
     cv.addEventListener('pointerdown', onDown); cv.addEventListener('pointermove', onMove); window.addEventListener('keydown', onKey);
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => { layout(); draw(); }) : null; if (ro) ro.observe(root);
@@ -330,10 +331,10 @@
 
   const DEF = {
     id: 'finale-tresor', world: 'finale', slot: 1,
-    title: 'Der Tresor des Paten',
-    intro: 'Der Code besteht aus 4 verschiedenen der 6 Pralinen. Leg einen Tipp in die Fächer und drück „Prüfen“: Goldbohne = richtige Praline am richtigen Platz, Silberbohne = richtige Praline, falscher Platz. 8 Versuche!',
-    letter: 'Ein Tresor lügt nie, Wookie. Ändere immer nur eine Sache auf einmal – dann verrät er dir alles.',
-    hint: 'Starte mit Trüffel · Herz · Nougat · Stern. Alle Bohnen zusammen verraten, wie viele dieser vier im Code stecken (sind es nur 2 oder 3, sind dafür Nuss und/oder Himbeere dabei). Danach tausche nur EINE Praline oder vertausche ZWEI Plätze und vergleiche: Wird ein Gold zu Silber, hast du eine richtige Stelle verschoben.',
+    title: tr('Der Tresor des Paten', 'The Chocfather’s Safe'),
+    intro: tr('Der Code besteht aus 4 verschiedenen der 6 Pralinen. Leg einen Tipp in die Fächer und drück „Prüfen“: Goldbohne = richtige Praline am richtigen Platz, Silberbohne = richtige Praline, falscher Platz. 8 Versuche!', 'The code is 4 different pralines out of the 6. Put a guess in the slots and press “Check”: gold bean = right praline in the right spot, silver bean = right praline, wrong spot. 8 tries!'),
+    letter: tr('Ein Tresor lügt nie, Toffo. Ändere immer nur eine Sache auf einmal – dann verrät er dir alles.', 'A safe never lies, Toffo. Change just one thing at a time – then it tells you everything.'),
+    hint: tr('Starte mit Trüffel · Herz · Nougat · Stern. Alle Bohnen zusammen verraten, wie viele dieser vier im Code stecken (sind es nur 2 oder 3, sind dafür Nuss und/oder Himbeere dabei). Danach tausche nur EINE Praline oder vertausche ZWEI Plätze und vergleiche: Wird ein Gold zu Silber, hast du eine richtige Stelle verschoben.', 'Start with Truffle · Heart · Nougat · Star. All the beans together tell you how many of these four are in the code (if it is only 2 or 3, then Nut and/or Raspberry are in it). After that, change only ONE praline or swap TWO spots and compare: if a gold turns into silver, you moved a correct spot.'),
     station, mount,
   };
   if (G.PZ) G.PZ.register(DEF);

@@ -1,12 +1,13 @@
-/* Pookiewookie puzzle: "Pralinen-Sudoku" (world schoko, slot 1).
+/* The Starway Home puzzle: "Pralinen-Sudoku" (world schoko, slot 1).
    6x6 sudoku with 2x3 boxes and six drawn pralines. Each mount generates a fresh puzzle: full grid by shuffled backtracking,
    givens removed while the solution stays unique, 12-14 givens kept, and only puzzles that need hidden singles (but no guessing)
    are accepted. Everything is drawn on one canvas. */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, FONT = '"Fredoka", sans-serif';
   const INK = '#2a1508', PINK = '#ff9eb0', ROSE = '#ff6f9c', PLUM = '#7a3b57', GOLD = '#ffd84a', MINT = '#9be7a5', CREAM = '#fff4e0';
-  const NAMES = ['Trüffel', 'Herz', 'Nougat', 'Stern', 'Nuss', 'Himbeere'];
+  const NAMES = tr(['Trüffel', 'Herz', 'Nougat', 'Stern', 'Nuss', 'Himbeere'], ['Truffle', 'Heart', 'Nougat', 'Star', 'Hazelnut', 'Raspberry']);
 
   /* ---------- sudoku core (cells 0..35, values 1..6, 0 = empty) ---------- */
   const ROW = i => Math.floor(i / 6), COL = i => i % 6, BOX = i => Math.floor(ROW(i) / 2) * 2 + Math.floor(COL(i) / 3);
@@ -187,8 +188,8 @@
     function burst(x, y, n, cols, sp) { for (let k = 0; k < n; k++) { const a = rng() * TAU, v = (0.3 + rng()) * (sp || 110); S.parts.push({x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 30, life: 0, max: 0.45 + rng() * 0.5, col: cols[k % cols.length], r: 1.5 + rng() * 2.5}); } }
     function put(v) {
       const i = S.sel; if (S.won) return;
-      if (i < 0) { api.msg('Tippe zuerst auf ein Feld in der Schachtel – dann auf die Praline.', 'info'); sfx('bump'); return; }
-      if (S.giv[i]) { api.msg('Diese Praline liegt fest im Goldförmchen.', 'info'); sfx('bump'); return; }
+      if (i < 0) { api.msg(tr('Tippe zuerst auf ein Feld in der Schachtel – dann auf die Praline.', 'First tap a square in the box – then the chocolate.'), 'info'); sfx('bump'); return; }
+      if (S.giv[i]) { api.msg(tr('Diese Praline liegt fest im Goldförmchen.', 'This chocolate is fixed in its gold cup.'), 'info'); sfx('bump'); return; }
       if (S.notesMode && v) { if (S.val[i]) return; S.notes[i] ^= (1 << v); tone(700 + v * 60, 0.05, {type: 'sine', gain: 0.08}); return; }
       if (!v) { if (!S.val[i] && !S.notes[i]) return; S.val[i] = 0; S.notes[i] = 0; sfx('pop'); conflicts(); return; }
       if (S.val[i] === v) { S.val[i] = 0; sfx('pop'); conflicts(); return; }
@@ -202,7 +203,7 @@
     }
     function afterChange() {
       if (S.val.every(v => v)) {
-        if (S.bad.some(b => b)) { const key = S.val.join(''); if (key !== S.lastWrongKey) { S.lastWrongKey = key; api.wrong('Alle Plätze voll – aber manche Pralinen stehen doppelt. Schau auf die roten!'); } }
+        if (S.bad.some(b => b)) { const key = S.val.join(''); if (key !== S.lastWrongKey) { S.lastWrongKey = key; api.wrong(tr('Alle Plätze voll – aber manche Pralinen stehen doppelt. Schau auf die roten!', 'Every spot is full – but some chocolates appear twice. Look at the red ones!')); } }
         else if (S.val.every((v, i) => v === S.sol[i])) win();
         else win(); /* a conflict-free full grid is always the unique solution */
       }
@@ -211,11 +212,11 @@
       if (S.won) return; S.won = true; S.sel = -1; S.wonT = 0;
       sfx('star');
       for (let d = 0; d < 11; d++) later(() => { for (let i = 0; i < 36; i++) if (ROW(i) + COL(i) === d) { S.pop[i] = 1; const c = cellCenter(i); burst(c.x, c.y, 4, [GOLD, '#fff', PINK], 120); } tone(392 * Math.pow(2, d / 12 * 1.5), 0.1, {type: 'triangle', gain: 0.1}); draw(); }, d * 70);
-      api.msg('Perfekt sortiert – jede Praline am richtigen Platz!', 'good');
+      api.msg(tr('Perfekt sortiert – jede Praline am richtigen Platz!', 'Perfectly sorted – every chocolate in the right spot!'), 'good');
       later(() => api.solved(), 950);
     }
-    function clearAll() { if (S.won) return; for (let i = 0; i < 36; i++) if (!S.giv[i]) { S.val[i] = 0; S.notes[i] = 0; } conflicts(); sfx('pop'); api.msg('Alles weggeräumt – nur die Goldförmchen bleiben.', 'info'); }
-    function fresh() { if (S.won) return; newPuzzle(); sfx('appear'); api.msg('Neues Pralinen-Rätsel!', 'info'); }
+    function clearAll() { if (S.won) return; for (let i = 0; i < 36; i++) if (!S.giv[i]) { S.val[i] = 0; S.notes[i] = 0; } conflicts(); sfx('pop'); api.msg(tr('Alles weggeräumt – nur die Goldförmchen bleiben.', 'All cleared – only the gold cups stay.'), 'info'); }
+    function fresh() { if (S.won) return; newPuzzle(); sfx('appear'); api.msg(tr('Neues Pralinen-Rätsel!', 'New chocolate puzzle!'), 'info'); }
 
     /* ---------- drawing ---------- */
     function button(x, y, w, h, fn, id, draw2, o) {
@@ -230,7 +231,7 @@
       const x = L.pad, y = L.by - 7, w = L.infoW, h = L.B + 14;
       rr(ctx, x, y, w, h, 14); ctx.fillStyle = 'rgba(255,244,224,.95)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
       rr(ctx, x, y, w, L.small ? 24 : 30, 14); ctx.fillStyle = '#c98657'; ctx.fill(); ctx.stroke();
-      T(ctx, 'Pralinen-Karte', x + w / 2, y + (L.small ? 12.5 : 15.5), L.small ? 13 : 15, CREAM, {stroke: 'rgba(42,21,8,.5)', sw: 3});
+      T(ctx, tr('Pralinen-Karte', 'Chocolate Guide'), x + w / 2, y + (L.small ? 12.5 : 15.5), L.small ? 13 : 15, CREAM, {stroke: 'rgba(42,21,8,.5)', sw: 3});
       const top = y + (L.small ? 30 : 40), rows = 6, rh = Math.min(L.small ? 24 : 30, (h - (top - y) - (L.small ? 48 : 70)) / rows);
       const cnt = [0, 0, 0, 0, 0, 0, 0]; for (const v of S.val) if (v) cnt[v]++;
       for (let v = 1; v <= 6; v++) {
@@ -239,7 +240,7 @@
         T(ctx, NAMES[v - 1], x + 36, yy + 1, L.small ? 11.5 : 13, full ? '#3f8f57' : PLUM, {a: 'left', w: 600});
         T(ctx, cnt[v] + '/6', x + w - 12, yy + 1, L.small ? 10.5 : 12, full ? '#3f8f57' : 'rgba(122,59,87,.6)', {a: 'right', w: 600});
       }
-      const ry = top + rows * rh + 6, lines = L.small ? ['1× pro Reihe, Spalte', 'und 2×3-Kästchen'] : ['Jede Praline genau 1×', 'pro Reihe, pro Spalte', 'und pro 2×3-Kästchen.'];
+      const ry = top + rows * rh + 6, lines = L.small ? tr(['1× pro Reihe, Spalte', 'und 2×3-Kästchen'], ['1× per row, column', 'and 2×3 box']) : tr(['Jede Praline genau 1×', 'pro Reihe, pro Spalte', 'und pro 2×3-Kästchen.'], ['Each chocolate exactly 1×', 'per row, per column', 'and per 2×3 box.']);
       ctx.strokeStyle = 'rgba(122,59,87,.25)'; ctx.setLineDash([3, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x + 10, ry); ctx.lineTo(x + w - 10, ry); ctx.stroke(); ctx.setLineDash([]);
       lines.forEach((ln, k) => T(ctx, ln, x + w / 2, ry + 12 + k * (L.small ? 13 : 15), L.small ? 10.5 : 12, PLUM, {w: 500}));
     }
@@ -285,7 +286,7 @@
       const bh = Math.max(26, Math.min(bw, small ? 52 : 64, (avail - textH * 2 - gap * 4) / 3));   /* always fits, even on very short screens */
       const total = bh * 3 + gap * 2 + gap + textH * 2 + gap + (small ? 0 : 26);
       let y = Math.max(L.pad, Math.round((H - total) / 2));
-      if (!small) { T(ctx, S.notesMode ? 'Notiz-Modus: kleine Merk-Pralinen' : 'Feld antippen, dann Praline', x + w / 2, y + 9, 12, S.notesMode ? GOLD : '#e6c9d6', {w: 600}); y += 26; }
+      if (!small) { T(ctx, S.notesMode ? tr('Notiz-Modus: kleine Merk-Pralinen', 'Notes mode: tiny reminders') : tr('Feld antippen, dann Praline', 'Tap a square, then a chocolate'), x + w / 2, y + 9, 12, S.notesMode ? GOLD : '#e6c9d6', {w: 600}); y += 26; }
       const cnt = [0, 0, 0, 0, 0, 0, 0]; for (const v of S.val) if (v) cnt[v]++;
       for (let v = 1; v <= 6; v++) {
         const bx = x + ((v - 1) % 3) * (bw + gap), by = y + Math.floor((v - 1) / 3) * (bh + gap);
@@ -297,16 +298,16 @@
       const ry = y + 2 * (bh + gap);
       button(x, ry, bw, bh, () => put(0), 'erase', (X, Y, W2, H2) => {
         ctx.save(); ctx.translate(X + W2 / 2, Y + H2 / 2); ctx.rotate(-0.5); rr(ctx, -W2 * 0.22, -H2 * 0.12, W2 * 0.44, H2 * 0.24, 4); ctx.fillStyle = '#ff9eb0'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke(); ctx.fillStyle = '#8fd3ff'; rr(ctx, -W2 * 0.22, -H2 * 0.12, W2 * 0.16, H2 * 0.24, 4); ctx.fill(); ctx.stroke(); ctx.restore();
-        if (!small) T(ctx, 'weg', X + W2 / 2, Y + H2 - 9, 10, PLUM, {w: 600});
+        if (!small) T(ctx, tr('weg', 'erase'), X + W2 / 2, Y + H2 - 9, 10, PLUM, {w: 600});
       });
       button(x + bw + gap, ry, bw * 2 + gap, bh, () => { S.notesMode = !S.notesMode; sfx('select'); }, 'notes', (X, Y, W2, H2) => {
         ctx.save(); ctx.translate(X + 20, Y + H2 / 2); ctx.rotate(0.6); rr(ctx, -3, -12, 6, 20, 2); ctx.fillStyle = GOLD; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = INK; ctx.stroke(); ctx.beginPath(); ctx.moveTo(-3, 8); ctx.lineTo(0, 13); ctx.lineTo(3, 8); ctx.fillStyle = CREAM; ctx.fill(); ctx.stroke(); ctx.restore();
-        T(ctx, S.notesMode ? 'Notizen: AN' : 'Notizen: aus', X + W2 / 2 + 10, Y + H2 / 2 + 1, small ? 12 : 14, INK, {w: 700});
+        T(ctx, S.notesMode ? tr('Notizen: AN', 'Notes: ON') : tr('Notizen: aus', 'Notes: off'), X + W2 / 2 + 10, Y + H2 / 2 + 1, small ? 12 : 14, INK, {w: 700});
       }, {on: S.notesMode});
       const ty = ry + bh + gap + 2;
       const tb = (yy, label, fn, id, col) => button(x, yy, w, textH, fn, id, (X, Y, W2, H2) => T(ctx, label, X + W2 / 2, Y + H2 / 2 + 1, small ? 12.5 : 14, col === ROSE ? '#fff' : INK, {stroke: col === ROSE ? 'rgba(42,21,8,.35)' : null, sw: 3}), {col});
-      tb(ty, 'Alles leeren', clearAll, 'clear');
-      tb(ty + textH + gap, 'Neues Rätsel', fresh, 'new', ROSE);
+      tb(ty, tr('Alles leeren', 'Clear all'), clearAll, 'clear');
+      tb(ty + textH + gap, tr('Neues Rätsel', 'New puzzle'), fresh, 'new', ROSE);
     }
     function draw() {
       if (!Lay) layout();
@@ -360,10 +361,10 @@
 
   const DEF = {
     id: 'schoko-sudoku', world: 'schoko', slot: 1,
-    title: 'Pralinen-Sudoku',
-    intro: 'Füll die Pralinenschachtel: Jede der sechs Pralinen darf in jeder Reihe, jeder Spalte und jedem dicken 2×3-Kästchen genau einmal liegen. Die Goldförmchen liegen schon fest.',
-    letter: 'Jede Praline wohnt in jeder Reihe, jeder Spalte und jedem Kästchen genau einmal. Fang dort an, wo nur noch ein Plätzchen frei ist.',
-    hint: 'Nimm dir EINE Praline vor (z. B. das Herz) und schau in jedes 2×3-Kästchen: Wo darf sie dort überhaupt noch hin? Wenn nur ein Feld übrig bleibt, gehört sie dorthin. Mit „Notizen“ kannst du dir die Möglichkeiten klein vormerken.',
+    title: tr('Pralinen-Sudoku', 'Chocolate Sudoku'),
+    intro: tr('Füll die Pralinenschachtel: Jede der sechs Pralinen darf in jeder Reihe, jeder Spalte und jedem dicken 2×3-Kästchen genau einmal liegen. Die Goldförmchen liegen schon fest.', 'Fill the box of chocolates: each of the six chocolates must sit exactly once in every row, every column and every thick 2×3 box. The ones in gold cups are already fixed.'),
+    letter: tr('Jede Praline wohnt in jeder Reihe, jeder Spalte und jedem Kästchen genau einmal. Fang dort an, wo nur noch ein Plätzchen frei ist.', 'Each chocolate lives exactly once in every row, every column and every box. Start where only one little spot is left.'),
+    hint: tr('Nimm dir EINE Praline vor (z. B. das Herz) und schau in jedes 2×3-Kästchen: Wo darf sie dort überhaupt noch hin? Wenn nur ein Feld übrig bleibt, gehört sie dorthin. Mit „Notizen“ kannst du dir die Möglichkeiten klein vormerken.', 'Pick ONE chocolate (e.g. the heart) and look into every 2×3 box: where can it still go in there? If only one square is left, that’s where it belongs. With “Notes” you can pencil in the options in small.'),
     station, mount,
   };
   if (G.PZ) G.PZ.register(DEF);

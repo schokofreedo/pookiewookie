@@ -1,4 +1,4 @@
-/* Pookiewookie: level generator. 24 levels (6 worlds x 4), assembled from hand-designed chunks with a fixed seed each,
+/* The Starway Home: level generator. 24 levels (6 worlds x 4), assembled from hand-designed chunks with a fixed seed each,
    difficulty rising with the level index. Tower levels (4th of each world) end in a boss arena.
    Tile legend (rows 0..14): '#' ground, '=' block, '?' heart box, '!' power box, 'X' used box, 'n' pipe rim, '|' pipe body,
    '~' liquid hazard, 's' slow ground, 'i' ice, 'o' heart, '*' star cookie, 'F' goal post, 'W' tower door, 'Z' boss gate (solid until the boss falls),
@@ -11,8 +11,8 @@
   function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
   const empty = () => Array(H).fill('-');
 
-  function build(wi, li, seedExtra) {
-    const W = G.WORLDS[wi], d = Math.min(23, Math.round((wi * 4 + li) * 0.66)), tower = li === 3;
+  function build(wi, li, seedExtra, Wover) {
+    const W = Wover || G.WORLDS[wi], d = Math.min(23, Math.round((wi * 4 + li) * 0.66)), tower = li === 3;
     const r = rng(9000 + wi * 311 + li * 97 + (seedExtra || 0)), cols = [];
     const push = c => cols.push(c);
     const gapW = 2 + Math.min(3, Math.floor(d / 6));              // 2..5 columns
@@ -64,7 +64,7 @@
     const post = () => { const c = groundBase(); for (let y = 4; y < 13; y++) c[y] = 'F'; push(c); };
     const cottage = () => { const c = groundBase(); c[12] = 'Q'; push(c); };
     const capsule = () => { ground(3, {deco: true}); const c = groundBase(); c[9] = 'g'; push(c); ground(3, {hearts: true}); };
-    const cannon = () => {       // honey cannon over a wide gap: Wookie walks in, gets shot across, lands on a heart carpet
+    const cannon = () => {       // honey cannon over a wide gap: Toffo walks in, gets shot across, lands on a heart carpet
       ground(3); const c = groundBase(); c[12] = 'N'; push(c); gap(8);
       for (let i = 0; i < 6; i++) { const k = groundBase(); if (i >= 1 && i <= 4) k[10] = 'o'; push(k); }
     };
@@ -358,6 +358,8 @@
     return {world: wi, index: li, name: W.name + ' ' + (li + 1), sub: W.levels[li], par: 300 + (wi * 4 + li) * 10 + (b.deep ? 40 : 0), tower: li === 3, cols: b.cols, bonus: b.bonus, puzzle: b.puzzle, rocket: !!(W.rocket && li === 0), deep: b.deep || null, vchunks: b.vchunks || [], pz: b.pz || null, waterfall: b.waterfall || null};
   };
   /* daily level: the date picks a world (not the tower, not space) and a fresh seed */
+  /* event levels (Halloween): a world definition outside G.WORLDS, difficulty borrowed from world index wi */
+  G.buildEventLevel = (def, wi, li, seedExtra) => { const b = build(wi, li, seedExtra, def); return {world: wi, index: li, name: def.name + ' ' + (li + 1), sub: def.levels[li], par: 340, tower: li === 3, cols: b.cols, bonus: b.bonus, puzzle: null, rocket: false, deep: b.deep || null, vchunks: b.vchunks || [], pz: null, waterfall: null, worldDef: def, event: def.key}; };
   G.dailyKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
-  G.buildDaily = () => { const key = G.dailyKey(); let h = 7; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0; const pool = G.WORLDS.map((W, i) => i).filter(i => !G.WORLDS[i].modes && !G.WORLDS[i].rocket); const wi = pool[h % pool.length], li = 1 + (h >> 3) % 2; const lv = G.buildLevel(wi, li, 1000 + (h % 50000)); lv.daily = key; lv.name = 'Tageslevel'; lv.sub = key + ' · ' + G.WORLDS[wi].name; lv.par = 400; return lv; };
+  G.buildDaily = () => { const key = G.dailyKey(); let h = 7; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0; const pool = G.WORLDS.map((W, i) => i).filter(i => !G.WORLDS[i].modes && !G.WORLDS[i].rocket); const wi = pool[h % pool.length], li = 1 + (h >> 3) % 2; const lv = G.buildLevel(wi, li, 1000 + (h % 50000)); lv.daily = key; lv.name = G.tr ? G.tr('Tageslevel', 'Daily Level') : 'Tageslevel'; lv.sub = key + ' · ' + G.WORLDS[wi].name; lv.par = 400; return lv; };
 })();

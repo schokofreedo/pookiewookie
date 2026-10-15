@@ -1,8 +1,9 @@
-/* Pookiewookie: gadget visuals. Icons, the capsule block and roulette, honey shots, flying hearts, the honey cannon,
-   what Wookie wears per gadget, the Honigzeit tint, the pipe flash and the gadget HUD slot. draw.js calls these hooks. */
+/* The Starway Home: gadget visuals. Icons, the capsule block and roulette, honey shots, flying hearts, the honey cannon,
+   what Toffo wears per gadget, the Honigzeit tint, the pipe flash and the gadget HUD slot. draw.js calls these hooks. */
 (function () {
   const G = window.PW = window.PW || {}, T = 16, VH = 270;
   const S = () => G.S, P = () => G.P, L = () => G.L, E = () => G.eng;
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2;
   function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
   function circle(ctx, x, y, r, col) { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fillStyle = col; ctx.fill(); }
@@ -64,7 +65,7 @@
           const bob = Math.sin(fr * 0.1) * 2, near = G.eng && G.eng.nearStation && G.eng.nearStation();
           ctx.beginPath(); ctx.arc(cx, by - 50 + bob, 8, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#c9a0ff'; ctx.lineWidth = 2; ctx.stroke();
           font(ctx, 11); ctx.textAlign = 'center'; ctx.fillStyle = '#6f55b8'; ctx.fillText('?', cx, by - 49.5 + bob);
-          if (near) { const t = G.input && G.input.touchMode ? '▼ Rätsel lösen' : '↑ Rätsel lösen'; font(ctx, 7.5); const w = ctx.measureText(t).width + 12; rr(ctx, cx - w / 2, by - 72 + bob, w, 13, 6); ctx.fillStyle = 'rgba(74,34,58,.85)'; ctx.fill(); ctx.fillStyle = '#ffe9a8'; ctx.fillText(t, cx, by - 65 + bob); }
+          if (near) { const t = G.input && G.input.touchMode ? tr('▼ Rätsel lösen', '▼ Solve puzzle') : tr('↑ Rätsel lösen', '↑ Solve puzzle'); font(ctx, 7.5); const w = ctx.measureText(t).width + 12; rr(ctx, cx - w / 2, by - 72 + bob, w, 13, 6); ctx.fillStyle = 'rgba(74,34,58,.85)'; ctx.fill(); ctx.fillStyle = '#ffe9a8'; ctx.fillText(t, cx, by - 65 + bob); }
         } else { starPath(ctx, cx, by - 46 + Math.sin(fr * 0.1) * 2, 5); ctx.fillStyle = '#9be7a5'; ctx.fill(); }
         return true;
       }
@@ -76,7 +77,7 @@
         return true;
       }
       if (ch === 'Y') {
-        /* mailbox with a letter: Pookie writes to Wookie */
+        /* mailbox with a letter: Mallo writes to Toffo */
         ctx.fillStyle = '#8a5a2b'; ctx.fillRect(x + 7, y + 4, 2, 12);
         rr(ctx, x + 1, y - 6, 14, 11, 4); ctx.fillStyle = '#ff6f9c'; ctx.fill(); ctx.strokeStyle = '#7a3b57'; ctx.lineWidth = 1; ctx.stroke();
         rr(ctx, x + 3, y - 3, 10, 6, 1.5); ctx.fillStyle = '#fff1dc'; ctx.fill(); ctx.strokeStyle = '#b06a85'; ctx.beginPath(); ctx.moveTo(x + 3, y - 3); ctx.lineTo(x + 8, y + 1); ctx.lineTo(x + 13, y - 3); ctx.stroke();
@@ -240,9 +241,9 @@
         rr(ctx, x, y, 88, 36, 10); ctx.fillStyle = 'rgba(74,34,58,.72)'; ctx.fill(); ctx.strokeStyle = h.col; ctx.lineWidth = 1.5; ctx.stroke();
         rr(ctx, x + 5, y + 5, 26, 26, 7); ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill();
         icon(ctx, h.id, x + 18, y + 18, 8, fr);
-        font(ctx, 8.5); ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.fillText(h.name, x + 36, y + 11);
+        font(ctx, 8.5); { const nw = ctx.measureText(h.name).width; if (nw > 48) font(ctx, 8.5 * 48 / nw); } ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.fillText(h.name, x + 36, y + 11);   /* shrink long names to fit the slot */
         if (h.frac !== null) { rr(ctx, x + 36, y + 20, 46, 7, 3.5); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fill(); if (h.frac > 0) { rr(ctx, x + 36, y + 20, Math.max(7, 46 * Math.max(0, Math.min(1, h.frac))), 7, 3.5); ctx.fillStyle = h.frac < 0.25 && (fr >> 3) % 2 ? '#ff6f9c' : h.col; ctx.fill(); } }
-        else { font(ctx, 7); ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.fillText(h.id === 'sling' ? 'Shift/X: schießen' : (h.id === 'claws' ? 'Wand + Springen' : (h.id === 'bubble' ? '1 Treffer frei' : (h.id === 'boots' ? 'Riesensprünge' : 'zieht Herzen an'))), x + 36, y + 24); }
+        else { const ht = h.id === 'sling' ? tr('Shift/X: schießen', 'Shift/X: shoot') : (h.id === 'claws' ? tr('Wand + Springen', 'Wall + jump') : (h.id === 'bubble' ? tr('1 Treffer frei', 'Blocks 1 hit') : (h.id === 'boots' ? tr('Riesensprünge', 'Giant jumps') : tr('zieht Herzen an', 'Pulls hearts')))); font(ctx, 7); const hw = ctx.measureText(ht).width; if (hw > 48) font(ctx, 7 * 48 / hw); ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.fillText(ht, x + 36, y + 24); }
       }
       if (p.combo > 1 && !p.onGround) { font(ctx, 11); ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#7a3b57'; ctx.lineJoin = 'round'; const t = 'Combo ×' + p.combo; ctx.strokeText(t, G.VW / 2, 60); ctx.fillStyle = p.combo >= 8 ? '#ffd84a' : '#fff'; ctx.fillText(t, G.VW / 2, 60); }
     },

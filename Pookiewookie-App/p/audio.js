@@ -1,4 +1,4 @@
-/* Pookiewookie: music-box soundtrack with per-world instruments, boss music, sound effects and Wookie's voice. All synthesized. */
+/* The Starway Home: music-box soundtrack with per-world instruments, boss music, sound effects and Toffo's voice. All synthesized. */
 (function () {
   const G = window.PW = window.PW || {};
   const midi = n => 440 * Math.pow(2, (n - 69) / 12);
@@ -167,7 +167,7 @@
     startMusic() { this.init(); if (!this.ctx || this.playing) return; this.playing = true; this.step = 0; this.nextT = this.ctx.currentTime + 0.05; clearInterval(this.timer); this.timer = setInterval(() => this.schedule(), 40); this.music.gain.setTargetAtTime(0.5, this.ctx.currentTime, 0.05); },
     stopMusic() { clearInterval(this.timer); this.playing = false; if (this.music && this.ctx) this.music.gain.setTargetAtTime(0.0001, this.ctx.currentTime, 0.1); },
     duck(sec) { if (this.music && this.ctx && this.playing) { this.music.gain.setTargetAtTime(0.12, this.ctx.currentTime, 0.05); this.music.gain.setTargetAtTime(0.5, this.ctx.currentTime + sec, 0.4); } },
-    /* ---------- Wookie's voice ----------
+    /* ---------- Toffo's voice ----------
        The browser's speech voices differ a lot in quality. Novelty and old formant voices (Fred, Zarvox, Eddy...) sound like robots,
        so they are excluded; natural / premium voices are preferred; a moderate pitch keeps a soft childlike timbre without the chipmunk effect. */
     voiceCfg: {uri: '', pitch: 'kind', on: true},
@@ -192,7 +192,7 @@
     },
     loadVoiceCfg() { try { Object.assign(this.voiceCfg, JSON.parse(localStorage.getItem('pookie-voice') || '{}') || {}); } catch (e) {} },
     saveVoiceCfg() { try { localStorage.setItem('pookie-voice', JSON.stringify(this.voiceCfg)); } catch (e) {} },
-    /* Wookie's lines are recorded audio files (see tools/mkvoice.py); the browser's speech synthesis is only the fallback */
+    /* Toffo's lines are recorded audio files (see tools/mkvoice.py); the browser's speech synthesis is only the fallback */
     voiceBuf: {}, voiceSrc: null, voiceReq: 0,
     preloadVoice() {
       if (this.voicePreloaded || !this.ctx || !G.VOICE_FILES) return; this.voicePreloaded = true;

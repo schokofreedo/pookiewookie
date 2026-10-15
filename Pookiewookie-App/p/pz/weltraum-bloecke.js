@@ -1,4 +1,4 @@
-/* Pookiewookie puzzle: weltraum-bloecke "Die Frachtraum-Blöcke".
+/* The Starway Home puzzle: weltraum-bloecke "Die Frachtraum-Blöcke".
    A 3x3x3 build space in a cargo hold, seen in a live perspective 3D view (drag to orbit). Three hologram silhouettes (Vorne, Seite,
    Oben) are projected onto the back wall, the side wall and the floor; the blocks cast glowing shadows onto the same walls.
    Goal: match all three silhouettes with EXACTLY N blocks, where N is the minimum possible (found by a branch-and-bound search).
@@ -6,6 +6,7 @@
    and the generator makes sure the minimum is clearly smaller than "fill every allowed cell". */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, FONT = '"Fredoka", sans-serif';
   const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
 
@@ -117,7 +118,7 @@
   function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
   function shadeCol(h, k) { const c = hexRgb(h); const f = v => Math.round(k >= 1 ? v + (255 - v) * (k - 1) : v * k); return 'rgb(' + f(c[0]) + ',' + f(c[1]) + ',' + f(c[2]) + ')'; }
   const LAYER_COL = ['#ff9eb0', '#ffd84a', '#9be7a5'];
-  const LAYER_NAME = ['Ebene unten', 'Ebene Mitte', 'Ebene oben'];
+  const LAYER_NAME = [tr('Ebene unten', 'Bottom layer'), tr('Ebene Mitte', 'Middle layer'), tr('Ebene oben', 'Top layer')];
   const LIGHT = norm([0.45, 0.85, -0.55]);
 
   /* ---------- in-level station: a sci-fi crate with a hologram cube ---------- */
@@ -188,7 +189,7 @@
       prevMatch = match;
       if (match.every(Boolean)) {
         if (n === Z.N) { win(); return; }
-        if (warned !== n) { warned = n; api.msg('Alle drei Schatten passen – aber das sind ' + n + ' Blöcke. Es geht mit genau ' + Z.N + '!', 'info'); }
+        if (warned !== n) { warned = n; api.msg(tr('Alle drei Schatten passen – aber das sind ' + n + ' Blöcke. Es geht mit genau ' + Z.N + '!', 'All three shadows match – but that is ' + n + ' blocks. It works with exactly ' + Z.N + '!'), 'info'); }
       } else if (warned >= 0) { warned = -1; api.msg('', 'info'); }
     }
     function win() {
@@ -199,7 +200,7 @@
       later(() => api.solved(), 1000);
     }
     function clearAll() { if (done) return; for (let i = 0; i < 27; i++) if (cells[i]) { cells[i] = 0; pulse[i] = 1; } tone(260, 0.15, {type: 'sine', gain: 0.12, slide: -100, slideDur: 0.15}); check(); }
-    function fresh() { if (done) return; Z = generate(rng); for (let i = 0; i < 27; i++) cells[i] = 0; prevMatch = [false, false, false]; warned = -1; try { G.audio.sfx.appear(); } catch (e) {} api.msg('Neue Fracht! Benutze genau ' + Z.N + ' Blöcke.', 'info'); }
+    function fresh() { if (done) return; Z = generate(rng); for (let i = 0; i < 27; i++) cells[i] = 0; prevMatch = [false, false, false]; warned = -1; try { G.audio.sfx.appear(); } catch (e) {} api.msg(tr('Neue Fracht! Benutze genau ' + Z.N + ' Blöcke.', 'New cargo! Use exactly ' + Z.N + ' blocks.'), 'info'); }
 
     /* ---------- drawing ---------- */
     function draw(g, S) {
@@ -238,7 +239,7 @@
         [[-WALL, -WALL, -WALL], [-WALL, -WALL, WALL], [-WALL, WALL, WALL], [-WALL, WALL, -WALL]],
         [[-WALL, -WALL, -WALL], [WALL, -WALL, -WALL], [WALL, -WALL, WALL], [-WALL, -WALL, WALL]],
       ];
-      const labels = ['VORNE', 'SEITE', 'OBEN'];
+      const labels = [tr('VORNE', 'FRONT'), tr('SEITE', 'SIDE'), tr('OBEN', 'TOP')];
       for (let k = 0; k < 3; k++) {
         path(g, C, wallQuad[k]); g.fillStyle = WC[k]; g.fill(); g.lineWidth = 2; g.strokeStyle = '#0a0a20'; g.stroke();
         /* plating */
@@ -270,7 +271,7 @@
       g.stroke();
       /* volume corner posts */
       g.strokeStyle = 'rgba(143,211,255,.14)'; g.beginPath(); for (const [x, z] of [[-1.5, -1.5], [1.5, -1.5], [1.5, 1.5], [-1.5, 1.5]]) { const a = proj(C, [x, yb, z]), b = proj(C, [x, 1.5, z]); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); } g.stroke();
-      const fq = proj(C, [0, yb, -1.5]); txt(g, 'vorne', fq[0], fq[1] + (L.small ? 8 : 11), L.small ? 9 : 11, 'rgba(191,240,255,.75)', {w: 600, stroke: '#0a0a20', sw: 3});
+      const fq = proj(C, [0, yb, -1.5]); txt(g, tr('vorne', 'front'), fq[0], fq[1] + (L.small ? 8 : 11), L.small ? 9 : 11, 'rgba(191,240,255,.75)', {w: 600, stroke: '#0a0a20', sw: 3});
       /* cubes, far to near */
       const list = [];
       for (let i = 0; i < 27; i++) if (scale[i] > 0.02 || i === hoverCell) { const c = [cx_(i) - 1, cy_(i) - 1, cz_(i) - 1]; const d = sub(c, C.cam); list.push({i, c, d: dot(d, d)}); }
@@ -282,7 +283,7 @@
       g.restore();
       /* frame */
       rr(g, V.x, V.y, V.w, V.h, 14); g.lineWidth = 2.5; g.strokeStyle = 'rgba(143,211,255,.5)'; g.stroke();
-      txt(g, '↻ ziehen zum Drehen', V.x + V.w - 8, V.y + V.h - (L.small ? 9 : 12), L.small ? 9 : 11, 'rgba(191,240,255,.55)', {align: 'right', w: 500});
+      txt(g, tr('↻ ziehen zum Drehen', '↻ drag to rotate'), V.x + V.w - 8, V.y + V.h - (L.small ? 9 : 12), L.small ? 9 : 11, 'rgba(191,240,255,.55)', {align: 'right', w: 500});
       S.hit('view', V.x, V.y, V.w, V.h);
     }
     function cubeFaces(c, hs) {
@@ -319,7 +320,7 @@
     }
 
     function drawSilhouettes(g, S) {
-      const P = L.sil, cS = P.cS, cur = projOf(cells), names = ['Vorne', 'Seite', 'Oben'];
+      const P = L.sil, cS = P.cS, cur = projOf(cells), names = [tr('Vorne', 'Front'), tr('Seite', 'Side'), tr('Oben', 'Top')];
       for (let k = 0; k < 3; k++) {
         const x0 = P.x + k * (3 * cS + P.sGap), y0 = P.y + P.lab;
         const tv = (Z.target >> (k * 9)) & 511, cv = (cur >> (k * 9)) & 511, ok = tv === cv;
@@ -351,19 +352,19 @@
       const P = L.ctrl, n = count(), small = L.small, t = S.t;
       const over = n > Z.N, col = n === Z.N ? '#9be7a5' : (over ? '#ff8fa8' : '#ffd84a');
       if (small) {
-        txt(g, 'Benutze genau ' + Z.N + ' Blöcke', P.x, P.y + 8, 12, '#fff4e0', {align: 'left', w: 600});
+        txt(g, tr('Benutze genau ' + Z.N + ' Blöcke', 'Use exactly ' + Z.N + ' blocks'), P.x, P.y + 8, 12, '#fff4e0', {align: 'left', w: 600});
         txt(g, n + ' / ' + Z.N, P.x + P.w, P.y + 8, 15, col, {align: 'right', stroke: '#1a1a3a', sw: 3});
         const bh = 36, by = P.y + P.h - bh - 2, bw = (P.w - 8) / 2;
-        button(g, S, 'clear', '✕ Leeren', P.x, by, bw, bh, '#7a3b57');
-        button(g, S, 'new', '✦ Neue Fracht', P.x + bw + 8, by, bw, bh, '#3a8ad8');
+        button(g, S, 'clear', tr('✕ Leeren', '✕ Clear'), P.x, by, bw, bh, '#7a3b57');
+        button(g, S, 'new', tr('✦ Neue Fracht', '✦ New cargo'), P.x + bw + 8, by, bw, bh, '#3a8ad8');
       } else {
         const pz = 1 + (pulse.some(v => v > 0.6) ? 0.06 : 0);
-        txt(g, 'Benutze genau', P.x + P.w / 2, P.y + 9, 13, '#e6c9d6', {w: 600});
-        txt(g, Z.N + ' Blöcke', P.x + P.w / 2, P.y + 28, 20 * pz, '#fff4e0', {stroke: '#1a1a3a', sw: 4});
-        txt(g, 'gesetzt: ' + n, P.x + P.w / 2, P.y + 47, 13, col, {stroke: '#1a1a3a', sw: 3});
+        txt(g, tr('Benutze genau', 'Use exactly'), P.x + P.w / 2, P.y + 9, 13, '#e6c9d6', {w: 600});
+        txt(g, Z.N + tr(' Blöcke', ' blocks'), P.x + P.w / 2, P.y + 28, 20 * pz, '#fff4e0', {stroke: '#1a1a3a', sw: 4});
+        txt(g, tr('gesetzt: ', 'placed: ') + n, P.x + P.w / 2, P.y + 47, 13, col, {stroke: '#1a1a3a', sw: 3});
         const bh = Math.min(36, (P.h - 58 - 6) / 2), bw = P.w;
-        button(g, S, 'clear', '✕ Leeren', P.x, P.y + P.h - bh * 2 - 6, bw, bh, '#7a3b57');
-        button(g, S, 'new', '✦ Neue Fracht', P.x, P.y + P.h - bh, bw, bh, '#3a8ad8');
+        button(g, S, 'clear', tr('✕ Leeren', '✕ Clear'), P.x, P.y + P.h - bh * 2 - 6, bw, bh, '#7a3b57');
+        button(g, S, 'new', tr('✦ Neue Fracht', '✦ New cargo'), P.x, P.y + P.h - bh, bw, bh, '#3a8ad8');
       }
       void t;
     }
@@ -407,7 +408,7 @@
       move(h, x, y) { if (drag) { th = clamp(drag.th - (x - drag.x) * 0.012, 0.12, 1.42); ph = clamp(drag.ph + (y - drag.y) * 0.01, 0.15, 1.05); lastDrag = S.t; } },
       up() { if (drag) { drag = null; lastDrag = S.t; } },
     });
-    api.msg('Benutze genau ' + Z.N + ' Blöcke. Tipp auf die Ebenen-Felder, um Blöcke zu setzen.', 'info');
+    api.msg(tr('Benutze genau ' + Z.N + ' Blöcke. Tipp auf die Ebenen-Felder, um Blöcke zu setzen.', 'Use exactly ' + Z.N + ' blocks. Tap the layer squares to place blocks.'), 'info');
 
     return {
       destroy() { S.destroy(); timers.forEach(clearTimeout); },
@@ -422,10 +423,10 @@
 
   G.PZ.register({
     id: 'weltraum-bloecke', world: 'weltraum', slot: 0,
-    title: 'Die Frachtraum-Blöcke',
-    intro: 'Setze Blöcke so, dass ihre Schatten an den Wänden genau die Umrisse Vorne, Seite und Oben füllen – mit genau so vielen Blöcken wie angegeben.',
-    letter: 'Ein einziger Block wirft gleichzeitig einen Schatten nach vorne, zur Seite und nach unten. Sei sparsam, Wookie: Lass jeden Block möglichst viele Felder auf einmal füllen!',
-    hint: 'Ein Block darf nur dort stehen, wo alle drei Umrisse ihn erlauben (Vorne: gleiche Spalte und Höhe, Seite: gleiche Tiefe und Höhe, Oben: gleiche Spalte und Tiefe). Fang mit der Ansicht an, die die meisten Felder hat: Jedes ihrer Felder braucht einen eigenen Block. Stell diese Blöcke so, dass sie gleichzeitig die Felder der anderen beiden Ansichten abdecken.',
+    title: tr('Die Frachtraum-Blöcke', 'The Cargo Hold Blocks'),
+    intro: tr('Setze Blöcke so, dass ihre Schatten an den Wänden genau die Umrisse Vorne, Seite und Oben füllen – mit genau so vielen Blöcken wie angegeben.', 'Place blocks so their shadows on the walls exactly fill the Front, Side and Top outlines – using exactly as many blocks as shown.'),
+    letter: tr('Ein einziger Block wirft gleichzeitig einen Schatten nach vorne, zur Seite und nach unten. Sei sparsam, Toffo: Lass jeden Block möglichst viele Felder auf einmal füllen!', 'A single block casts a shadow to the front, to the side and down, all at once. Be thrifty, Toffo: let every block fill as many squares as it can at the same time!'),
+    hint: tr('Ein Block darf nur dort stehen, wo alle drei Umrisse ihn erlauben (Vorne: gleiche Spalte und Höhe, Seite: gleiche Tiefe und Höhe, Oben: gleiche Spalte und Tiefe). Fang mit der Ansicht an, die die meisten Felder hat: Jedes ihrer Felder braucht einen eigenen Block. Stell diese Blöcke so, dass sie gleichzeitig die Felder der anderen beiden Ansichten abdecken.', 'A block may only go where all three outlines allow it (Front: same column and height, Side: same depth and height, Top: same column and depth). Start with the view that has the most squares: each of its squares needs its own block. Place those blocks so they cover the squares of the other two views at the same time.'),
     station,
     mount,
   });

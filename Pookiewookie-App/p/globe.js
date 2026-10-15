@@ -1,4 +1,4 @@
-/* Pookiewookie: the world map is a slowly turning 3D globe (WebGL). Six themed continents painted on a canvas texture,
+/* The Starway Home: the world map is a slowly turning 3D globe (WebGL). Six themed continents painted on a canvas texture,
    drifting procedural clouds, day/night lighting, glowing lava and castle lights, atmosphere rim, star field.
    DOM markers float over the worlds; pick one and the camera dives toward the surface before the cloud fall begins. */
 (function () {

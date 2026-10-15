@@ -1,6 +1,7 @@
-/* Pookiewookie: core engine. Tiles, physics, Wookie, boxes, collectibles, checkpoints, goal and rescue sequences, particles. */
+/* The Starway Home: core engine. Tiles, physics, Toffo, boxes, collectibles, checkpoints, goal and rescue sequences, particles. */
 (function () {
   const G = window.PW = window.PW || {}, A = () => G.audio;
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const T = G.T = 16, VH = G.VH = 270, MH = G.MH = 15; G.VW = G.VW || 480; G.OFFY = VH - MH * T;
   const SOLID = new Set(['#', '=', '?', '!', 'X', 'n', '|', 's', 'i', 'b', 'c', 'Z', 'g', 'P', '@', '&', 'z']);
   const S = G.S = {mode: 'title', wi: 0, li: 0, lives: 4, score: 0, hearts: 0, time: 300, timeAcc: 0, cam: 0, frames: 0, shake: 0, voiceT: 8, stars: [false, false, false], checkpoint: null, bossActive: false, gateOpen: false, wind: 0, camLock: null, room: 0, honey: 0, flash: 0};
@@ -13,9 +14,9 @@
   const E = G.eng = {
     load(wi, li, fromCheckpoint, custom) {
       const src = custom || G.buildLevel(wi, li);
-      const W0 = G.WORLDS[wi], skin = W0.skins ? (W0.skins[src.hub || src.rocket ? 0 : li] || null) : null;
+      const W0 = (custom && custom.worldDef) || G.WORLDS[wi], skin = W0.skins ? (W0.skins[src.hub || src.rocket ? 0 : li] || null) : null;
       const world = skin ? Object.assign({}, W0, skin) : W0;   /* planets: own palette, sky and gravity on top of the world */
-      L = G.L = {w: src.cols.length, wi, li, world, tower: src.tower, name: src.name, sub: src.sub, par: src.par, cols: src.cols.map(c => c.slice()), rescued: false, starXs: [], h: src.cols[0] ? src.cols[0].length : MH, deep: src.deep || null, vchunks: src.vchunks || [], pz: src.pz ? Object.assign({}, src.pz) : null, waterfall: src.waterfall || null, bonus: src.bonus || null, puzzle: src.puzzle ? Object.assign({progress: 0, solved: false, lit: [0, 0, 0, 0], demo: null, demoCd: 0}, src.puzzle) : null, mainW: src.bonus ? src.bonus.roomCol : (src.puzzle ? src.puzzle.roomCol : src.cols.length), hub: !!src.hub, rocket: !!src.rocket, daily: src.daily || null, grav: (skin && skin.grav) || 1};
+      L = G.L = {w: src.cols.length, wi, li, world, tower: src.tower, name: src.name, sub: src.sub, par: src.par, cols: src.cols.map(c => c.slice()), rescued: false, starXs: [], h: src.cols[0] ? src.cols[0].length : MH, deep: src.deep || null, vchunks: src.vchunks || [], pz: src.pz ? Object.assign({}, src.pz) : null, waterfall: src.waterfall || null, bonus: src.bonus || null, puzzle: src.puzzle ? Object.assign({progress: 0, solved: false, lit: [0, 0, 0, 0], demo: null, demoCd: 0}, src.puzzle) : null, mainW: src.bonus ? src.bonus.roomCol : (src.puzzle ? src.puzzle.roomCol : src.cols.length), hub: !!src.hub, rocket: !!src.rocket, daily: src.daily || null, event: src.event || null, grav: (skin && skin.grav) || 1};
       P.skydive = false; P.victory = false; S.outfit = S.outfitOverride || W0.key;
       G.ents = []; G.parts = []; G.bumps = []; G.crumbles = []; G.goalSeq = null;
       S.bossActive = false; S.gateOpen = false; S.camLock = null; S.wind = 0; S.room = 0; S.honey = 0; S.flash = 0;
@@ -36,7 +37,7 @@
       }
       L.starXs.sort((a, b) => a - b);
       if (L.arenaX) { let ex = Math.floor(L.arenaX / T); while (ex < L.w - 1 && !L.cols[ex].includes('Z')) ex++; L.arenaEnd = ex * T; }
-      P.blaster = false;
+      P.blaster = false; P.armor = S.hero === 'rexi' ? 1 : 0;   /* hero perk: Rexi shrugs off one hit per life */
       if (L.pz && G.flow && G.flow.isSolved && G.flow.isSolved(L.pz.id)) E.openPzGate(true);
       if (fromCheckpoint && S.checkpoint) { P.x = S.checkpoint.x; P.y = S.checkpoint.y; for (let cy = 0; cy < L.h; cy++) if (L.cols[S.checkpoint.cx][cy] === 'K') L.cols[S.checkpoint.cx][cy] = 'k'; for (const sx of L.starXs) { const idx = L.starXs.indexOf(sx); if (S.stars[idx]) for (let cy = 0; cy < MH; cy++) if (L.cols[sx][cy] === '*') L.cols[sx][cy] = '-'; } }
       P.vx = P.vy = 0; P.dead = false; P.inv = 0; P.facing = 1; P.climbing = false; P.h = P.big ? 24 : 14; P.sx = P.sy = 1;
@@ -98,7 +99,7 @@
       if (S.hearts >= 50) { S.hearts -= 50; S.lives++; A().sfx.oneUp(); E.toast('1 UP'); }
     },
     collectStar(cx, cy) {
-      const idx = Math.max(0, L.starXs.indexOf(cx)); S.stars[idx] = true; if (G.eco) G.eco.add(30, cx * T, cy * T - 10); S.score += 2000; A().sfx.star(); E.toast('Sternkeks!');
+      const idx = Math.max(0, L.starXs.indexOf(cx)); S.stars[idx] = true; if (G.eco) G.eco.add(30, cx * T, cy * T - 10); S.score += 2000; A().sfx.star(); E.toast(tr('Sternkeks!', 'Star cookie!'));
       for (let i = 0; i < 12; i++) G.parts.push({kind: 'star', x: cx * T + 8, y: cy * T + 8, vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 2.5, t: 0.9});
     },
     kill(e, byBump, ptsOverride) {
@@ -107,11 +108,12 @@
       for (let i = 0; i < 6; i++) G.parts.push({kind: e.kind === 'flyer' ? 'star' : 'puff', x: e.x + e.w / 2, y: e.y + 6, vx: (Math.random() - 0.5) * 2.5, vy: -1 - Math.random() * 2, t: 0.8});
     },
 
-    /* ---------- Wookie ---------- */
+    /* ---------- Toffo ---------- */
     hurt(by) {
       if (P.inv > 0 || P.dead || G.goalSeq || P.gadget === 'star' || P.launch > 0 || P.cannon) return;
       S.hits = (S.hits || 0) + 1;
       if (G.gad && G.gad.absorbHit()) return;
+      if (P.armor > 0) { P.armor--; P.inv = 1.6; A().sfx.bubblePop(); S.shake = 3; E.toast(tr('Dino-Panzer!', 'Dino armor!')); return; }
       if (P.big) { P.big = false; P.coffee = false; P.wings = false; P.h = 14; P.y += 10; P.inv = 1.6; A().sfx.hurt(); S.shake = 4; }
       else E.die('enemy:' + (by || '?'));
     },
@@ -136,7 +138,7 @@
     enterRoom(n) {
       const rm = E.room(n || S.room); if (!rm) return;
       S.room = n; P.vx = 0; P.vy = 0; P.pipeCd = 40; S.flash = 1; A().sfx.pipe(); P.climbing = false; P.pound = false;
-      if (n) { P.x = (rm.roomCol + 2) * T + 2; P.y = 13 * T - P.h; S.cam = rm.roomCol * T; E.toast(n === 2 ? 'Rätselkammer!' : 'Bonusraum!'); if (n === 2) { G.flow.speak('A puzzle! Let me think...', {happy: true}); if (L.puzzle.kind === 'melody' && !L.puzzle.solved) E.puzzleDemo(); } }
+      if (n) { P.x = (rm.roomCol + 2) * T + 2; P.y = 13 * T - P.h; S.cam = rm.roomCol * T; E.toast(n === 2 ? tr('Rätselkammer!', 'Puzzle room!') : tr('Bonusraum!', 'Bonus room!')); if (n === 2) { G.flow.speak('A puzzle! Let me think...', {happy: true}); if (L.puzzle.kind === 'melody' && !L.puzzle.solved) E.puzzleDemo(); } }
       else { P.x = rm.pipeCol * T + 2; P.y = rm.pipeTop * T - P.h; S.cam = Math.max(0, Math.min(L.mainW * T - G.VW, P.x - G.VW * 0.42)); }
     },
     /* ---------- puzzle room: ring the four bells in the right order ---------- */
@@ -145,11 +147,11 @@
       pz.lit[idx] = 0.7; A().sfx.bell(idx);
       if (pz.solved || pz.demo) return;
       if (pz.order[pz.progress] === idx) { pz.progress++; if (pz.progress >= pz.order.length) E.solvePuzzle(); }
-      else { pz.progress = 0; A().sfx.wrong(); S.shake = 2; E.toast('Falsch... nochmal!'); for (let i = 0; i < 4; i++) pz.lit[i] = 0.25; }
+      else { pz.progress = 0; A().sfx.wrong(); S.shake = 2; E.toast(tr('Falsch... nochmal!', 'Wrong... try again!')); for (let i = 0; i < 4; i++) pz.lit[i] = 0.25; }
     },
     puzzleDemo() { const pz = L.puzzle; if (!pz || pz.demo) return; pz.demo = {t: -0.6, i: 0}; pz.progress = 0; },
     solvePuzzle() {
-      const pz = L.puzzle; pz.solved = true; A().sfx.puzzleSolved(); S.score += 1500; E.toast('Gelöst!'); G.flow.speak('I solved it!', {happy: true});
+      const pz = L.puzzle; pz.solved = true; A().sfx.puzzleSolved(); S.score += 1500; E.toast(tr('Gelöst!', 'Solved!')); G.flow.speak('I solved it!', {happy: true});
       for (let i = 0; i < 4; i++) pz.lit[i] = 2;
       for (let cx = 0; cx < L.w; cx++) for (let cy = 0; cy < L.h; cy++) if (L.cols[cx][cy] === 'z') { L.cols[cx][cy] = '-'; for (let i = 0; i < 3; i++) G.parts.push({kind: 'spark', x: cx * T + 8, y: cy * T + 4 + i * 4, vx: (Math.random() - 0.5) * 2, vy: -1 - Math.random() * 2, t: 0.8, col: '#c9a0ff'}); }
       if (G.flow.achieve) G.flow.achieve('puzzle');
@@ -169,7 +171,7 @@
       if (P.flip > 0) { P.flip = Math.max(0, P.flip - 1 / 26); if (P.onGround) P.flip = 0; }
       /* inside a honey cannon: wait, then fly */
       if (P.cannon) { const e = P.cannon; e.loadT -= 1 / 60; P.x = e.x + 4; P.y = e.y; P.vx = P.vy = 0; if (e.loadT <= 0) E.fireCannon(e); return; }
-      /* cannonball flight: no control until Wookie lands or hits a wall */
+      /* cannonball flight: no control until Toffo lands or hits a wall */
       if (P.launch > 0) {
         P.launch--; P.vy += 0.42; E.moveX(P); E.moveY(P, true); P.anim += 0.3;
         if (S.frames % 2 === 0) G.parts.push({kind: 'spark', x: P.x + 2, y: P.y + 6, vx: -1 - Math.random(), vy: (Math.random() - 0.5), t: 0.35, col: '#ffd84a'});
@@ -178,7 +180,7 @@
       }
       const W = L.world, icy = P.ground === 'ice' && P.onGround, honey = P.ground === 'honey' && P.onGround;
       /* movement feel: snappy stops, quick turnarounds, real air control; ice stays slippery on purpose */
-      const max = (input.touchMode ? 2.15 : (input.run ? 2.3 : 1.5)) * (honey ? 0.5 : 1) * (P.coffee ? 1.12 : 1);
+      const max = (input.touchMode ? 2.15 : (input.run ? 2.3 : 1.5)) * (honey ? 0.5 : 1) * (P.coffee ? 1.12 : 1) * (S.hero === 'flitz' ? 1.1 : 1);
       const dir = P.wallJumpT > 0 ? 0 : (input.right ? 1 : 0) - (input.left ? 1 : 0);
       const turning = dir !== 0 && Math.sign(P.vx) === -dir;
       const acc = P.onGround ? (icy ? 0.05 : (turning ? 0.5 : 0.24)) : (turning ? 0.34 : 0.22), fr = P.onGround ? (icy ? 0.012 : (honey ? 0.25 : 0.34)) : 0.05;
@@ -211,8 +213,8 @@
       const jm = G.gad ? G.gad.jumpMul() : 1;
       /* jumps have a fixed height (no holding); a second jump is allowed in the air */
       if (P.jumpBuf > 0 && P.coyote > 0) { P.vy = -(6.1 + Math.abs(P.vx) * 0.25) * jm; P.coyote = 0; P.jumpBuf = 0; P.onGround = false; P.jumps = 1; P.sx = 0.8; P.sy = 1.25; if (P.big || jm > 1) A().sfx.bigJump(); else A().sfx.jump(); E.puff(P.x + 6, P.y + P.h, 3, '#fff'); }
-      else if (P.jumpBuf > 0 && !P.onGround && !P.climbing && !P.wallSlide && P.wallCoyote <= 0 && (P.jumps || 1) < 2) { P.jumps = (P.jumps || 1) + 1; P.vy = -5.4 * jm; P.jumpBuf = 0; P.sx = 0.8; P.sy = 1.25; P.flip = 1; A().sfx.doubleJump(); G.parts.push({kind: 'ring', x: P.x + 6, y: P.y + P.h, t: 0.3, float: true, vx: 0, vy: 0}); E.puff(P.x + 6, P.y + P.h, 4, '#fff'); }
-      /* wall slide and wall jump (everyone); the climbing claws make Wookie stick and climb */
+      else if (P.jumpBuf > 0 && !P.onGround && !P.climbing && !P.wallSlide && P.wallCoyote <= 0 && (P.jumps || 1) < (S.hero === 'bolt' ? 3 : 2)) { P.jumps = (P.jumps || 1) + 1; P.vy = -5.4 * jm; P.jumpBuf = 0; P.sx = 0.8; P.sy = 1.25; P.flip = 1; A().sfx.doubleJump(); G.parts.push({kind: 'ring', x: P.x + 6, y: P.y + P.h, t: 0.3, float: true, vx: 0, vy: 0}); E.puff(P.x + 6, P.y + P.h, 4, '#fff'); }
+      /* wall slide and wall jump (everyone); the climbing claws make Toffo stick and climb */
       P.wallSlide = false; if (P.onGround) P.lastWallDir = 0;
       if (!P.onGround && !P.climbing && !P.pound && P.launch <= 0) {
         const cyA = Math.floor((P.y + 3) / T), cyB = Math.floor((P.y + P.h - 3) / T);
@@ -226,10 +228,11 @@
       P.gliding = P.wings && !P.onGround && P.vy > 0 && input.jump && !P.jetting;
       if (P.bounceT > 0) P.bounceT -= 1 / 60;
       P.vy += (P.vy < 0 ? 0.28 : 0.42) * (L.grav || 1); if (P.vy > 6.5) P.vy = 6.5; if (P.gliding && P.vy > 1.1) P.vy = 1.1; if (P.wallSlide && P.vy > (P.gadget === 'claws' ? 0.55 : 1.6)) P.vy = P.gadget === 'claws' ? 0.55 : 1.6;
+      if (S.hero === 'hollo' && !P.onGround && !P.wallSlide && input.jump && P.vy > 0.9 && P.jumps >= 1) P.vy = 0.9;   /* hero perk: Hollo floats down like a little ghost while jump is held */
       if (P.chute) { const wf = L.waterfall, inShaft = wf && P.x + P.w > wf.x0 - 8 && P.x < wf.x1 + 8 && P.y + P.h < wf.bottom - 2; if (P.onGround) { P.chuteOpen = 0; if (!inShaft && P.y + P.h > 13 * T + 2 || (wf && P.y + P.h >= wf.bottom - 2)) P.chute = false; } else if (P.vy > 0.2) { P.chuteOpen = Math.min(1, (P.chuteOpen || 0) + 0.08); if (P.vy > 0.95) P.vy = 0.95; } }
       if (G.gad) G.gad.jet(input);
       E.moveX(P); E.moveY(P, true);
-      /* moving platforms carry Wookie */
+      /* moving platforms carry Toffo */
       for (const e of G.ents) if ((e.kind === 'platformH' || e.kind === 'platformV' || e.kind === 'choco') && e.alive) { const top = e.y, onIt = P.x + P.w > e.x + 2 && P.x < e.x + e.w - 2 && P.y + P.h >= top - 1 && P.y + P.h <= top + 6 + Math.max(0, e.dy || 0) && P.vy >= 0; if (onIt) { P.y = top - P.h; P.vy = 0; P.onGround = true; P.x += e.dx || 0; P.coyote = 6; } }
       E.afterMove();
     },
@@ -241,7 +244,7 @@
       for (let cx = x0; cx <= x1; cx++) for (let cy = y0; cy <= y1; cy++) {
         const ch = E.tileAt(cx, cy);
         if (ch === 'o') { E.setTile(cx, cy, '-'); E.collectHeart(cx, cy, false); }
-        else if (ch === '$') { E.setTile(cx, cy, '-'); S.score += 3000; A().sfx.coin(); E.toast('Schokomünze!'); G.flow.speak('Chocolate!', {happy: true}); for (let i = 0; i < 14; i++) G.parts.push({kind: 'spark', x: cx * T + 8, y: cy * T + 8, vx: (Math.random() - 0.5) * 4, vy: -1 - Math.random() * 3, t: 0.9, col: i % 2 ? '#5a2e14' : '#ffd84a'}); if (G.flow.coin) G.flow.coin(L.wi); }
+        else if (ch === '$') { E.setTile(cx, cy, '-'); S.score += 3000; A().sfx.coin(); E.toast(tr('Schokomünze!', 'Chocolate coin!')); G.flow.speak('Chocolate!', {happy: true}); for (let i = 0; i < 14; i++) G.parts.push({kind: 'spark', x: cx * T + 8, y: cy * T + 8, vx: (Math.random() - 0.5) * 4, vy: -1 - Math.random() * 3, t: 0.9, col: i % 2 ? '#5a2e14' : '#ffd84a'}); if (G.flow.coin) G.flow.coin(L.wi); }
         else if (ch === '^' && L.puzzle && L.puzzle.kind === 'melody' && !L.puzzle.solved && L.puzzle.demoCd <= 0 && P.onGround) { L.puzzle.demoCd = 4; E.puzzleDemo(); }
         else if (ch === '*') { E.setTile(cx, cy, '-'); E.collectStar(cx, cy); }
         else if (ch === 'K') { E.setTile(cx, cy, 'k'); S.checkpoint = {x: cx * T + 2, y: cy * T + T - 14, cx}; A().sfx.checkpoint(); E.toast('Checkpoint!'); }
@@ -259,7 +262,7 @@
       if ((L.bonus || L.puzzle) && input.down && P.onGround && P.pipeCd <= 0 && !P.pound) { const pc = Math.floor((P.x + P.w / 2) / T), pr = Math.floor((P.y + P.h + 1) / T), ch = E.tileAt(pc, pr); if (ch === 'P' && L.bonus) { E.enterRoom(S.room ? 0 : 1); return; } if (ch === '&' && L.puzzle) { E.enterRoom(S.room ? 0 : 2); return; } }
       if (P.throwT > 0) P.throwT -= 1 / 60;
       if (P.coffee && input.runEdge && P.throwT <= 0 && G.ents.filter(e => e.kind === 'bean' && e.alive).length < 2) { P.throwT = 0.25; A().sfx.throwBean(); G.ents.push({kind: 'bean', x: P.x + (P.facing > 0 ? P.w : -6), y: P.y + 6, w: 6, h: 6, vx: P.facing * 3.8, vy: -1, alive: true, t: 3}); }
-      /* honey blaster: the gadget, or the boss weapon (faster, aims at the boss in front of Wookie, holding Shift auto-fires) */
+      /* honey blaster: the gadget, or the boss weapon (faster, aims at the boss in front of Toffo, holding Shift auto-fires) */
       const wantShot = input.runEdge || (P.blaster && input.run && !input.touchMode && S.frames % 9 === 0);
       if ((P.gadget === 'sling' || P.blaster) && wantShot && P.throwT <= 0 && G.ents.filter(e => e.kind === 'honeyshot' && e.alive).length < (P.blaster ? 4 : 2)) {
         P.throwT = P.blaster ? 0.15 : 0.22; A().sfx.shoot(); P.sx = 1.2;
@@ -279,8 +282,8 @@
     startDoor() {
       G.goalSeq = {t: 0, phase: L.world.boss.final ? 'rescue' : 'door'}; P.vx = 0; P.vy = 0; P.flip = 0; A().stopMusic();
       for (const e of G.ents) e.frozen = true;
-      if (L.world.boss.final) { A().sfx.rescue(); L.rescued = true; G.ents.push({kind: 'pookie', x: L.doorX + 20, y: 13 * T - 14, w: 12, h: 14, alive: true, anim: 0, vx: 0}); G.flow.speak('Pookie!', {pitch: 1.9, rate: 0.9}); setTimeout(() => { if (G.goalSeq) G.flow.speak('Wookie!', {pitch: 2.0, rate: 0.95}); }, 1400); }
-      else { A().sfx.flag(); G.flow.speak(L.world.doorLine || 'Pookie is in another tower...', {sad: !L.world.doorLine}); }
+      if (L.world.boss.final) { A().sfx.rescue(); L.rescued = true; G.ents.push({kind: 'pookie', x: L.doorX + 20, y: 13 * T - 14, w: 12, h: 14, alive: true, anim: 0, vx: 0}); G.flow.speak('Mallo!', {pitch: 1.9, rate: 0.9}); setTimeout(() => { if (G.goalSeq) G.flow.speak('Toffo!', {pitch: 2.0, rate: 0.95}); }, 1400); }
+      else { A().sfx.flag(); G.flow.speak(L.world.doorLine || 'Mallo is in another tower...', {sad: !L.world.doorLine}); }
     },
     updateGoal() {
       const g = G.goalSeq; g.t += 1 / 60;

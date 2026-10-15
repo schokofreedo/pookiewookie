@@ -1,8 +1,9 @@
-/* Pookiewookie puzzle: "Die Lolli-Waage" (world wiese, slot 0).
+/* The Starway Home puzzle: "Die Lolli-Waage" (world wiese, slot 0).
    Nine identical lollipops, one is secretly heavier. Two weighings on a candy balance, then accuse one.
    Everything is drawn on one canvas; tap/drag lollis onto the pans, tap buttons on the right. */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, FONT = '"Fredoka", sans-serif';
   const INK = '#3a2030', PINK = '#ff9eb0', ROSE = '#ff6f9c', PLUM = '#7a3b57', GOLD = '#ffd84a', MINT = '#9be7a5', CREAM = '#fff4e0';
   const CAP = 4, TILT = 0.2;
@@ -122,7 +123,7 @@
       const l = S.lollis[i], L = Lay;
       if (l.where === 'stand') return {x: L.ax + L.spacing * (i + 0.5), y: L.shelfY, s: L.ss};
       const list = S.pans[l.where], k = list.indexOf(i), n = list.length, p = panPos(l.where);
-      const step = Math.min(27 * L.sp, (L.pwid - 16) / Math.max(1, n));
+      const step = Math.min(Math.max(27 * L.sp, 36), (L.pwid - 16) / Math.max(1, n));   /* >= 36 px apart when the pan has room (phone taps) */
       return {x: p.x + (k - (n - 1) / 2) * step, y: p.y + L.depth * 0.45, s: L.sp};
     }
 
@@ -135,7 +136,7 @@
     function place(i, side) {
       const l = S.lollis[i]; if (S.busy || S.accuse) return false;
       if (l.where === side) return false;
-      if (side !== 'stand' && S.pans[side].length >= CAP) { msg('Auf eine Schale passen höchstens ' + CAP + ' Lollis.', 'bad'); sfx('bump'); return false; }
+      if (side !== 'stand' && S.pans[side].length >= CAP) { msg(tr(`Auf eine Schale passen höchstens ${CAP} Lollis.`, `A pan holds at most ${CAP} lollipops.`), 'bad'); sfx('bump'); return false; }
       if (l.where !== 'stand') S.pans[l.where].splice(S.pans[l.where].indexOf(i), 1);
       l.where = side; l.hop = 0; if (side !== 'stand') S.pans[side].push(i);
       if (S.sel >= 0) msg('', 'info');   /* drop the stale "now tap a pan" prompt */
@@ -147,31 +148,31 @@
     function names(list) { return list.slice().sort((a, b) => a - b).map(i => i + 1).join(' + '); }
     function weigh() {
       if (S.busy || S.accuse) return;
-      if (S.weighs.length >= 2) { msg('Die Waage ist gesperrt. Jetzt musst du dich entscheiden!', 'bad'); sfx('bump'); return; }
+      if (S.weighs.length >= 2) { msg(tr('Die Waage ist gesperrt. Jetzt musst du dich entscheiden!', 'The scale is locked. Now you have to decide!'), 'bad'); sfx('bump'); return; }
       const nl = S.pans.L.length, nr = S.pans.R.length;
-      if (!nl || !nr) { msg('Leg erst auf beide Schalen Lollis.', 'bad'); sfx('bump'); return; }
-      if (nl !== nr) { msg('Leg auf beide Seiten gleich viele Lollis – sonst verrät die Waage nichts.', 'bad'); sfx('bump'); return; }
+      if (!nl || !nr) { msg(tr('Leg erst auf beide Schalen Lollis.', 'Put lollipops on both pans first.'), 'bad'); sfx('bump'); return; }
+      if (nl !== nr) { msg(tr('Leg auf beide Seiten gleich viele Lollis – sonst verrät die Waage nichts.', 'Put the same number of lollipops on each side – otherwise the scale tells you nothing.'), 'bad'); sfx('bump'); return; }
       const hl = S.pans.L.includes(S.heavy), hr = S.pans.R.includes(S.heavy);
       const res = hl ? 'L' : hr ? 'R' : '=';
       S.busy = true; S.angT = 0; S.angV += (rng() < 0.5 ? -1 : 1) * 2.2; sfx('tick');
       tone(300, 0.12, {type: 'triangle', gain: 0.08}); tone(340, 0.12, {type: 'triangle', gain: 0.08, delay: 0.18}); tone(300, 0.12, {type: 'triangle', gain: 0.08, delay: 0.36});
       later(() => {
         S.angT = res === 'L' ? -TILT : res === 'R' ? TILT : 0; S.angV += res === '=' ? 1.2 : 0; S.shown = true;
-        const txt = names(S.pans.L) + ' gegen ' + names(S.pans.R) + ': ' + (res === 'L' ? 'links schwerer' : res === 'R' ? 'rechts schwerer' : 'gleich schwer');
+        const txt = names(S.pans.L) + tr(' gegen ', ' vs ') + names(S.pans.R) + ': ' + (res === 'L' ? tr('links schwerer', 'left is heavier') : res === 'R' ? tr('rechts schwerer', 'right is heavier') : tr('gleich schwer', 'balanced'));
         S.weighs.push({txt, res});
         sfx(res === '=' ? 'bell' : 'thud');
         const p = res === '=' ? {x: Lay.cx, y: Lay.pivotY} : panPos(res, S.angT);
         burst(p.x, p.y, 12, [GOLD, '#fff', PINK], 110);
         S.busy = false;
-        if (S.weighs.length >= 2) { msg('Zweimal gewogen – die Waage ist jetzt gesperrt. Wer ist der Schwere?', 'info'); S.pulse = 1; }
-        else msg(res === '=' ? 'Gleich schwer! Was heißt das für die übrigen Lollis?' : (res === 'L' ? 'Die linke' : 'Die rechte') + ' Schale sinkt nach unten!', 'info');
+        if (S.weighs.length >= 2) { msg(tr('Zweimal gewogen – die Waage ist jetzt gesperrt. Wer ist der Schwere?', 'Weighed twice – the scale is locked now. Which one is the heavy one?'), 'info'); S.pulse = 1; }
+        else msg(res === '=' ? tr('Gleich schwer! Was heißt das für die übrigen Lollis?', 'Balanced! What does that tell you about the other lollipops?') : res === 'L' ? tr('Die linke Schale sinkt nach unten!', 'The left pan sinks down!') : tr('Die rechte Schale sinkt nach unten!', 'The right pan sinks down!'), 'info');
         kick();
       }, S.auto ? 380 : 850);
     }
     function toggleAccuse() {
       if (S.busy || S.won >= 0 || S.reveal) return;
       S.accuse = !S.accuse; S.sel = -1; sfx('select');
-      msg(S.accuse ? 'Tippe auf den Lolli, der schwerer ist. Du hast nur einen Versuch!' : '', 'info');
+      msg(S.accuse ? tr('Tippe auf den Lolli, der schwerer ist. Du hast nur einen Versuch!', 'Tap the lollipop that is heavier. You only get one try!') : '', 'info');
     }
     function accuse(i) {
       if (!S.accuse || S.busy) return;
@@ -179,11 +180,11 @@
       const l = S.lollis[i], tg = lolliTarget(i);
       if (i === S.heavy) {
         S.won = i; l.hop = 0; sfx('star'); burst(tg.x, tg.y - 40 * tg.s, 30, [GOLD, '#fff', PINK, MINT], 200);
-        msg('Lolli Nr. ' + (i + 1) + ' ist der Schwere! Schlau gewogen!', 'good');
+        msg(tr(`Lolli Nr. ${i + 1} ist der Schwere! Schlau gewogen!`, `Lollipop #${i + 1} is the heavy one! Clever weighing!`), 'good');
         later(() => { burst(tg.x, tg.y - 40 * tg.s, 24, [GOLD, '#fff', ROSE], 240); api.solved(); }, 650);
       } else {
         S.reveal = {wrong: i, heavy: S.heavy};
-        api.wrong('Nr. ' + (i + 1) + ' war federleicht! Der Schwere war Nr. ' + (S.heavy + 1) + '. Neue Runde – neuer heimlicher Schwerer.');
+        api.wrong(tr(`Nr. ${i + 1} war federleicht! Der Schwere war Nr. ${S.heavy + 1}. Neue Runde – neuer heimlicher Schwerer.`, `#${i + 1} was light as a feather! The heavy one was #${S.heavy + 1}. New round – a new secret heavy one.`));
         later(() => { for (const ll of S.lollis) { const p = lolliTarget(S.lollis.indexOf(ll)); burst(p.x, p.y - 30 * p.s, 3, [PINK, '#fff'], 60); } newRound(false); sfx('appear'); kick(); }, 2200);
       }
     }
@@ -242,7 +243,7 @@
         ctx.beginPath(); ctx.ellipse(p.x - half * 0.45, p.y + L.depth * 0.45, half * 0.22, L.depth * 0.12, -0.15, 0, TAU); ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.fill();
         if (hot) { ctx.beginPath(); ctx.ellipse(p.x, p.y + L.depth * 0.3, half + 8, L.depth + 10, 0, 0, TAU); ctx.strokeStyle = 'rgba(255,216,74,' + (0.6 + 0.3 * Math.sin(time * 8)) + ')'; ctx.lineWidth = 3; ctx.setLineDash([6, 5]); ctx.stroke(); ctx.setLineDash([]); }
         else if ((S.sel >= 0) && !S.accuse && S.pans[side].length < CAP) { ctx.beginPath(); ctx.ellipse(p.x, p.y + L.depth * 0.3, half + 6, L.depth + 8, 0, 0, TAU); ctx.strokeStyle = 'rgba(255,216,74,.45)'; ctx.lineWidth = 2; ctx.setLineDash([4, 6]); ctx.stroke(); ctx.setLineDash([]); }
-        T(ctx, side === 'L' ? 'links' : 'rechts', p.x, p.y + L.depth * 1.15 + 9, 11, 'rgba(255,244,224,.75)', {w: 600});
+        T(ctx, side === 'L' ? tr('links', 'left') : tr('rechts', 'right'), p.x, p.y + L.depth * 1.15 + 9, 11, 'rgba(255,244,224,.75)', {w: 600});
       }
       /* beam on top */
       ctx.save(); ctx.translate(cx, py); ctx.rotate(S.ang);
@@ -274,7 +275,8 @@
       if (S.won === i) y -= Math.abs(Math.sin(time * 7)) * 14;
       if (S.accuse) y -= Math.abs(Math.sin(time * 5 + i * 0.7)) * 3;
       const box = drawLolli(ctx, l.x, y, l.s, l.n, lolliOpts(i));
-      hits.push({x: box.x, y: box.y, w: box.w, h: box.h + 4, lolli: i, cursor: 'pointer'});
+      const hw = l.where === 'stand' ? box.w : Math.max(box.w, Math.min(36, (Lay.pwid - 16) / Math.max(1, S.pans[l.where].length)));   /* small pan lollis: tap area = their slot */
+      hits.push({x: l.x - hw / 2, y: box.y, w: hw, h: box.h + 4, lolli: i, cursor: 'pointer'});
     }
     function drawStand() {
       const L = Lay, y = L.shelfY;
@@ -295,31 +297,31 @@
       const ch = btnTop - top - gap;
       rr(ctx, x, top, w, ch, 14); ctx.fillStyle = 'rgba(255,244,224,.95)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
       rr(ctx, x, top, w, small ? 24 : 30, 14); ctx.fillStyle = PINK; ctx.fill(); ctx.stroke();
-      T(ctx, 'Wiege-Buch', x + w / 2, top + (small ? 12 : 15), small ? 13 : 15, PLUM);
+      T(ctx, tr('Wiege-Buch', 'Weighing Log'), x + w / 2, top + (small ? 12 : 15), small ? 13 : 15, PLUM);
       let yy = top + (small ? 32 : 42);
       for (let k = 0; k < 2; k++) {
         const e = S.weighs[k], px = small ? 11 : 12;
         ctx.beginPath(); ctx.arc(x + 16, yy + 7, 9, 0, TAU); ctx.fillStyle = e ? (e.res === '=' ? MINT : GOLD) : 'rgba(122,59,87,.15)'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = e ? INK : 'rgba(122,59,87,.35)'; ctx.stroke();
         T(ctx, String(k + 1), x + 16, yy + 8, 11, e ? INK : 'rgba(122,59,87,.6)');
-        const lines = wrap(ctx, e ? e.txt : (k === S.weighs.length ? 'noch frei …' : '—'), w - 40, px, e ? 600 : 500);
+        const lines = wrap(ctx, e ? e.txt : (k === S.weighs.length ? tr('noch frei …', 'not used yet …') : '—'), w - 40, px, e ? 600 : 500);
         lines.forEach((ln, j) => T(ctx, ln, x + 30, yy + 7 + j * (px + 3), px, e ? INK : 'rgba(122,59,87,.55)', {a: 'left', w: e ? 600 : 500}));
         yy += Math.max(20, lines.length * (px + 3) + 8);
       }
-      const rules = ['Gleich viele Lollis auf jede Schale', 'Höchstens ' + CAP + ' pro Schale', 'Antippen: Lolli → Schale (oder ziehen)'];
+      const rules = [tr('Gleich viele Lollis auf jede Schale', 'Same number on each pan'), tr(`Höchstens ${CAP} pro Schale`, `At most ${CAP} per pan`), tr('Antippen: Lolli → Schale (oder ziehen)', 'Tap: lollipop → pan (or drag)')];
       if (!small && yy + rules.length * 18 + 40 < top + ch) {
         yy += 4; ctx.strokeStyle = 'rgba(122,59,87,.2)'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(x + 12, yy); ctx.lineTo(x + w - 12, yy); ctx.stroke(); ctx.setLineDash([]); yy += 14;
         for (const r of rules) { star(ctx, x + 18, yy, 4.5, ROSE); T(ctx, r, x + 30, yy + 1, 11.5, PLUM, {a: 'left', w: 500}); yy += 18; }
       }
       if (yy + 18 < top + ch) {
-        const tip = S.weighs.length >= 2 ? 'Gesperrt. Wer ist der Schwere?' : (S.sel >= 0 ? 'Jetzt eine Schale antippen!' : 'Tippe einen Lolli an und dann eine Schale.');
+        const tip = S.weighs.length >= 2 ? tr('Gesperrt. Wer ist der Schwere?', 'Locked. Which one is heavy?') : (S.sel >= 0 ? tr('Jetzt eine Schale antippen!', 'Now tap a pan!') : tr('Tippe einen Lolli an und dann eine Schale.', 'Tap a lollipop, then a pan.'));
         const lines = wrap(ctx, tip, w - 24, small ? 10.5 : 11.5, 500);
         const ly = Math.max(yy + 4, top + ch - 8 - lines.length * 14);
         lines.forEach((ln, j) => T(ctx, ln, x + w / 2, ly + j * 14 + 6, small ? 10.5 : 11.5, PLUM, {w: 500}));
       }
       const left = 2 - S.weighs.length, locked = left <= 0;
-      button(x, btnTop, w, bh, locked ? 'Waage gesperrt' : 'Wiegen (' + S.weighs.length + '/2)', MINT, weigh, {id: 'w', disabled: locked || S.busy || S.accuse || S.reveal || S.won >= 0, ink: INK, dark: '#3f8f57'});
-      button(x, btnTop + bh + gap, w, bh, S.accuse ? 'Abbrechen' : 'Der Schwere ist …', S.accuse ? '#b46a8c' : ROSE, toggleAccuse, {id: 'a', disabled: S.busy || !!S.reveal || S.won >= 0, pulse: locked && !S.accuse});
-      button(x, btnTop + (bh + gap) * 2, w, bh, 'Alle Lollis zurück', 'rgba(255,255,255,.18)', resetPans, {id: 'r', disabled: S.busy || S.accuse || (!S.pans.L.length && !S.pans.R.length), dark: 'rgba(0,0,0,.25)'});
+      button(x, btnTop, w, bh, locked ? tr('Waage gesperrt', 'Scale locked') : tr('Wiegen', 'Weigh') + ' (' + S.weighs.length + '/2)', MINT, weigh, {id: 'w', disabled: locked || S.busy || S.accuse || S.reveal || S.won >= 0, ink: INK, dark: '#3f8f57'});
+      button(x, btnTop + bh + gap, w, bh, S.accuse ? tr('Abbrechen', 'Cancel') : tr('Der Schwere ist …', 'The heavy one is …'), S.accuse ? '#b46a8c' : ROSE, toggleAccuse, {id: 'a', disabled: S.busy || !!S.reveal || S.won >= 0, pulse: locked && !S.accuse});
+      button(x, btnTop + (bh + gap) * 2, w, bh, tr('Alle Lollis zurück', 'All lollipops back'), 'rgba(255,255,255,.18)', resetPans, {id: 'r', disabled: S.busy || S.accuse || (!S.pans.L.length && !S.pans.R.length), dark: 'rgba(0,0,0,.25)'});
     }
     function draw() {
       if (!Lay) layout();
@@ -335,7 +337,7 @@
       drawStand();
       if (S.accuse) {
         /* small banner just above the lolli heads on the shelf, so it never covers the pans */
-        const label = 'Tippe auf den schweren Lolli!', fz = L.small ? 12.5 : 14; ctx.font = '700 ' + fz + 'px ' + FONT;
+        const label = tr('Tippe auf den schweren Lolli!', 'Tap the heavy lollipop!'), fz = L.small ? 12.5 : 14; ctx.font = '700 ' + fz + 'px ' + FONT;
         const bh = L.small ? 24 : 28, bw = Math.min(L.aw - 20, ctx.measureText(label).width + 30), bx = L.cx - bw / 2;
         const by = L.shelfY - 52 * L.ss - bh - 6 + Math.sin(time * 4) * 2;
         rr(ctx, bx, by, bw, bh, bh / 2); ctx.fillStyle = 'rgba(255,111,156,.95)'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke();
@@ -414,7 +416,7 @@
         else { l.x = d.x; l.y = d.y + 30 * l.s; sfx('bump'); }
       } else if (l.where !== 'stand' && S.sel >= 0 && S.sel !== d.i) place(S.sel, l.where);   /* a lolli is waiting: the tap meant "this pan" */
       else if (l.where !== 'stand') place(d.i, 'stand');
-      else { S.sel = S.sel === d.i ? -1 : d.i; sfx('select'); l.hop = 0; if (S.sel >= 0) msg('Lolli Nr. ' + (d.i + 1) + ' – jetzt tippe auf eine Schale.', 'info'); }
+      else { S.sel = S.sel === d.i ? -1 : d.i; sfx('select'); l.hop = 0; if (S.sel >= 0) msg(tr(`Lolli Nr. ${d.i + 1} – jetzt tippe auf eine Schale.`, `Lollipop #${d.i + 1} – now tap a pan.`), 'info'); }
       kick();
     }
     function onKey(e) {
@@ -442,7 +444,7 @@
         if (S.won >= 0 || S.auto) return;
         if (S.busy || S.reveal) { later(() => handle.autoSolve(), 200); return; }
         S.auto = true; const h = S.heavy;
-        newRound(true); S.heavy = h; msg('So geht’s: 3 gegen 3, dann 1 gegen 1 …', 'info'); kick();
+        newRound(true); S.heavy = h; msg(tr('So geht’s: 3 gegen 3, dann 1 gegen 1 …', 'Here’s how: 3 vs 3, then 1 vs 1 …'), 'info'); kick();
         let t = 120; const at = (ms, fn) => { t += ms; later(() => { fn(); kick(); }, t); };
         [0, 1, 2].forEach(i => at(70, () => place(i, 'L')));
         [3, 4, 5].forEach(i => at(70, () => place(i, 'R')));
@@ -465,10 +467,10 @@
 
   const DEF = {
     id: 'wiese-waage', world: 'wiese', slot: 0,
-    title: 'Die Lolli-Waage',
-    intro: 'Neun gleiche Lollis – einer ist heimlich schwerer! Du darfst nur ZWEIMAL wiegen, dann tippe „Der Schwere ist …“ und zeig auf ihn. Ein Versuch pro Runde!',
-    letter: 'Drei Gruppen, Wookie! Wer immer nur zwei vergleicht, vergisst die dritte.',
-    hint: 'Teile die neun Lollis in drei Dreiergruppen. Wiege 3 gegen 3: Sinkt eine Seite, steckt der Schwere dort – bleibt die Waage gerade, ist er in der dritten Gruppe. Aus dieser Gruppe wiegst du dann 1 gegen 1 und denkst genauso.',
+    title: tr('Die Lolli-Waage', 'The Lollipop Scale'),
+    intro: tr('Neun gleiche Lollis – einer ist heimlich schwerer! Du darfst nur ZWEIMAL wiegen, dann tippe „Der Schwere ist …“ und zeig auf ihn. Ein Versuch pro Runde!', 'Nine identical lollipops – one is secretly heavier! You may weigh only TWICE, then tap "The heavy one is …" and point at it. One try per round!'),
+    letter: tr('Drei Gruppen, Toffo! Wer immer nur zwei vergleicht, vergisst die dritte.', 'Three groups, Toffo! If you only ever compare two, you forget the third.'),
+    hint: tr('Teile die neun Lollis in drei Dreiergruppen. Wiege 3 gegen 3: Sinkt eine Seite, steckt der Schwere dort – bleibt die Waage gerade, ist er in der dritten Gruppe. Aus dieser Gruppe wiegst du dann 1 gegen 1 und denkst genauso.', 'Split the nine lollipops into three groups of three. Weigh 3 against 3: if one side sinks, the heavy one is there – if the scale stays level, it is in the third group. From that group, weigh 1 against 1 and think the same way.'),
     station, mount,
   };
   if (G.PZ) G.PZ.register(DEF);

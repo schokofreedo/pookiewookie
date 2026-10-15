@@ -1,10 +1,11 @@
-/* Pookiewookie puzzle: lava-mathe "Das Magma-Rechentor".
+/* The Starway Home puzzle: lava-mathe "Das Magma-Rechentor".
    A picture equation on a glowing basalt tablet: four clue rows (flame clusters, rock, crystal, volcano) and a question row.
    Traps: the number of flames in a cluster matters (each single flame has the same value), and the question row needs
    multiplication before addition/subtraction. Values are generated per visit; the generator asserts integer, unique values and
    that the typical wrong readings give different numbers. Entry through a carved stone keypad (also keyboard digits). */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, FONT = '"Fredoka", sans-serif';
   const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
 
@@ -192,7 +193,7 @@
   function mount(root, api) {
     const rng = api.rng || Math.random;
     let P = generate(rng);
-    let entry = '', done = false, shake = 0, flashBad = 0, flashGood = 0, pressed = null, pressT = 0, solveT = -1;
+    let entry = '', done = false, shake = 0, flashBad = 0, flashGood = 0, pressed = null, pressT = 0, solveT = -1, auto = false;
     const parts = [], embers = [];
     for (let i = 0; i < 40; i++) embers.push({x: Math.random(), y: Math.random(), v: 0.03 + Math.random() * 0.06, r: 0.8 + Math.random() * 1.8, ph: Math.random() * 6});
     const cracks = [];
@@ -220,13 +221,13 @@
     }
     function submit() {
       if (done) return;
-      if (!entry) { api.msg('Tippe zuerst eine Zahl auf den Steintasten ein.', 'info'); tone(180, 0.1, {type: 'triangle', gain: 0.12}); return; }
+      if (!entry) { api.msg(tr('Tippe zuerst eine Zahl auf den Steintasten ein.', 'First type a number on the stone keys.'), 'info'); tone(180, 0.1, {type: 'triangle', gain: 0.12}); return; }
       if (+entry === P.ans) win();
       else {
         shake = 0.45; flashBad = 0.7; const r = L.kp; burst(r.x + r.w / 2, r.y + 30, 14, ['#ff5a2a', '#5a3a3a', '#ff9a4a'], 120);
         noise(0.35, {type: 'lowpass', freq: 400, freqTo: 90, gain: 0.25});
         const n = api.attempts();
-        api.wrong(n === 0 ? 'Das Magma-Tor grollt nur. ' + entry + ' stimmt nicht.' : (n === 1 ? 'Wieder falsch. Prüfe jede Zeile – und schau dir die Flammen genau an.' : 'Noch nicht. Punkt vor Strich – in jeder Zeile, auch beim Vulkan!'));
+        api.wrong(n === 0 ? tr('Das Magma-Tor grollt nur. ' + entry + ' stimmt nicht.', 'The magma gate just rumbles. ' + entry + ' is not right.') : (n === 1 ? tr('Wieder falsch. Prüfe jede Zeile – und schau dir die Flammen genau an.', 'Wrong again. Check every row – and look closely at the flames.') : tr('Noch nicht. Punkt vor Strich – in jeder Zeile, auch beim Vulkan!', 'Not yet. Multiply before you add or subtract – in every row, even the volcano one!')));
         entry = '';
       }
     }
@@ -317,7 +318,7 @@
       g.save(); g.beginPath(); rr(g, D.x, D.y, D.w, D.h, 10); g.clip();
       const shown = entry || '';
       if (shown) txt(g, shown, D.x + D.w / 2, D.y + D.h / 2 + 1, D.h * 0.62, done ? '#fff4c0' : '#ffb347', {glow: done ? '#ffd84a' : '#ff6a1a', blur: 14});
-      else txt(g, 'Zahl?', D.x + D.w / 2, D.y + D.h / 2 + 1, D.h * 0.4, 'rgba(255,170,100,.35)', {w: 600});
+      else txt(g, tr('Zahl?', 'Number?'), D.x + D.w / 2, D.y + D.h / 2 + 1, D.h * 0.4, 'rgba(255,170,100,.35)', {w: 600});
       if (!done && shown && Math.floor(t * 2) % 2 === 0) { g.font = '700 ' + (D.h * 0.62) + 'px ' + FONT; const tw = shown ? g.measureText(shown).width : -D.h * 0.9; g.fillStyle = '#ff9a4a'; g.fillRect(D.x + D.w / 2 + tw / 2 + 3, D.y + D.h * 0.24, 3, D.h * 0.52); }
       g.restore();
       /* keys */
@@ -345,34 +346,34 @@
 
     const S = makeStage(root, {
       layout, draw,
-      down(h) { if (h && h.id[0] === 'k') press(h.data); },
+      down(h) { if (h && h.id[0] === 'k' && !auto) press(h.data); },
     });
     const onKey = e => {
-      if (done) return;
+      if (done || auto) return;
       if (/^[0-9]$/.test(e.key)) { press(e.key); e.preventDefault(); }
       else if (e.key === 'Backspace') { press('del'); e.preventDefault(); }
       else if (e.key === 'Enter') { press('ok'); e.preventDefault(); }
     };
     document.addEventListener('keydown', onKey);
-    api.msg('Jedes Bild hat einen festen Wert. Finde die Zahl für das Fragezeichen.', 'info');
+    api.msg(tr('Jedes Bild hat einen festen Wert. Finde die Zahl für das Fragezeichen.', 'Every picture has a fixed value. Find the number for the question mark.'), 'info');
 
     return {
       destroy() { S.destroy(); document.removeEventListener('keydown', onKey); timers.forEach(clearTimeout); },
       autoSolve() {
-        if (done) return; entry = '';
+        if (done || auto) return; auto = true; entry = '';   /* the paid solution types itself: block player input meanwhile */
         const digits = String(P.ans).split('');
         digits.forEach((d, i) => later(() => press(d), 160 * (i + 1)));
-        later(() => press('ok'), 160 * (digits.length + 1) + 120);
+        later(() => { entry = String(P.ans); press('ok'); }, 160 * (digits.length + 1) + 120);
       },
     };
   }
 
   G.PZ.register({
     id: 'lava-mathe', world: 'lava', slot: 0,
-    title: 'Das Magma-Rechentor',
-    intro: 'Jedes Bild steht für eine feste Zahl, jede einzelne Flamme zählt gleich viel. Knack die Zeilen und tippe die Zahl für das „?“ ein.',
-    letter: 'Punkt vor Strich, Wookie! Und zähl die Flammen in jeder Gruppe ganz genau – jede einzelne Flamme zählt gleich viel.',
-    hint: 'Rechne Zeile für Zeile: erst eine Flamme, dann den Stein, dann den Kristall, dann den Vulkan. Eine Flammengruppe ist so viel wert wie ihre Flammen zusammen – in der letzten Zeile hat die Gruppe eine andere Zahl an Flammen! Und in jeder Zeile gilt: erst malnehmen, dann plus und minus (auch schon beim Vulkan).',
+    title: tr('Das Magma-Rechentor', 'The Magma Math Gate'),
+    intro: tr('Jedes Bild steht für eine feste Zahl, jede einzelne Flamme zählt gleich viel. Knack die Zeilen und tippe die Zahl für das „?“ ein.', 'Every picture stands for a fixed number, and every single flame is worth the same. Crack the rows and type in the number for the “?”.'),
+    letter: tr('Punkt vor Strich, Toffo! Und zähl die Flammen in jeder Gruppe ganz genau – jede einzelne Flamme zählt gleich viel.', 'Multiply before you add, Toffo! And count the flames in every group very carefully – every single flame is worth the same.'),
+    hint: tr('Rechne Zeile für Zeile: erst eine Flamme, dann den Stein, dann den Kristall, dann den Vulkan. Eine Flammengruppe ist so viel wert wie ihre Flammen zusammen – in der letzten Zeile hat die Gruppe eine andere Zahl an Flammen! Und in jeder Zeile gilt: erst malnehmen, dann plus und minus (auch schon beim Vulkan).', 'Solve it row by row: first one flame, then the rock, then the crystal, then the volcano. A flame group is worth all its flames added up – and in the last row the group has a different number of flames! In every row: multiply first, then add and subtract (already in the volcano row).'),
     station,
     mount,
   });

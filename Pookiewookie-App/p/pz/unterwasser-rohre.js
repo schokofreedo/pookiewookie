@@ -1,9 +1,10 @@
-/* Pookiewookie puzzle: "Die Luftleitung" (Unterwasser, slot 0).
+/* The Starway Home puzzle: "Die Luftleitung" (Unterwasser, slot 0).
    A "Net"-style rotation puzzle on 6x5 tiles: a brass diving-bell pump sits in one tile, every tile holds a piece of air pipe
    (end, straight, corner, T). Tap rotates a tile 90 degrees clockwise, long press / right click pins it. Solved when no pipe points
    into nothing and every tile gets air from the pump. Generated from a random spanning tree (no crosses), scrambled far from solved. */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, COLS = 6, ROWS = 5, N = COLS * ROWS;
   const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];          /* bit d: 1=N 2=E 4=S 8=W */
   const rot = (m, k) => { k = ((k % 4) + 4) % 4; for (let i = 0; i < k; i++) m = ((m << 1) | (m >> 3)) & 15; return m; };
@@ -42,10 +43,10 @@
 
   G.PZ.register({
     id: 'unterwasser-rohre', world: 'unterwasser', slot: 0, _gen: genTree,
-    title: 'Die Luftleitung',
-    intro: 'Die Taucherglocke pumpt Luft, aber die Rohre sind verdreht. Tippe auf ein Feld, um es zu drehen (halten oder Rechtsklick = festmachen). Jedes Rohr muss Luft bekommen und kein Rohrende darf ins Leere zeigen.',
-    letter: 'Kein Rohr darf ins Nichts zeigen, am Rand schon gar nicht. Fang in den Ecken an, dort hat ein Rohr die wenigsten Möglichkeiten.',
-    hint: 'Arbeite dich von außen nach innen: Ein gerades Rohr am Rand muss am Rand entlang liegen, ein Knick in der Ecke zeigt nach innen, und ein T am Rand kehrt seinen Rücken nach außen. Mach sichere Felder mit Halten fest. Zwei Endstücke dürfen nie direkt aufeinander zeigen, sonst wäre der Rest abgeschnitten.',
+    title: tr('Die Luftleitung', 'The Air Pipes'),
+    intro: tr('Die Taucherglocke pumpt Luft, aber die Rohre sind verdreht. Tippe auf ein Feld, um es zu drehen (halten oder Rechtsklick = festmachen). Jedes Rohr muss Luft bekommen und kein Rohrende darf ins Leere zeigen.', 'The diving bell pumps air, but the pipes are all twisted. Tap a tile to turn it (hold or right-click = pin it). Every pipe must get air and no pipe end may point into nothing.'),
+    letter: tr('Kein Rohr darf ins Nichts zeigen, am Rand schon gar nicht. Fang in den Ecken an, dort hat ein Rohr die wenigsten Möglichkeiten.', 'No pipe may point into nothing, and certainly not at the edge. Start in the corners, that’s where a pipe has the fewest choices.'),
+    hint: tr('Arbeite dich von außen nach innen: Ein gerades Rohr am Rand muss am Rand entlang liegen, ein Knick in der Ecke zeigt nach innen, und ein T am Rand kehrt seinen Rücken nach außen. Mach sichere Felder mit Halten fest. Zwei Endstücke dürfen nie direkt aufeinander zeigen, sonst wäre der Rest abgeschnitten.', 'Work from the outside in: a straight pipe at the edge must run along the edge, a bend in a corner points inward, and a T at the edge turns its back to the outside. Pin safe tiles by holding them. Two end pieces may never point straight at each other, or the rest would be cut off.'),
     station(ctx, x, y, t, solved) {
       ctx.save(); ctx.translate(x, y);
       ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -73,7 +74,7 @@
       cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:pointer';
       root.appendChild(cv);
       const ctx = cv.getContext('2d');
-      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn ghost'; btn.textContent = 'Neu mischen';
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn ghost'; btn.textContent = tr('Neu mischen', 'Shuffle');
       btn.style.cssText = 'position:absolute;margin:0;padding:7px 14px;font-size:13px;min-height:36px;background:rgba(10,40,70,.55);border-color:rgba(143,211,255,.6);color:#e8fbff';
       root.appendChild(btn);
 
@@ -238,22 +239,22 @@
         ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
         const big = compact ? 15 : 18, sm = compact ? 11 : 13;
         let y = by + (compact ? 14 : 22);
-        fnt(ctx, '700', big); ctx.fillStyle = '#ffd84a'; ctx.fillText('Luft im Netz', x, y);
+        fnt(ctx, '700', big); ctx.fillStyle = '#ffd84a'; ctx.fillText(tr('Luft im Netz', 'Air in the pipes'), x, y);
         y += compact ? 10 : 14;
         const bw = Math.min(160, w - 4), frac = conn.count / N;
         rr(ctx, x, y, bw, compact ? 12 : 16, 7); ctx.fillStyle = 'rgba(0,20,40,.6)'; ctx.fill(); ctx.strokeStyle = 'rgba(143,211,255,.7)'; ctx.lineWidth = 1.5; ctx.stroke();
         if (frac > 0) { rr(ctx, x + 2, y + 2, Math.max(8, (bw - 4) * frac), (compact ? 12 : 16) - 4, 5); ctx.fillStyle = '#8fe9ff'; ctx.fill(); }
         y += (compact ? 12 : 16) + (compact ? 14 : 20);
-        fnt(ctx, '600', sm + 1); ctx.fillStyle = '#e8fbff'; ctx.fillText(conn.count + ' von ' + N + ' Rohren', x, y);
+        fnt(ctx, '600', sm + 1); ctx.fillStyle = '#e8fbff'; ctx.fillText(tr(`${conn.count} von ${N} Rohren`, `${conn.count} of ${N} pipes`), x, y);
         y += compact ? 15 : 20;
         fnt(ctx, '600', sm); ctx.fillStyle = conn.open ? '#ffb3c4' : '#9be7a5';
-        ctx.fillText(conn.open ? conn.open + ' offene Rohrenden' : 'Keine offenen Enden', x, y);
+        ctx.fillText(conn.open ? tr(`${conn.open} offene Rohrenden`, conn.open === 1 ? '1 open pipe end' : `${conn.open} open pipe ends`) : tr('Keine offenen Enden', 'No open ends'), x, y);
         if (!compact) {
           y += 30; fnt(ctx, '500', 12); ctx.fillStyle = 'rgba(232,251,255,.8)';
-          ctx.fillText('Tippen: drehen', x, y); y += 17;
-          ctx.fillText('Halten / Rechtsklick:', x, y); y += 16; ctx.fillText('Feld festmachen', x, y);
+          ctx.fillText(tr('Tippen: drehen', 'Tap: turn'), x, y); y += 17;
+          ctx.fillText(tr('Halten / Rechtsklick:', 'Hold / right-click:'), x, y); y += 16; ctx.fillText(tr('Feld festmachen', 'pin a tile'), x, y);
         } else {
-          y += 15; fnt(ctx, '500', 10.5); ctx.fillStyle = 'rgba(232,251,255,.8)'; ctx.fillText('Halten = festmachen', x, y);
+          y += 15; fnt(ctx, '500', 10.5); ctx.fillStyle = 'rgba(232,251,255,.8)'; ctx.fillText(tr('Halten = festmachen', 'Hold = pin'), x, y);
         }
       }
       function draw(t) {
@@ -280,7 +281,7 @@
           const a = Math.min(1, (t - solvedAt) / 0.4);
           ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'; fnt(ctx, '700', compact ? 22 : 30);
           const tx = bx + cell * COLS / 2, ty = by + cell * ROWS / 2 + Math.sin(t * 4) * 3;
-          ctx.lineWidth = 7; ctx.strokeStyle = '#0b2f52'; ctx.lineJoin = 'round'; ctx.strokeText('Luft marsch!', tx, ty); ctx.fillStyle = '#bff6ff'; ctx.fillText('Luft marsch!', tx, ty);
+          ctx.lineWidth = 7; ctx.strokeStyle = '#0b2f52'; ctx.lineJoin = 'round'; const won = tr('Luft marsch!', 'Air flows!'); ctx.strokeText(won, tx, ty); ctx.fillStyle = '#bff6ff'; ctx.fillText(won, tx, ty);
           ctx.restore();
         }
       }
@@ -310,7 +311,7 @@
         locked.fill(false);
         for (let i = 0; i < N; i++) rippleAt[i] = solvedAt + conn.dist[i] * 0.07;
         for (let k = 0; k < 40; k++) fx.push({x: bx + rng() * cell * COLS, y: by + rng() * cell * ROWS, r: 2 + rng() * 5, rise: 40 + rng() * 80, life: 1 + rng(), t0: solvedAt + rng() * 0.6, ph: rng() * 9, star: k % 3 === 0});
-        api.msg('Die Luft strömt durch alle Rohre!', 'good');
+        api.msg(tr('Die Luft strömt durch alle Rohre!', 'Air is flowing through every pipe!'), 'good');
         snd(A => { A.noise(0.9, {type: 'bandpass', freq: 600, freqTo: 2400, q: 1, gain: 0.12}); [523, 659, 784, 1047, 1319].forEach((f, i) => A.bell(f, 0.4, 0.1, 0.1 + i * 0.08)); });
         draw(solvedAt);
         autoT.push(setTimeout(() => api.solved(), 1000));
@@ -341,13 +342,13 @@
         const p = press; press = null;
         if (p.fired || busy) return;
         if (hit(e) !== p.i) return;
-        if (locked[p.i]) { snd(A => A.tone(200, 0.08, {type: 'triangle', gain: 0.1})); api.msg('Dieses Feld ist festgemacht. Halten löst es wieder.', 'info'); return; }
+        if (locked[p.i]) { snd(A => A.tone(200, 0.08, {type: 'triangle', gain: 0.1})); api.msg(tr('Dieses Feld ist festgemacht. Halten löst es wieder.', 'This tile is pinned. Hold it again to unpin it.'), 'info'); return; }
         rotateTile(p.i);
       };
       const onCancel = () => { if (press) { clearTimeout(press.tm); press = null; } };
       const onCtx = e => e.preventDefault();
       cv.addEventListener('pointerdown', onDown); cv.addEventListener('pointerup', onUp); cv.addEventListener('pointercancel', onCancel); cv.addEventListener('pointerleave', onCancel); cv.addEventListener('contextmenu', onCtx);
-      btn.addEventListener('click', () => { if (busy) return; api.sfx('select'); newPuzzle(); api.msg('Neue Leitung gemischt.', 'info'); draw(performance.now() / 1000); });
+      btn.addEventListener('click', () => { if (busy) return; api.sfx('select'); newPuzzle(); api.msg(tr('Neue Leitung gemischt.', 'New pipes shuffled.'), 'info'); draw(performance.now() / 1000); });
 
       newPuzzle();
       const ro = new ResizeObserver(() => layout()); ro.observe(root);

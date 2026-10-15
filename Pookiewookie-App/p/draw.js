@@ -1,9 +1,10 @@
-/* Pookiewookie: HD rendering. Parallax worlds, shaded tiles, chibi bears, every creature, weather, particles, HUD.
+/* The Starway Home: HD rendering. Parallax worlds, shaded tiles, chibi bears, every creature, weather, particles, HUD.
    Everything is drawn in logical 480x270 units; the backing store follows devicePixelRatio via G.draw.resize(). */
 (function () {
   const G = window.PW = window.PW || {}, T = 16, VH = 270, MH = 15, OFFY = VH - MH * T, TAU = Math.PI * 2; let VW = G.VW || 480;   /* logical width follows the screen aspect (480..640) */
   let ctx = null, canvas = null, k = 1, sk = 1;
   const S = () => G.S, P = () => G.P, L = () => G.L, E = () => G.eng;
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const clamp = (v, a, b) => v < a ? a : (v > b ? b : v), mod = (a, n) => ((a % n) + n) % n, lerp = (a, b, t) => a + (b - a) * t;
   const snap = v => Math.round(v * k) / k;
 
@@ -172,7 +173,7 @@
     for (let i = 0; i < 12; i++) { const x = mod(i * 53 - cam * 0.45, VW + 40) - 20, y = mod(i * 41 + 30 - camY * 0.45, VH + 40) - 20, pulse = 0.55 + 0.45 * Math.sin(fr * 0.04 + i); ctx.globalAlpha = d * pulse * 0.8; blit(glow(cc, 10), x - 10, y - 10); ctx.globalAlpha = d; ctx.fillStyle = cc; ctx.beginPath(); ctx.moveTo(x, y - 5); ctx.lineTo(x + 3, y); ctx.lineTo(x, y + 5); ctx.lineTo(x - 3, y); ctx.closePath(); ctx.fill(); }
     ctx.globalAlpha = 1;
   }
-  function drawBackground(W, cam, fr) { drawSky(W); (BG[W.key] || BG[W.bgKey] || BG.wiese)(cam, fr, W); }
+  function drawBackground(W, cam, fr) { if (G.art && G.art.bg && G.art.bg(ctx, W, cam, fr, VW)) return; drawSky(W); (BG[W.key] || BG[W.bgKey] || BG.wiese)(cam, fr, W); }   /* G.art.bg: event worlds paint their own backdrop */
 
   /* ================= tiles ================= */
   const conn = ch => ch === '#' || ch === 'i' || ch === 's';
@@ -269,7 +270,7 @@
   function shroomSpr() { return spr('shroom', 18, 18, (g) => { rr(g, 6, 9, 6, 8, 2); g.fillStyle = lin(g, '', 6, 0, 12, 0, [0, '#fff4e0', 1, '#e6cfa0']); g.fill(); g.strokeStyle = '#b89c78'; g.lineWidth = 0.8; g.stroke(); g.beginPath(); g.moveTo(1, 10); g.quadraticCurveTo(1, 1, 9, 1); g.quadraticCurveTo(17, 1, 17, 10); g.quadraticCurveTo(13, 12, 9, 11.5); g.quadraticCurveTo(5, 12, 1, 10); g.closePath(); g.fillStyle = lin(g, '', 0, 0, 0, 12, [0, '#ff8fb0', 1, '#d9346e']); g.fill(); g.strokeStyle = '#a0244e'; g.lineWidth = 1; g.stroke(); g.fillStyle = '#fff'; fcirc(g, 5, 5.5, 1.6); fcirc(g, 12, 4.5, 1.9); fcirc(g, 9, 9, 1.1); fcirc(g, 15, 8.5, 0.9); g.fillStyle = 'rgba(255,255,255,.35)'; ell(g, 6, 3.5, 3, 1.2); g.fill(); }); }
   function heartSpr() { return spr('heart', 14, 14, (g) => { heartPath(g, 7, 6.5, 5.2); g.fillStyle = lin(g, '', 0, 0, 0, 14, [0, '#ff8fb0', 1, '#ff4f85']); g.fill(); g.strokeStyle = '#c9305f'; g.lineWidth = 1; g.stroke(); g.fillStyle = 'rgba(255,255,255,.75)'; ell(g, 4.6, 4.4, 1.5, 1); g.fill(); }); }
   function starSpr() { return spr('starck', 18, 18, (g) => { starPath(g, 9, 9.3, 8.2, 4.4, 5); g.fillStyle = lin(g, '', 0, 0, 0, 18, [0, '#ffe08a', 1, '#f0b43a']); g.fill(); g.strokeStyle = '#b8781a'; g.lineWidth = 1; g.stroke(); g.fillStyle = '#5a3a1a'; fcirc(g, 7, 7.5, 1.1); fcirc(g, 11.5, 10.5, 1); fcirc(g, 8.5, 12, 0.8); fcirc(g, 12, 6.5, 0.7); g.fillStyle = 'rgba(255,255,255,.6)'; fcirc(g, 6, 4.5, 1.1); }); }
-  function signSpr() { return spr('sign', 28, 24, (g) => { g.fillStyle = '#b8895a'; rr(g, 12.5, 10, 3, 14, 1); g.fill(); rr(g, 1, 1, 26, 11, 3); g.fillStyle = '#fff7ef'; g.fill(); g.strokeStyle = '#ff9eb0'; g.lineWidth = 1.2; g.stroke(); txt(g, 'Pookie →', 14, 6.8, 7, '#e8738f', 'center', null, 0, '700'); heartPath(g, 4.5, 4, 1.4); g.fillStyle = '#ff6f9c'; g.fill(); }); }
+  function signSpr() { return spr('sign', 28, 24, (g) => { g.fillStyle = '#b8895a'; rr(g, 12.5, 10, 3, 14, 1); g.fill(); rr(g, 1, 1, 26, 11, 3); g.fillStyle = '#fff7ef'; g.fill(); g.strokeStyle = '#ff9eb0'; g.lineWidth = 1.2; g.stroke(); txt(g, 'Mallo →', 14, 6.8, 7, '#e8738f', 'center', null, 0, '700'); heartPath(g, 4.5, 4, 1.4); g.fillStyle = '#ff6f9c'; g.fill(); }); }
   function treeSpr(W) {
     return spr('tree' + W.key, 64, 72, (g) => {
       const x = 32, y = 72, key = W.key;
@@ -358,17 +359,17 @@
       case '*': { const bb = Math.sin(fr * 0.09 + cx) * 1.6; ctx.globalAlpha = 0.45; blit(glow('#ffe08a', 14), x - 6, y - 6 + bb); ctx.globalAlpha = 1; ctx.save(); ctx.translate(x + 8, y + 8 + bb); ctx.rotate(Math.sin(fr * 0.05 + cx) * 0.15); blit(starSpr(), -9, -9); ctx.restore(); if ((fr + cx * 7) % 40 < 8) { starPath(ctx, x + 13.5, y + 2 + bb, 2.4, 0.8, 4); ctx.fillStyle = '#fff'; ctx.fill(); } return; }
       case 'K': case 'k': drawFlag(x, y, fr, ch === 'k'); return;
       case 'F': drawGoal(x, y, fr, tileAt(cx, cy - 1) !== 'F'); return;
-      case 'p': { blit(treeSpr(W), x - 24, y - 56); if (W.key === 'lava') { const fl = 1 + Math.sin(fr * 0.3 + cx) * 0.15; ctx.globalAlpha = 0.6; blit(glow('#ffb347', 16), x - 8, y - 49 - 16 + 8); ctx.globalAlpha = 1; fell(ctx, x + 8, y - 49, 2.4 * fl, 4 * fl, '#ffb347'); fell(ctx, x + 8, y - 48, 1.2 * fl, 2.2 * fl, '#fff2a0'); } return; }
-      case 'h': blit(bushSpr(W), x - 6, y - 2); return;
-      case 'd': { const bob = W.key === 'himmel' ? Math.sin(fr * 0.06 + cx) * 2 : 0; blit(decoSpr(W), x - 6, y - 20 + bob); return; }
-      case 'f': blit(signSpr(), x - 6, y - 8); return;
+      case 'p': { if (G.art && G.art.decoTile && G.EVENT_WORLDS && G.EVENT_WORLDS[W.key] && G.art.decoTile(ctx, W, x, y, cx, fr, ch)) return; blit(treeSpr(W), x - 24, y - 56); if (W.key === 'lava') { const fl = 1 + Math.sin(fr * 0.3 + cx) * 0.15; ctx.globalAlpha = 0.6; blit(glow('#ffb347', 16), x - 8, y - 49 - 16 + 8); ctx.globalAlpha = 1; fell(ctx, x + 8, y - 49, 2.4 * fl, 4 * fl, '#ffb347'); fell(ctx, x + 8, y - 48, 1.2 * fl, 2.2 * fl, '#fff2a0'); } return; }
+      case 'h': if (G.art && G.art.decoTile && G.EVENT_WORLDS && G.EVENT_WORLDS[W.key] && G.art.decoTile(ctx, W, x, y, cx, fr, ch)) return; blit(bushSpr(W), x - 6, y - 2); return;
+      case 'd': { if (G.art && G.art.decoTile && G.art.decoTile(ctx, W, x, y, cx, fr)) return; const bob = W.key === 'himmel' ? Math.sin(fr * 0.06 + cx) * 2 : 0; blit(decoSpr(W), x - 6, y - 20 + bob); return; }
+      case 'f': if (G.art && G.art.decoTile && G.EVENT_WORLDS && G.EVENT_WORLDS[W.key] && G.art.decoTile(ctx, W, x, y, cx, fr, ch)) return; blit(signSpr(), x - 6, y - 8); return;
       case 'Q': { blit(cottageSpr(), x - 16, y - 42); ctx.globalAlpha = 0.35 + Math.sin(fr * 0.06) * 0.15; blit(glow('#ffd84a', 14), x - 15 + 7 - 14 + 5, y - 42 + 22 + 13 - 14); blit(glow('#ffd84a', 14), x - 15 + 39 - 14 + 5, y - 42 + 22 + 13 - 14); ctx.globalAlpha = 1; for (let i = 0; i < 3; i++) { const t = (fr * 0.5 + i * 30) % 90; ctx.globalAlpha = 0.5 * (1 - t / 90); fcirc(ctx, x + 33 + Math.sin(t * 0.1 + i) * 3 + t * 0.1, y - 42 - t * 0.35, 3 + t * 0.05, '#fff'); } ctx.globalAlpha = 1; return; }
       case 'U': { blit(towerSpr(W), x - 20, y - 124); if (W.boss.final && !L().rescued) drawBear(x + 6, y - 72, false, fr * 0.05, -1, false, true, true, 1, 1, false); return; }
       default: if (G.fx && G.fx.tile && G.fx.tile(ctx, ch, cx, cy, x, y, fr)) return;
     }
   }
 
-  /* ================= Wookie: cute-cool action bear, stateless renderer ================= */
+  /* ================= Toffo: cute-cool action bear, stateless renderer ================= */
   const OUTFITS = ['wiese', 'insel', 'dschungel', 'schnee', 'lava', 'himmel'];
   function gradG(g, key, mk) { if (g === ctx) { let gr = grads.get(key); if (!gr) { gr = mk(); grads.set(key, gr); } return gr; } return mk(); }
   function furGrad(g, col, r) { return gradG(g, 'fur' + col + r, () => { const gr = g.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r * 1.15); gr.addColorStop(0, shade(col, 0.2)); gr.addColorStop(0.6, col); gr.addColorStop(1, shade(col, -0.1)); return gr; }); }
@@ -477,11 +478,13 @@
     if (raisedB) capsule(g, -4.3, -8.8, 4.8, 2.7, aB, shade(fur, -0.08), paw, ol);
     if (raisedF) capsule(g, 4.3, -8.8, 4.8, 2.7, aF, fur, paw, ol);
     if (o.coffee) { g.save(); g.translate(4.3 + Math.sin(aF) * 4.8, -8.8 + Math.cos(aF) * 4.8); rr(g, -2, -2, 4, 4, 1); fs(g, '#fff', '#8a6a4a', 0.8); g.fillStyle = '#6b3f1d'; rr(g, -1.4, -1.4, 2.8, 1.3, 0.4); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 0.9; g.beginPath(); g.arc(2.4, 0, 1.2, -1.3, 1.3); g.stroke(); g.restore(); }
-    /* ---- Pookie's bow ---- */
+    /* ---- Mallo's bow ---- */
     if (o.bow) { g.save(); g.translate(4.6, hy - 5.6); g.rotate(-0.35); for (const d of [-1, 1]) { g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(d * 2.6, -3.6, d * 4.6, -1.2); g.quadraticCurveTo(d * 3.8, 1.6, 0, 0); g.closePath(); fs(g, '#ff6f9c', '#c9305f', 0.7); } fcirc(g, 0, 0, 1.25, '#ffb3c6', '#c9305f', 0.6); g.restore(); if (white) { fcirc(g, -4.9, hy - 5.2, 0.9, '#ffd84a'); for (let i = 0; i < 5; i++) fcirc(g, -4.9 + Math.cos(i * 1.257) * 1.5, hy - 5.2 + Math.sin(i * 1.257) * 1.5, 0.75, '#fff'); fcirc(g, -4.9, hy - 5.2, 0.6, '#ffd84a'); } }
     g.restore();
   }
-  function drawBearAt(g, x, y, o) { bearRenderer(o)(g, x, y, o || {}); }
+  /* the player may have picked another hero (fox, dino, robot); Mallo, an explicit style and the ending film stay bears */
+  function heroFor(o) { if (!o || o.white || o.style || !G.heroes || !G.heroes.renderer) return null; const s = G.S || {}; return G.heroes.renderer(o.hero || (s.modeName === 'cinema' && (s.mode === 'mode' || s.mode === 'pause') ? 'wookie' : s.hero) || 'wookie'); }
+  function drawBearAt(g, x, y, o) { o = o || {}; (heroFor(o) || bearRenderer(o))(g, x, y, o); }
   /* legacy signature used by the game, the tower window and the pookie entity */
   function drawBear(x, y, big, frame, facing, jumping, white, bow, sx, sy, gliding, poseOverride) {
     const p = P(), s = S(), fr = s.frames, t = fr / 60, isP = !white;
@@ -492,7 +495,8 @@
     } else { pose = poseOverride || (Math.abs(frame) > 0.01 ? 'run' : 'idle'); speed = pose === 'run' ? 0.35 : 0; }
     if (poseOverride) pose = poseOverride;
     const outfit = isP ? (s.outfit || (L() && L().world && L().world.key) || 'wiese') : null;
-    bearRenderer(null)(ctx, x + 6, y + (big ? 24 : 14), {scale: big ? 1.4 : 1, facing, frame, pose, speed, vx: isP ? p.vx : 0, vy: isP ? (p.vy || 0) : 0, outfit, white, bow, t, sx, sy, coffee: isP && p.coffee, wings: isP && p.wings, gliding, deadT: isP ? p.deathT : 0, pal: (isP && G.fx && G.fx.palette) ? G.fx.palette(G.P, fr) : null});
+    const bo = {scale: big ? 1.4 : 1, facing, frame, pose, speed, vx: isP ? p.vx : 0, vy: isP ? (p.vy || 0) : 0, outfit, white, bow, t, sx, sy, coffee: isP && p.coffee, wings: isP && p.wings, gliding, deadT: isP ? p.deathT : 0, pal: (isP && G.fx && G.fx.palette) ? G.fx.palette(G.P, fr) : null};
+    (heroFor(bo) || bearRenderer(null))(ctx, x + 6, y + (big ? 24 : 14), bo);
   }
 
   /* ================= "cool" style: minimal and bold (default) ================= */
@@ -591,7 +595,7 @@
     if (raisedB) arm(-5.3, aB, fur);
     arm(5.3, aF, fur);
     if (o.coffee) { g.save(); g.translate(5.3 + Math.sin(aF) * armLen, -10.4 + Math.cos(aF) * armLen); rr(g, -2.2, -2.2, 4.4, 4.4, 1.1); fs(g, '#fff', ol, lw * 0.7); g.fillStyle = '#6b3f1d'; rr(g, -1.5, -1.5, 3, 1.4, 0.4); g.fill(); g.strokeStyle = ol; g.lineWidth = lw * 0.7; g.beginPath(); g.arc(2.7, 0, 1.3, -1.3, 1.3); g.stroke(); g.restore(); }
-    /* ---- Pookie's bow ---- */
+    /* ---- Mallo's bow ---- */
     if (o.bow) { g.save(); g.translate(hx + 4.8, hy - 6); g.rotate(-0.35); for (const d of [-1, 1]) { g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(d * 2.8, -4, d * 5, -1.3); g.quadraticCurveTo(d * 4.2, 1.8, 0, 0); g.closePath(); fs(g, '#ff6f9c', ol, lw * 0.7); } fcirc(g, 0, 0, 1.4, '#ffb3c6', ol, lw * 0.6); g.restore(); }
     g.restore();
   }
@@ -881,7 +885,7 @@
 
   /* ================= HUD ================= */
   function panel(x, y, w, h) { rr(ctx, x, y, w, h, 7); ctx.fillStyle = 'rgba(74,34,58,.5)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1; ctx.stroke(); }
-  function bearIcon(x, y) { fcirc(ctx, x - 3.4, y - 3.2, 1.9, '#b07c44', '#4a2c14', 0.8); fcirc(ctx, x + 3.4, y - 3.2, 1.9, '#b07c44', '#4a2c14', 0.8); fcirc(ctx, x, y, 4.8, '#b07c44', '#4a2c14', 0.9); fell(ctx, x, y + 1.6, 2.2, 1.5, '#edd3a2'); fcirc(ctx, x, y + 1, 0.8, '#2a1b12'); fcirc(ctx, x - 1.9, y - 0.6, 0.7, '#2a1b12'); fcirc(ctx, x + 1.9, y - 0.6, 0.7, '#2a1b12'); }
+  function bearIcon(x, y) { const hs = G.S && G.S.hero; if (hs && G.heroes && G.heroes.portrait) { try { ctx.save(); G.heroes.portrait(ctx, x, y + 0.5, 12, hs, (G.S.frames || 0) / 60); ctx.restore(); return; } catch (e) { ctx.restore(); } } fcirc(ctx, x - 3.4, y - 3.2, 1.9, '#b07c44', '#4a2c14', 0.8); fcirc(ctx, x + 3.4, y - 3.2, 1.9, '#b07c44', '#4a2c14', 0.8); fcirc(ctx, x, y, 4.8, '#b07c44', '#4a2c14', 0.9); fell(ctx, x, y + 1.6, 2.2, 1.5, '#edd3a2'); fcirc(ctx, x, y + 1, 0.8, '#2a1b12'); fcirc(ctx, x - 1.9, y - 0.6, 0.7, '#2a1b12'); fcirc(ctx, x + 1.9, y - 0.6, 0.7, '#2a1b12'); }
   function starIcon(x, y, on) { starPath(ctx, x, y, 6, 3.1, 5); if (on) { fs(ctx, '#ffd84a', '#b8781a', 1); fcirc(ctx, x - 1.5, y - 0.8, 0.8, '#5a3a1a'); fcirc(ctx, x + 1.8, y + 1.4, 0.7, '#5a3a1a'); } else fs(ctx, 'rgba(255,255,255,.18)', 'rgba(255,255,255,.55)', 1); }
   function drawHUD(s, lv, W, fr) {
     panel(6, 5, 204, 19);
@@ -891,7 +895,7 @@
     txt(ctx, String(s.score).padStart(6, '0'), 203, 14.5, 10, '#ffe9a8', 'right', '#7a3b57', 2.5);
     const ox = VW - 480;   /* right panel hugs the right edge on wide screens */
     panel(322 + ox, 5, 152, 19);
-    txt(ctx, 'Welt ' + (lv.wi + 1) + '-' + (lv.li + 1), 330 + ox, 14.5, 10, '#fff', 'left', '#7a3b57', 2.5);
+    txt(ctx, lv.event ? lv.world.name + ' ' + (lv.li + 1) : (lv.daily ? tr('Tageslevel', 'Daily Level') : tr('Welt ', 'World ') + (lv.wi + 1) + '-' + (lv.li + 1)), 330 + ox, 14.5, lv.event || lv.daily ? 8 : 10, '#fff', 'left', '#7a3b57', 2.5);
     const low = s.time < 60, tc = low && (fr >> 4) % 2 ? '#ff6f9c' : (low ? '#ffb3c6' : '#fff');
     fcirc(ctx, 422 + ox, 14.5, 4.6, 'rgba(255,255,255,.9)', '#7a3b57', 1); ctx.strokeStyle = '#7a3b57'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(422 + ox, 14.5); ctx.lineTo(422 + ox, 11.5); ctx.moveTo(422 + ox, 14.5); ctx.lineTo(424.2 + ox, 15.5); ctx.stroke();
     txt(ctx, String(s.time), 468 + ox, 14.5, 10, tc, 'right', '#7a3b57', 2.5);

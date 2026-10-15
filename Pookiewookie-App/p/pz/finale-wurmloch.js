@@ -1,13 +1,17 @@
-/* Pookiewookie puzzle: "Die Wurmloch-Koordinaten" (Finale, slot 0). META puzzle at the wormhole gate.
-   The alien console wants a 7-letter destination word. Pookie's letters from worlds 1-7 each end with a "P.S. ...";
+/* The Starway Home puzzle: "Die Wurmloch-Koordinaten" (Finale, slot 0). META puzzle at the wormhole gate.
+   The alien console wants a 7-letter destination word. Mallo's letters from worlds 1-7 each end with a "P.S. ...";
    the first letters after "P.S. " spell Z-U-H-A-U-S-E. The letters can be read right here ("Briefe lesen").
+   English: 8 letters, the P.S. lines of worlds 1-8 spell H-O-M-E-W-A-R-D, QWERTY keyboard without umlauts.
    Entry with the on-screen console keyboard (A-Z, Ä, Ö, Ü, delete) or the real keyboard. */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2;
-  const ANSWER = 'ZUHAUSE';
-  const ROWS = ['QWERTZUIOPÜ', 'ASDFGHJKLÖÄ', 'YXCVBNM'];
-  const WRONG = 'Das Wurmloch flackert … falsche Koordinaten.';
+  const ANSWER = tr('ZUHAUSE', 'HOMEWARD'), NL = ANSWER.length;
+  const ROWS = tr(['QWERTZUIOPÜ', 'ASDFGHJKLÖÄ', 'YXCVBNM'], ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM']), KMAX = Math.max(...ROWS.map(r => r.length));
+  const KEYRX = tr(/^[A-ZÄÖÜ]$/, /^[A-Z]$/);
+  const SCALE = NL > 7 ? [0, 2, 4, 5, 7, 9, 11, 12] : [0, 2, 4, 5, 7, 9, 12];   /* one rising note per slot on success */
+  const WRONG = tr('Das Wurmloch flackert … falsche Koordinaten.', 'The wormhole flickers … wrong coordinates.');
 
   const CSS = `
 .wh{position:absolute;inset:0;overflow:hidden;background:radial-gradient(120% 120% at 20% 40%,#2a1850 0%,#120a26 60%,#08051a 100%);color:#e8f6ff}
@@ -88,10 +92,10 @@
 
   G.PZ && G.PZ.register({
     id: 'finale-wurmloch', world: 'finale', slot: 0,
-    title: 'Die Wurmloch-Koordinaten',
-    intro: 'Das Wurmloch braucht ein Ziel aus 7 Buchstaben. Die Koordinaten stecken irgendwo in Pookies Briefen – lies sie ganz genau, bis zum letzten Satz!',
-    letter: 'Wenn du je den Weg nach Hause suchst: Meine P.S. sind die Wegweiser, von Anfang an.',
-    hint: 'Lies in jedem Brief nur das P.S. am Ende und nimm davon den allerersten Buchstaben – Brief für Brief, in der Reihenfolge der Welten. Sieben P.S., sieben Buchstaben.',
+    title: tr('Die Wurmloch-Koordinaten', 'The Wormhole Coordinates'),
+    intro: tr('Das Wurmloch braucht ein Ziel aus 7 Buchstaben. Die Koordinaten stecken irgendwo in Mallos Briefen – lies sie ganz genau, bis zum letzten Satz!', 'The wormhole needs a destination with 8 letters. The coordinates are hidden somewhere in Mallo’s letters – read them very carefully, right to the last line!'),
+    letter: tr('Wenn du je den Weg nach Hause suchst: Meine P.S. sind die Wegweiser, von Anfang an.', 'If you’re ever looking for the way home: my P.S. lines are the signposts, from the very beginning.'),
+    hint: tr('Lies in jedem Brief nur das P.S. am Ende und nimm davon den allerersten Buchstaben – Brief für Brief, in der Reihenfolge der Welten. Die ersten sieben P.S. ergeben die sieben Buchstaben.', 'In every letter, read only the P.S. at the end and take its very first letter – letter by letter, in the order of the worlds. The first eight P.S. lines give you the eight letters.'),
 
     station(ctx, x, y, t, solved) { ctx.save(); drawConsole(ctx, x, y, t, solved); ctx.restore(); },
 
@@ -102,10 +106,10 @@
       const main = document.createElement('div'); main.className = 'wh-main'; wrap.appendChild(main);
       const left = document.createElement('div'); left.className = 'wh-left'; main.appendChild(left);
       const hole = document.createElement('div'); hole.className = 'wh-hole'; left.appendChild(hole);
-      const bRead = document.createElement('button'); bRead.type = 'button'; bRead.className = 'wh-btn read'; bRead.textContent = '✉ Briefe lesen'; left.appendChild(bRead);
-      const bGo = document.createElement('button'); bGo.type = 'button'; bGo.className = 'wh-btn go'; bGo.textContent = 'Koordinaten setzen ➜'; left.appendChild(bGo);
+      const bRead = document.createElement('button'); bRead.type = 'button'; bRead.className = 'wh-btn read'; bRead.textContent = tr('✉ Briefe lesen', '✉ Read letters'); left.appendChild(bRead);
+      const bGo = document.createElement('button'); bGo.type = 'button'; bGo.className = 'wh-btn go'; bGo.textContent = tr('Koordinaten setzen ➜', 'Set coordinates ➜'); left.appendChild(bGo);
       const con = document.createElement('div'); con.className = 'wh-con'; main.appendChild(con);
-      const head = document.createElement('div'); head.className = 'wh-head'; head.innerHTML = '<span>◉ Wurmloch-Steuerung</span><span>Ziel: <i>???????</i></span>'; con.appendChild(head);
+      const head = document.createElement('div'); head.className = 'wh-head'; head.innerHTML = '<span>' + tr('◉ Wurmloch-Steuerung', '◉ Wormhole control') + '</span><span>' + tr('Ziel: ', 'Target: ') + '<i>' + '?'.repeat(NL) + '</i></span>'; con.appendChild(head);
       const slotsEl = document.createElement('div'); slotsEl.className = 'wh-slots'; con.appendChild(slotsEl);
       const slotEls = []; for (let i = 0; i < ANSWER.length; i++) { const s = document.createElement('div'); s.className = 'wh-slot'; slotsEl.appendChild(s); slotEls.push(s); }
       const kb = document.createElement('div'); kb.className = 'wh-kb'; con.appendChild(kb);
@@ -113,7 +117,7 @@
       ROWS.forEach((row, ri) => {
         const r = document.createElement('div'); r.className = 'wh-kr'; kb.appendChild(r);
         for (const ch of row) { const k = document.createElement('button'); k.type = 'button'; k.className = 'wh-key'; k.textContent = ch; k.addEventListener('pointerdown', e => { e.preventDefault(); if (!auto) type(ch); }); r.appendChild(k); keyEls[ch] = k; }
-        if (ri === 2) { const d = document.createElement('button'); d.type = 'button'; d.className = 'wh-key del'; d.textContent = '⌫'; d.setAttribute('aria-label', 'Löschen'); d.addEventListener('pointerdown', e => { e.preventDefault(); if (!auto) del(); }); r.appendChild(d); keyEls.DEL = d; }
+        if (ri === 2) { const d = document.createElement('button'); d.type = 'button'; d.className = 'wh-key del'; d.textContent = '⌫'; d.setAttribute('aria-label', tr('Löschen', 'Delete')); d.addEventListener('pointerdown', e => { e.preventDefault(); if (!auto) del(); }); r.appendChild(d); keyEls.DEL = d; }
       });
       let reader = null;
 
@@ -129,12 +133,12 @@
       function render() {
         slotEls.forEach((s, i) => { const ch = word[i] || ''; if (s.textContent !== ch) { s.textContent = ch; if (ch) { s.classList.remove('pop'); void s.offsetWidth; s.classList.add('pop'); } } s.classList.toggle('cur', i === word.length && !done); });
         bGo.classList.toggle('ready', word.length === ANSWER.length && !done);
-        head.querySelector('i').textContent = (word + '·······').slice(0, 7);
+        head.querySelector('i').textContent = (word + '·'.repeat(NL)).slice(0, NL);
       }
       function flashKey(k) { if (!k) return; k.classList.add('hit'); later(() => k.classList.remove('hit'), 110); }
       function type(ch) {
         if (done || busy || reader) return;
-        if (word.length >= ANSWER.length) { sfx('bump'); api.msg('Alle 7 Felder sind voll. Mit ⌫ löschen oder Koordinaten setzen.', 'info'); return; }
+        if (word.length >= ANSWER.length) { sfx('bump'); api.msg(tr('Alle 7 Felder sind voll. Mit ⌫ löschen oder Koordinaten setzen.', 'All 8 slots are full. Delete with ⌫ or set the coordinates.'), 'info'); return; }
         slotsEl.classList.remove('bad');
         word += ch; flashKey(keyEls[ch]); tone(880 + word.length * 70, 0.05, {type: 'square', gain: 0.03}); tone(1320 + word.length * 90, 0.04, {type: 'sine', gain: 0.03, delay: 0.03});
         render();
@@ -145,7 +149,7 @@
       }
       function submit() {
         if (done || busy || reader) return;
-        if (word.length < ANSWER.length) { sfx('bump'); api.msg('Das Ziel braucht genau 7 Buchstaben – es fehlen noch ' + (ANSWER.length - word.length) + '.', 'info'); return; }
+        if (word.length < ANSWER.length) { sfx('bump'); api.msg(tr('Das Ziel braucht genau 7 Buchstaben – es fehlen noch ' + (ANSWER.length - word.length) + '.', 'The destination needs exactly 8 letters – ' + (ANSWER.length - word.length) + ' still missing.'), 'info'); return; }
         if (word.toUpperCase() === ANSWER) { win(); return; }
         flick = performance.now(); kick();
         slotsEl.classList.remove('bad'); void slotsEl.offsetWidth; slotsEl.classList.add('bad');
@@ -154,8 +158,8 @@
       }
       function win() {
         done = true; busy = true; render();
-        slotEls.forEach((s, i) => later(() => { s.classList.add('win'); tone(392 * Math.pow(2, [0, 2, 4, 5, 7, 9, 12][i] / 12), 0.25, {type: 'triangle', gain: 0.07}); }, i * 90));
-        later(() => { bloom = performance.now(); spin = 4; kick(); sfx('globeGo'); api.msg('Koordinaten akzeptiert: ZUHAUSE. Das Wurmloch öffnet sich!', 'good'); }, ANSWER.length * 90 + 80);
+        slotEls.forEach((s, i) => later(() => { s.classList.add('win'); tone(392 * Math.pow(2, SCALE[i] / 12), 0.25, {type: 'triangle', gain: 0.07}); }, i * 90));
+        later(() => { bloom = performance.now(); spin = 4; kick(); sfx('globeGo'); api.msg(tr('Koordinaten akzeptiert: ' + ANSWER + '. Das Wurmloch öffnet sich!', 'Coordinates accepted: ' + ANSWER + '. The wormhole opens!'), 'good'); }, ANSWER.length * 90 + 80);
         later(() => api.solved(), ANSWER.length * 90 + 700);
       }
       bGo.addEventListener('click', () => { if (!auto) submit(); });
@@ -165,14 +169,14 @@
         if (reader || done) return; sfx('select');
         reader = document.createElement('div'); reader.className = 'wh-reader';
         const h = document.createElement('div'); h.className = 'wh-rhead'; reader.appendChild(h);
-        const b = document.createElement('b'); b.textContent = '✉ Pookies Briefe'; h.appendChild(b);
-        const x = document.createElement('button'); x.type = 'button'; x.className = 'wh-x'; x.textContent = 'Zur Konsole'; h.appendChild(x);
+        const b = document.createElement('b'); b.textContent = tr('✉ Mallos Briefe', '✉ Mallo’s letters'); h.appendChild(b);
+        const x = document.createElement('button'); x.type = 'button'; x.className = 'wh-x'; x.textContent = tr('Zur Konsole', 'Back to console'); h.appendChild(x);
         const list = document.createElement('div'); list.className = 'wh-list'; reader.appendChild(list);
         let L = []; try { L = api.letters() || []; } catch (e) { L = []; }
-        if (!L.length) { const p = document.createElement('p'); p.className = 'wh-empty'; p.textContent = 'Du hast noch keine Briefe von Pookie gelesen.'; list.appendChild(p); }
+        if (!L.length) { const p = document.createElement('p'); p.className = 'wh-empty'; p.textContent = tr('Du hast noch keine Briefe von Mallo gelesen.', 'You have not read any letters from Mallo yet.'); list.appendChild(p); }
         L.forEach((l, i) => {
           const a = document.createElement('div'); a.className = 'wh-letter';
-          const t = document.createElement('h4'); t.textContent = (l && l.title) || ('Brief ' + (i + 1)); a.appendChild(t);
+          const t = document.createElement('h4'); t.textContent = (l && l.title) || (tr('Brief ', 'Letter ') + (i + 1)); a.appendChild(t);
           const p = document.createElement('p'); p.textContent = (l && l.text) || ''; a.appendChild(p);
           list.appendChild(a);
         });
@@ -189,7 +193,7 @@
         if (e.key === 'Enter') { submit(); e.preventDefault(); return; }
         if (!e.key || e.key.length !== 1) return;
         const k = e.key.toUpperCase();
-        if (/^[A-ZÄÖÜ]$/.test(k)) { type(k); e.preventDefault(); }
+        if (KEYRX.test(k)) { type(k); e.preventDefault(); }
       }
       document.addEventListener('keydown', onKey);
 
@@ -218,9 +222,9 @@
         /* rim */
         c.lineWidth = Math.max(3, r * 0.08); c.strokeStyle = '#3a2030'; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.stroke();
         c.lineWidth = Math.max(2, r * 0.05); const rg = c.createLinearGradient(-r, -r, r, r); rg.addColorStop(0, '#7fe6ff'); rg.addColorStop(0.5, '#c58cff'); rg.addColorStop(1, '#ff9eb0'); c.strokeStyle = rg; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.stroke();
-        /* 7 coordinate lamps around the rim */
-        for (let i = 0; i < 7; i++) {
-          const ang = -Math.PI / 2 + (i - 3) * 0.32, lx = Math.cos(ang) * (r + r * 0.02), ly = Math.sin(ang) * (r + r * 0.02), on = i < word.length;
+        /* one coordinate lamp per letter around the rim (same arc for 7 or 8) */
+        for (let i = 0; i < NL; i++) {
+          const ang = -Math.PI / 2 + (i - (NL - 1) / 2) * 1.92 / (NL - 1), lx = Math.cos(ang) * (r + r * 0.02), ly = Math.sin(ang) * (r + r * 0.02), on = i < word.length;
           c.fillStyle = done ? '#ffd84a' : on ? '#7fe6ff' : '#2a2754'; c.strokeStyle = '#0a0820'; c.lineWidth = 1.5;
           c.beginPath(); c.arc(lx, ly, Math.max(3, r * 0.07), 0, TAU); c.fill(); c.stroke();
         }
@@ -242,8 +246,8 @@
         const conW = W - p * 2 - g - lw, conH = H - p * 2;
         const cp = phone ? 7 : 12, cg = phone ? 5 : 10, hf = phone ? 10 : 12;
         const kg = phone ? 4 : 5;
-        const kw = Math.floor(Math.min(56, (conW - cp * 2 - 6 - kg * 10) / 11));
-        const s = Math.floor(Math.min(phone ? 40 : 52, (conW - cp * 2 - 7 * 8) / 7, (conH - cp * 2 - hf - cg * 3) * 0.24));
+        const kw = Math.floor(Math.min(56, (conW - cp * 2 - 6 - kg * (KMAX - 1)) / KMAX));
+        const s = Math.floor(Math.min(phone ? 40 : 52, (conW - cp * 2 - NL * 8) / NL, (conH - cp * 2 - hf - cg * 3) * 0.24));
         const kh = Math.floor(Math.min(phone ? 40 : 46, kw * 1.1, (conH - cp * 2 - hf - s * 1.12 - cg * 3 - kg * 2 - 6) / 3));
         const set = (k, v) => wrap.style.setProperty(k, v);
         set('--p', p + 'px'); set('--g', g + 'px'); set('--lw', lw + 'px'); set('--cp', cp + 'px'); set('--cg', cg + 'px'); set('--hf', hf + 'px');

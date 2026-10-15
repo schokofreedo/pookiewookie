@@ -1,9 +1,10 @@
-/* Pookiewookie puzzle: "Das Ebbe-Schiebebild" (Insel, slot 1).
-   A 4x4 sliding-tile puzzle. The picture (island sunset, palm, boat, Pookie on the beach) is painted procedurally into an offscreen
+/* The Starway Home puzzle: "Das Ebbe-Schiebebild" (Insel, slot 1).
+   A 4x4 sliding-tile puzzle. The picture (island sunset, palm, boat, Mallo on the beach) is painted procedurally into an offscreen
    canvas and cut into 15 tiles plus a gap at the bottom right. It is scrambled by 60-80 random legal moves from the solved state
    (never undoing the previous move), so it is always solvable. */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, N = 4, EMPTY = N * N - 1, OL = '#2a1508';
   const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
   function rr(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
@@ -15,7 +16,7 @@
   function tone(f, d, o) { try { G.audio.tone(f, d, o); } catch (e) {} }
   function noise(d, o) { try { G.audio.noise(d, o); } catch (e) {} }
 
-  function fallbackPookie(c, x, y, s) {
+  function fallbackMallo(c, x, y, s) {
     c.save(); c.translate(x, y); c.scale(s, s); c.strokeStyle = OL; c.lineWidth = 1; c.lineJoin = 'round';
     c.beginPath(); c.ellipse(0, -6, 7, 7, 0, 0, TAU); c.fillStyle = '#fffaf4'; c.fill(); c.stroke();
     for (const d of [-1, 1]) { c.beginPath(); c.arc(d * 5, -20.5, 2.6, 0, TAU); c.fillStyle = '#fffaf4'; c.fill(); c.stroke(); }
@@ -85,11 +86,11 @@
     for (const x of [-12, -4, 4]) { c.fillRect(x, -39, 5, 5); c.strokeRect(x, -39, 5, 5); }
     c.beginPath(); c.moveTo(0, -39); c.lineTo(0, -54); c.stroke(); c.fillStyle = '#ff6f9c'; c.beginPath(); c.moveTo(0, -54); c.lineTo(12, -50); c.lineTo(0, -46); c.closePath(); c.fill(); c.stroke();
     c.restore();
-    /* Pookie on the beach, big and happy */
+    /* Mallo on the beach, big and happy */
     c.beginPath(); c.ellipse(192, 386, 56, 10, 0, 0, TAU); c.fillStyle = 'rgba(160,110,50,.35)'; c.fill();
     const bear = {scale: 7.4, facing: 1, frame: 0, t: 0.5, pose: 'idle', mood: 'happy', white: true, bow: true};
-    if (G.draw && G.draw.drawBearAt) { try { G.draw.drawBearAt(c, 192, 386, bear); } catch (e) { fallbackPookie(c, 192, 386, 7.4); } }
-    else fallbackPookie(c, 192, 386, 7.4);
+    if (G.draw && G.draw.drawBearAt) { try { G.draw.drawBearAt(c, 192, 386, bear); } catch (e) { fallbackMallo(c, 192, 386, 7.4); } }
+    else fallbackMallo(c, 192, 386, 7.4);
     /* a heart above her */
     c.save(); c.translate(262, 214); c.rotate(0.2); c.beginPath(); c.moveTo(0, 9); c.bezierCurveTo(-16, -3, -8, -15, 0, -6); c.bezierCurveTo(8, -15, 16, -3, 0, 9); c.fillStyle = '#ff6f9c'; c.fill(); c.strokeStyle = OL; c.lineWidth = 2; c.stroke(); c.restore();
   }
@@ -97,10 +98,10 @@
   G.PZ = G.PZ || {register() {}};
   G.PZ.register({
     id: 'insel-schiebe', world: 'insel', slot: 1,
-    title: 'Das Ebbe-Schiebebild',
-    intro: 'Die Flut hat Pookies Strandbild durcheinandergewirbelt! Tippe ein Teil in der Reihe oder Spalte der Lücke, um es hineinzuschieben.',
-    letter: 'Ein Schiebebild löst man nicht alles auf einmal: zuerst die obere Reihe, dann die linke Spalte – danach wird alles kleiner und leichter.',
-    hint: 'Schalte die Zahlen ein. Bring zuerst 1, 2, 3, 4 in die obere Reihe (die letzten beiden zusammen: erst die 4 auf den Platz der 3, dann die 3 direkt darunter, dann rutschen beide mit einem Schwung an ihren Platz). Dann die linke Spalte 5, 9, 13 genauso (die letzten beiden wieder als Paar). Übrig bleibt ein 3×3-Feld – wieder erst Reihe, dann Spalte, zum Schluss das letzte 2×2 im Kreis drehen. Fertige Reihen nie wieder anfassen!',
+    title: tr('Das Ebbe-Schiebebild', 'The Low-Tide Sliding Picture'),
+    intro: tr('Die Flut hat Mallos Strandbild durcheinandergewirbelt! Tippe ein Teil in der Reihe oder Spalte der Lücke, um es hineinzuschieben.', 'The tide has jumbled up Mallo’s beach picture! Tap a piece in the same row or column as the gap to slide it in.'),
+    letter: tr('Ein Schiebebild löst man nicht alles auf einmal: zuerst die obere Reihe, dann die linke Spalte – danach wird alles kleiner und leichter.', 'You don’t solve a sliding picture all at once: first the top row, then the left column – after that everything gets smaller and easier.'),
+    hint: tr('Schalte die Zahlen ein. Bring zuerst 1, 2, 3, 4 in die obere Reihe (die letzten beiden zusammen: erst die 4 auf den Platz der 3, dann die 3 direkt darunter, dann rutschen beide mit einem Schwung an ihren Platz). Dann die linke Spalte 5, 9, 13 genauso (die letzten beiden wieder als Paar). Übrig bleibt ein 3×3-Feld – wieder erst Reihe, dann Spalte, zum Schluss das letzte 2×2 im Kreis drehen. Fertige Reihen nie wieder anfassen!', 'Turn on the numbers. First bring 1, 2, 3, 4 into the top row (the last two together: first put the 4 where the 3 belongs, then the 3 right below it, then both slide into place in one swoop). Then do the left column 5, 9, 13 the same way (the last two again as a pair). What’s left is a 3×3 area – again row first, then column, and finally turn the last 2×2 in a circle. Never touch finished rows again!'),
     station(c, x, y, t, solved) {
       c.save(); c.translate(x, y); c.lineJoin = 'round'; c.lineCap = 'round';
       c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(0, 0, 14, 3, 0, 0, TAU); c.fill();
@@ -189,7 +190,7 @@
         try { api.sfx('splash'); } catch (e) {}
         later(() => {
           for (let i = 0; i < 40; i++) st.parts.push({x: L.bx + rnd() * L.bs, y: L.by + rnd() * L.bs, vx: (rnd() - 0.5) * 2, vy: -0.5 - rnd() * 1.5, r: 10 + rnd() * 14, life: 0.8 + rnd() * 0.9, col: ['#ffd84a', '#fff', '#ff9eb0', '#8fd3ff'][i % 4]});
-          api.msg('Das Bild ist wieder ganz – Pookie strahlt!', 'good');
+          api.msg(tr('Das Bild ist wieder ganz – Mallo strahlt!', 'The picture is whole again – Mallo is beaming!'), 'good');
         }, 450);
         later(() => api.solved(), 1500);
       }
@@ -246,12 +247,12 @@
         /* side panel: preview, counter, buttons */
         const S = L.side, P = L.prev;
         rr(c, S.x - 2, S.y - 4, S.w + 4, 186, 16); c.fillStyle = 'rgba(255,250,240,.88)'; c.fill(); c.strokeStyle = 'rgba(122,59,87,.5)'; c.lineWidth = 2; c.stroke();
-        txt(c, 'Vorlage', S.x + S.w / 2, S.y + 12, 13, '#7a3b57', 'center', 700);
+        txt(c, tr('Vorlage', 'Preview'), S.x + S.w / 2, S.y + 12, 13, '#7a3b57', 'center', 700);
         c.save(); rr(c, P.x, P.y, P.s, P.s, 8); c.clip(); c.drawImage(pic, 0, 0, pic.width, pic.height, P.x, P.y, P.s, P.s); c.restore();
         rr(c, P.x, P.y, P.s, P.s, 8); c.strokeStyle = OL; c.lineWidth = 2; c.stroke();
-        txt(c, 'Züge: ' + st.moves, S.x + S.w / 2, S.y + 166, 15, '#7a3b57', 'center', 700);
-        button(L.bNums, st.nums ? 'Zahlen: an' : 'Zahlen: aus', st.nums);
-        button(L.bMix, 'Neu mischen', false);
+        txt(c, tr('Züge: ', 'Moves: ') + st.moves, S.x + S.w / 2, S.y + 166, 15, '#7a3b57', 'center', 700);
+        button(L.bNums, st.nums ? tr('Zahlen: an', 'Numbers: on') : tr('Zahlen: aus', 'Numbers: off'), st.nums);
+        button(L.bMix, tr('Neu mischen', 'Shuffle'), false);
         /* particles */
         for (const p of st.parts) { c.globalAlpha = clamp(p.life * 1.5, 0, 1); txt(c, '✦', p.x, p.y, p.r, p.col); c.globalAlpha = 1; }
       }
@@ -275,7 +276,7 @@
       function onDown(e) {
         e.preventDefault(); const p = pt(e);
         if (inB(p, L.bNums)) { st.nums = !st.nums; tone(st.nums ? 760 : 560, 0.06, {type: 'sine', gain: 0.08}); draw(); return; }
-        if (inB(p, L.bMix)) { if (!st.done && !st.busy) { try { api.sfx('select'); } catch (er) {} scramble(); api.msg('Neu gemischt!', 'info'); draw(); } return; }
+        if (inB(p, L.bMix)) { if (!st.done && !st.busy) { try { api.sfx('select'); } catch (er) {} scramble(); api.msg(tr('Neu gemischt!', 'Shuffled!'), 'info'); draw(); } return; }
         const q = Math.floor((p.x - L.bx) / L.ts), r = Math.floor((p.y - L.by) / L.ts);
         if (q < 0 || q >= N || r < 0 || r >= N) return;
         downAt = {p, j: r * N + q};
@@ -303,7 +304,7 @@
           if (st.done) return;
           timers.forEach(clearTimeout); timers.length = 0;
           st.quick = true; st.busy = true; st.nums = true;
-          api.msg('Pookie schiebt mit: Reihe für Reihe …', 'info');
+          api.msg(tr('Mallo schiebt mit: Reihe für Reihe …', 'Mallo helps you slide: row by row …'), 'info');
           /* walk the gap back along its (loop-free) history: that restores the solved picture */
           const total = st.hist.length, per = Math.max(8, Math.min(40, Math.floor(1600 / Math.max(1, total))));
           const next = () => {

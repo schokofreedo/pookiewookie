@@ -1,9 +1,10 @@
-/* Pookiewookie puzzle: weltraum-planeten "Die Planeten-Uhr".
+/* The Starway Home puzzle: weltraum-planeten "Die Planeten-Uhr".
    Three planets circle on rings with 3, 5 and 7 positions and move one position per day (clockwise). The docking beam points at
    position 0 of every ring. Question: in how many days do all three stand in the beam at the same time? (Chinese remainder; the
    answer is generated in 13..104 so the 12 energy for "1 Tag vor" can never reach it by brute force.) Wrong -> new positions. */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, FONT = '"Fredoka", sans-serif';
   const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
   const mod = (a, n) => ((a % n) + n) % n;
@@ -52,9 +53,9 @@
 
   /* ---------- model ---------- */
   const RINGS = [
-    {n: 3, name: 'Rubini', col: '#ff6f6f', col2: '#b8324a', ring: '#ff9eb0'},
-    {n: 5, name: 'Saturnchen', col: '#ffd27a', col2: '#c48a3a', ring: '#ffd84a', rings: true},
-    {n: 7, name: 'Blaumond', col: '#8fd3ff', col2: '#3a6ad8', ring: '#8fd3ff'},
+    {n: 3, name: tr('Rubini', 'Ruby'), col: '#ff6f6f', col2: '#b8324a', ring: '#ff9eb0'},
+    {n: 5, name: tr('Saturnchen', 'Saturny'), col: '#ffd27a', col2: '#c48a3a', ring: '#ffd84a', rings: true},
+    {n: 7, name: tr('Blaumond', 'Blue Moon'), col: '#8fd3ff', col2: '#3a6ad8', ring: '#8fd3ff'},
   ];
   const ENERGY = 12;
   function firstAlign(pos) { for (let d = 1; d <= 105; d++) if (RINGS.every((r, i) => mod(pos[i] + d, r.n) === 0)) return d; return -1; }
@@ -142,15 +143,15 @@
 
     function advance() {
       if (done) return;
-      if (energy <= 0) { api.msg('Keine Energie mehr – jetzt hilft nur noch Rechnen!', 'bad'); tone(160, 0.2, {type: 'square', gain: 0.08}); return; }
+      if (energy <= 0) { api.msg(tr('Keine Energie mehr – jetzt hilft nur noch Rechnen!', 'Out of energy – only math can help now!'), 'bad'); tone(160, 0.2, {type: 'square', gain: 0.08}); return; }
       energy--; day++;
       try { G.audio.sfx.thrust(); } catch (e) {}
       tone(520, 0.08, {type: 'triangle', gain: 0.12}); tone(780, 0.1, {type: 'triangle', gain: 0.1, delay: 0.07});
       const inBeam = RINGS.map((r, i) => mod(P.pos[i] + day, r.n) === 0);
       if (inBeam.some(b => b)) later(() => tone(1040, 0.15, {type: 'sine', gain: 0.08}), 250);
-      api.msg('Tag +' + day + ' · ' + (inBeam.filter(Boolean).length ? inBeam.map((b, i) => b ? RINGS[i].name : null).filter(Boolean).join(' und ') + ' im Strahl.' : 'Niemand im Strahl.'), 'info');
+      api.msg(tr('Tag +', 'Day +') + day + ' · ' + (inBeam.filter(Boolean).length ? inBeam.map((b, i) => b ? RINGS[i].name : null).filter(Boolean).join(tr(' und ', ' and ')) + tr(' im Strahl.', ' in the beam.') : tr('Niemand im Strahl.', 'Nobody in the beam.')), 'info');
     }
-    function today() { if (done || day === 0) return; day = 0; tone(392, 0.12, {type: 'triangle', gain: 0.12}); api.msg('Zurück zu heute (Tag 0). Die Energie bleibt verbraucht.', 'info'); }
+    function today() { if (done || day === 0) return; day = 0; tone(392, 0.12, {type: 'triangle', gain: 0.12}); api.msg(tr('Zurück zu heute (Tag 0). Die Energie bleibt verbraucht.', 'Back to today (Day 0). The energy you used stays used.'), 'info'); }
     function press(key) {
       if (done) return;
       pressed = key; pressT = 0.18;
@@ -162,11 +163,11 @@
     }
     function submit() {
       if (done) return;
-      if (!entry) { api.msg('Tippe die Anzahl der Tage ein.', 'info'); return; }
+      if (!entry) { api.msg(tr('Tippe die Anzahl der Tage ein.', 'Type in the number of days.'), 'info'); return; }
       if (+entry === P.ans) { win(); return; }
       flashBad = 0.8; noise(0.3, {type: 'lowpass', freq: 600, freqTo: 120, gain: 0.2});
       const n = api.attempts();
-      api.wrong(n === 0 ? entry + ' Tage stimmt nicht – die Planeten springen auf neue Plätze!' : 'Leider falsch. Neue Positionen – rechne nochmal in Ruhe.');
+      api.wrong(n === 0 ? tr(entry + ' Tage stimmt nicht – die Planeten springen auf neue Plätze!', entry + ' days is not right – the planets jump to new spots!') : tr('Leider falsch. Neue Positionen – rechne nochmal in Ruhe.', 'Sorry, that is wrong. New positions – take your time and work it out again.'));
       P = generate(rng, P.ans); day = 0; energy = ENERGY; entry = ''; spin = 1;
       const o = L.orr; burst(o.cx, o.cy, 24, ['#8fd3ff', '#c8b0ff', '#ff9eb0'], 140);
     }
@@ -240,7 +241,7 @@
         if (Math.abs(disp - day) < 0.05) { rr(g, x + pr * 0.6, y - pr * 1.6, pr * 1.2, pr * 0.95, pr * 0.4); g.fillStyle = '#fff4e0'; g.fill(); g.lineWidth = 1.2; g.strokeStyle = '#2a1a3a'; g.stroke(); txt(g, String(cur), x + pr * 1.2, y - pr * 1.12, pr * 0.8, '#2a1a3a'); }
       });
       spaceStation(g, cx, cy - D * 0.462, Math.max(8, D * 0.048), t);
-      if (done) { g.save(); g.globalAlpha = Math.min(1, winT * 2); txt(g, 'Andocken!', cx, cy + Rout + D * 0.035, Math.max(12, D * 0.07), '#bff0ff', {stroke: '#1a1a3a', sw: 4, glow: '#8fd3ff', blur: 12}); g.restore(); }
+      if (done) { g.save(); g.globalAlpha = Math.min(1, winT * 2); txt(g, tr('Andocken!', 'Docking!'), cx, cy + Rout + D * 0.035, Math.max(12, D * 0.07), '#bff0ff', {stroke: '#1a1a3a', sw: 4, glow: '#8fd3ff', blur: 12}); g.restore(); }
     }
 
     function button(g, S, id, label, x, y, w, h, col, disabled) {
@@ -256,7 +257,7 @@
       const I = L.info, small = L.small, t = S.t;
       rr(g, I.x, I.y, I.w, I.h, 16); g.fillStyle = 'rgba(30,24,70,.72)'; g.fill(); g.lineWidth = 2; g.strokeStyle = 'rgba(143,211,255,.45)'; g.stroke();
       const cx = I.x + I.w / 2; let y = I.y + (small ? 13 : 20);
-      txt(g, day === 0 ? 'Heute · Tag 0' : 'Vorschau: Tag +' + day, cx, y, small ? 15 : 19, day === 0 ? '#ffd84a' : '#8fd3ff', {stroke: '#1a1a3a', sw: 4});
+      txt(g, day === 0 ? tr('Heute · Tag 0', 'Today · Day 0') : tr('Vorschau: Tag +', 'Preview: Day +') + day, cx, y, small ? 15 : 19, day === 0 ? '#ffd84a' : '#8fd3ff', {stroke: '#1a1a3a', sw: 4});
       y += small ? 16 : 26;
       /* energy cells */
       const cw = Math.min(16, (I.w - 50) / ENERGY), ch = small ? 11 : 14, ex = cx - (cw * ENERGY) / 2 + 9;
@@ -264,21 +265,21 @@
       for (let k = 0; k < ENERGY; k++) { rr(g, ex + k * cw + 1, y, cw - 2, ch, 3); g.fillStyle = k < energy ? (energy <= 3 ? '#ff8fa8' : '#9be7a5') : 'rgba(255,255,255,.1)'; g.fill(); }
       y += ch + (small ? 7 : 12);
       const bH = small ? 36 : 40, gap = 8, bw1 = (I.w - 24 - gap) * 0.58, bw2 = (I.w - 24 - gap) - bw1;
-      button(g, S, 'adv', '1 Tag vor ⚡1', I.x + 12, y, bw1, bH, '#3a8ad8', energy <= 0 || done);
-      button(g, S, 'today', '↺ Heute', I.x + 12 + bw1 + gap, y, bw2, bH, '#7a3b57', day === 0 || done);
+      button(g, S, 'adv', tr('1 Tag vor ⚡1', '+1 day ⚡1'), I.x + 12, y, bw1, bH, '#3a8ad8', energy <= 0 || done);
+      button(g, S, 'today', tr('↺ Heute', '↺ Today'), I.x + 12 + bw1 + gap, y, bw2, bH, '#7a3b57', day === 0 || done);
       y += bH + (small ? 8 : 14);
       /* legend */
       const lh = small ? 15 : 22;
       RINGS.forEach((R, i) => {
         const yy = y + i * lh + lh / 2, cur = mod(P.pos[i], R.n);
         g.beginPath(); g.arc(I.x + 22, yy, small ? 5 : 7, 0, TAU); g.fillStyle = R.col; g.fill(); g.lineWidth = 1.5; g.strokeStyle = '#1a1a3a'; g.stroke();
-        txt(g, R.name + ': ' + R.n + ' Felder · heute auf ' + cur, I.x + 34, yy, small ? 11 : 13, '#e8ecff', {align: 'left', w: 500});
+        txt(g, R.name + ': ' + R.n + tr(' Felder · heute auf ', ' spots · today on ') + cur, I.x + 34, yy, small ? 11 : 13, '#e8ecff', {align: 'left', w: 500});
       });
       y += lh * 3 + (small ? 4 : 10);
       if (I.y + I.h - y > (small ? 24 : 36)) {
         const qy = (y + I.y + I.h) / 2;
-        txt(g, 'Wann sind alle drei gleichzeitig', cx, qy - (small ? 7 : 10), small ? 12 : 15, '#fff4e0', {w: 600});
-        txt(g, 'auf Feld 0 im Strahl?', cx, qy + (small ? 7 : 10), small ? 12 : 15, '#fff4e0', {w: 600});
+        txt(g, tr('Wann sind alle drei gleichzeitig', 'When are all three together'), cx, qy - (small ? 7 : 10), small ? 12 : 15, '#fff4e0', {w: 600});
+        txt(g, tr('auf Feld 0 im Strahl?', 'on spot 0 in the beam?'), cx, qy + (small ? 7 : 10), small ? 12 : 15, '#fff4e0', {w: 600});
       }
       void t;
     }
@@ -289,8 +290,8 @@
       const ip = small ? 8 : 12, dispH = small ? 34 : Math.max(44, K.h * 0.16);
       const D = {x: K.x + ip, y: K.y + ip, w: K.w - ip * 2, h: dispH};
       rr(g, D.x, D.y, D.w, D.h, 10); g.fillStyle = flashBad > 0 ? 'rgba(150,30,60,' + (0.5 + flashBad * 0.5) + ')' : (done ? '#173a2a' : '#0a0a22'); g.fill(); g.lineWidth = 2; g.strokeStyle = done ? '#9be7a5' : '#3a8ad8'; g.stroke();
-      if (entry) txt(g, entry + ' Tage', D.x + D.w / 2, D.y + D.h / 2 + 1, D.h * 0.5, done ? '#c8ffd8' : '#8fd3ff', {glow: '#3a8ad8', blur: 10});
-      else txt(g, 'in ? Tagen', D.x + D.w / 2, D.y + D.h / 2 + 1, D.h * 0.4, 'rgba(143,211,255,.35)', {w: 600});
+      if (entry) txt(g, entry + tr(' Tage', ' days'), D.x + D.w / 2, D.y + D.h / 2 + 1, D.h * 0.5, done ? '#c8ffd8' : '#8fd3ff', {glow: '#3a8ad8', blur: 10});
+      else txt(g, tr('in ? Tagen', 'in ? days'), D.x + D.w / 2, D.y + D.h / 2 + 1, D.h * 0.4, 'rgba(143,211,255,.35)', {w: 600});
       const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'];
       const gy = D.y + D.h + ip * 0.8, gh = K.y + K.h - ip - gy, gap = small ? 5 : 7;
       const kw = (K.w - ip * 2 - gap * 2) / 3, kh = (gh - gap * 3) / 4;
@@ -324,12 +325,12 @@
       else if (e.key === 'Enter') { press('ok'); e.preventDefault(); }
     };
     document.addEventListener('keydown', onKey);
-    api.msg('Jeden Tag rückt jeder Planet ein Feld weiter (Pfeilrichtung).', 'info');
+    api.msg(tr('Jeden Tag rückt jeder Planet ein Feld weiter (Pfeilrichtung).', 'Every day, each planet moves one spot forward (the way the arrows point).'), 'info');
 
     return {
       destroy() { S.destroy(); document.removeEventListener('keydown', onKey); timers.forEach(clearTimeout); },
       autoSolve() {
-        if (done) return; autoMode = true; entry = '';
+        if (done || autoMode) return; autoMode = true; entry = '';
         day = P.ans;  /* planets spin forward to the meeting day */
         const digits = String(P.ans).split('');
         digits.forEach((d, i) => later(() => { autoMode = false; press(d); autoMode = true; }, 250 + 160 * i));
@@ -340,10 +341,10 @@
 
   G.PZ.register({
     id: 'weltraum-planeten', world: 'weltraum', slot: 1,
-    title: 'Die Planeten-Uhr',
-    intro: 'Jeden Tag rückt jeder Planet ein Feld weiter. In wie vielen Tagen stehen alle drei zugleich auf Feld 0 im Strahl? „1 Tag vor“ kostet Energie.',
-    letter: 'Der Planet mit der längsten Runde ist der Boss: Schau nur auf die Tage, an denen er im Strahl steht, und prüf dann die anderen beiden.',
-    hint: 'Ein Planet auf Feld p eines Rings mit n Feldern erreicht den Strahl nach n − p Tagen und danach alle n Tage wieder. Schreib dir die Tage des 7er-Planeten auf (z. B. 4, 11, 18, 25, …) und streiche alle, an denen der 5er-Planet nicht auf 0 steht. Von den übrigen nimm den ersten, an dem auch der 3er-Planet passt.',
+    title: tr('Die Planeten-Uhr', 'The Planet Clock'),
+    intro: tr('Jeden Tag rückt jeder Planet ein Feld weiter. In wie vielen Tagen stehen alle drei zugleich auf Feld 0 im Strahl? „1 Tag vor“ kostet Energie.', 'Every day, each planet moves one spot forward. In how many days will all three stand on spot 0 in the beam at the same time? “+1 day” costs energy.'),
+    letter: tr('Der Planet mit der längsten Runde ist der Boss: Schau nur auf die Tage, an denen er im Strahl steht, und prüf dann die anderen beiden.', 'The planet with the longest lap is the boss: only look at the days when it is in the beam, then check the other two.'),
+    hint: tr('Ein Planet auf Feld p eines Rings mit n Feldern erreicht den Strahl nach n − p Tagen und danach alle n Tage wieder. Schreib dir die Tage des 7er-Planeten auf (z. B. 4, 11, 18, 25, …) und streiche alle, an denen der 5er-Planet nicht auf 0 steht. Von den übrigen nimm den ersten, an dem auch der 3er-Planet passt.', 'A planet on spot p of a ring with n spots reaches the beam after n − p days, and then again every n days. Write down the days of the 7-spot planet (e.g. 4, 11, 18, 25, …) and cross out every day when the 5-spot planet is not on 0. Of the ones left, take the first day when the 3-spot planet fits too.'),
     station,
     mount,
   });

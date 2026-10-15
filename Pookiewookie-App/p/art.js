@@ -1,4 +1,4 @@
-/* Pookiewookie: extra art for the newer worlds, used by fx.js before draw.js draws an entity.
+/* The Starway Home: extra art for the newer worlds, used by fx.js before draw.js draws an entity.
    Schokoladenland: gummy bears (walker), winged bonbons (flyer), spiky hazelnuts (spiky) and the Kakao-Drache (boss). */
 (function () {
   const G = window.PW = window.PW || {}, TAU = Math.PI * 2;

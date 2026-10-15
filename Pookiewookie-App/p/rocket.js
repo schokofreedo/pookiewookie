@@ -1,14 +1,15 @@
-/* Pookiewookie: the rocket. Two things live here: the launch from the globe into space (replaces the cloud dive for the space world)
+/* The Starway Home: the rocket. Two things live here: the launch from the globe into space (replaces the cloud dive for the space world)
    and the shoot-'em-up flight between planets: steer the rocket, lasers fire on their own, asteroids, saucers and space bees come at you,
    a pirate saucer guards the end of the first flight, then the planet grows and you land. */
 (function () {
   const G = window.PW = window.PW || {}, VH = 270, TAU = Math.PI * 2;
   const S = () => G.S, A = () => G.audio, I = () => G.input, VW = () => G.VW || 480;
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de), PIRATE = tr("Käpt'n Bitterbart", 'Captain Bitterbeard');
   const ease = (t, a, b) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
   const font = (ctx, px) => { ctx.font = 'bold ' + px + 'px "Fredoka", sans-serif'; ctx.textBaseline = 'middle'; };
   const outlined = (ctx, t, x, y, px, col, align) => { font(ctx, px); ctx.textAlign = align || 'center'; ctx.lineJoin = 'round'; ctx.lineWidth = px * 0.35; ctx.strokeStyle = 'rgba(20,10,40,.85)'; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y); };
   function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
-  const PLANETS = {mond: {col: '#cfcfdd', col2: '#9a9ab4', name: 'Mond'}, mars: {col: '#d9643a', col2: '#9a3f1e', name: 'Mars'}, saturn: {col: '#e8c48a', col2: '#b48a5a', name: 'Saturn', rings: true}, erde: {col: '#3f8fe0', col2: '#2f9e5b', name: 'Erde'}};
+  const PLANETS = {mond: {col: '#cfcfdd', col2: '#9a9ab4', name: tr('Mond', 'Moon')}, mars: {col: '#d9643a', col2: '#9a3f1e', name: 'Mars'}, saturn: {col: '#e8c48a', col2: '#b48a5a', name: 'Saturn', rings: true}, erde: {col: '#3f8fe0', col2: '#2f9e5b', name: tr('Erde', 'Earth')}};
   let stars = [];
   const mkStars = () => { stars = []; for (let i = 0; i < 90; i++) stars.push({x: Math.random() * 700, y: Math.random() * VH, z: 0.3 + Math.random() * 1.2, tw: Math.random() * 6}); };
 
@@ -28,7 +29,7 @@
     if (inv > 0 && (fr >> 2) % 2) ctx.globalAlpha = 0.45;
     /* flame */
     const fl = 10 + flame * 14 + Math.sin(fr * 0.9) * 3; ctx.beginPath(); ctx.moveTo(-16, -5); ctx.lineTo(-16 - fl, 0); ctx.lineTo(-16, 5); ctx.closePath(); ctx.fillStyle = '#ff7a2a'; ctx.fill(); ctx.beginPath(); ctx.moveTo(-16, -2.5); ctx.lineTo(-16 - fl * 0.55, 0); ctx.lineTo(-16, 2.5); ctx.closePath(); ctx.fillStyle = '#ffe94a'; ctx.fill();
-    /* fins, body, nose, window with Wookie */
+    /* fins, body, nose, window with Toffo */
     ctx.fillStyle = hull; ctx.beginPath(); ctx.moveTo(-14, -4); ctx.lineTo(-22, -12); ctx.lineTo(-8, -6); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(-14, 4); ctx.lineTo(-22, 12); ctx.lineTo(-8, 6); ctx.closePath(); ctx.fill();
     rr(ctx, -16, -7, 30, 14, 6); ctx.fillStyle = body; ctx.fill(); ctx.strokeStyle = '#7a3b57'; ctx.lineWidth = 1.2; ctx.stroke();
     ctx.beginPath(); ctx.moveTo(13, -7); ctx.quadraticCurveTo(26, -3, 26, 0); ctx.quadraticCurveTo(26, 3, 13, 7); ctx.closePath(); ctx.fillStyle = hull; ctx.fill(); ctx.stroke();
@@ -55,8 +56,8 @@
       this.lo = (G.eco && G.eco.loadout && G.eco.loadout()) || {}; this.money = 0;
       const maxHp = this.lo.fat ? 5 : 3;
       this.ship = {x: 70, y: VH / 2, vy: 0, vx: 0, hp: maxHp, maxHp, shield: this.lo.shield ? 1 : 0, inv: 2, fireT: 0, flame: 0.5, tilt: 0}; this.bullets = []; this.enemies = []; this.parts = []; this.phase = 'fly'; this.score = 0; this.kills = 0; this.spawnT = 1.2; this.boss = null; this.landT = 0;
-      if (A()) A().sfx.liftoff(); G.flow.banner(o.title || 'Raketenflug', 2.2, 'Ziel: ' + (PLANETS[this.target] || PLANETS.mond).name + ' · ◀ ▶ ▲ ▼ steuern, die Laser feuern selbst');
-      G.flow.speak(o.full ? 'Rocket time! To the moon!' : 'Next planet, Pookie!', {happy: true});
+      if (A()) A().sfx.liftoff(); { const pn = (PLANETS[this.target] || PLANETS.mond).name, ctl = I() && I().touchMode ? tr('◀ ▶ fliegen, A hoch, ▼ runter', '◀ ▶ fly, A up, ▼ down') : tr('◀ ▶ ▲ ▼ steuern', 'steer with ◀ ▶ ▲ ▼'); G.flow.banner(o.title || tr('Raketenflug', 'Rocket flight'), 2.2, tr(`Ziel: ${pn} · ${ctl}, die Laser feuern selbst`, `Destination: ${pn} · ${ctl}, the lasers fire by themselves`)); }
+      G.flow.speak(o.full ? 'Rocket time! To the moon!' : 'Next planet, Mallo!', {happy: true});
     },
     pay(n) { this.money += n; if (G.eco) G.eco.add(n, 0, 0, true); },
     end(result) { this.on = false; const d = this.done; this.done = null; if (d) d(result); },
@@ -90,8 +91,8 @@
       /* waves and the pirate boss at the end of the long flight */
       const bossTime = this.full && this.t > this.dur - 24;
       if (!bossTime) { this.spawnT -= 1 / 60; if (this.spawnT <= 0) { this.spawn(); this.spawnT = Math.max(0.55, 1.6 - this.t * 0.02); } }
-      else if (!this.boss) { this.boss = {kind: 'boss', x: VW() + 60, y: VH / 2, baseY: VH / 2, vx: -1, hp: 22, maxHp: 22, t: 0, shootT: 1, flash: 0, r: 32}; this.enemies.push(this.boss); G.flow.banner('Sternenpirat!', 2, 'Triff die Untertasse 22×'); if (A()) A().setBoss(true); }
-      if (!this.full && this.t > this.dur) { this.phase = 'land'; this.landT = 0; this.enemies = []; G.flow.banner('Landung', 1.5, (PLANETS[this.target] || PLANETS.mond).name + ' in Sicht!'); }
+      else if (!this.boss) { this.boss = {kind: 'boss', x: VW() + 60, y: VH / 2, baseY: VH / 2, vx: -1, hp: 22, maxHp: 22, t: 0, shootT: 1, flash: 0, r: 32}; this.enemies.push(this.boss); G.flow.banner(PIRATE + '!', 2, tr('Triff die Untertasse 22×', 'Hit the saucer 22×')); if (A()) A().setBoss(true); }
+      if (!this.full && this.t > this.dur) { this.phase = 'land'; this.landT = 0; this.enemies = []; G.flow.banner(tr('Landung', 'Landing'), 1.5, tr(`${(PLANETS[this.target] || PLANETS.mond).name} in Sicht!`, `${(PLANETS[this.target] || PLANETS.mond).name} in sight!`)); }
       /* enemies */
       for (const e of this.enemies) {
         e.t = (e.t || 0) + 1 / 60; if (e.flash > 0) e.flash -= 1 / 60;
@@ -105,13 +106,13 @@
           e.shootT -= 1 / 60; if (e.shootT <= 0) { e.shootT = Math.max(0.55, 1.4 - (e.maxHp - e.hp) * 0.04); for (let k = -1; k <= 1; k++) { const dx = s.x - e.x, dy = s.y - e.y + k * 40, d = Math.hypot(dx, dy) || 1; this.enemies.push({kind: 'plasma', x: e.x - 20, y: e.y, vx: dx / d * 3, vy: dy / d * 3, hp: 1, r: 4, t: 0}); } }
         }
         /* hit by lasers */
-        if (e.kind !== 'plasma' && e.kind !== 'heart' && e.kind !== 'coin') for (const b of this.bullets) { if (!b.dead && Math.abs(b.x - e.x) < e.r + 4 && Math.abs(b.y - e.y) < e.r + 2) { b.dead = true; e.hp--; e.flash = 0.1; if (e.hp <= 0) { e.dead = true; this.kills++; this.score += e.kind === 'boss' ? 5000 : (e.kind === 'ast' ? 100 : 200); this.pay(e.kind === 'boss' ? 150 : 2); if (e.kind !== 'boss' && Math.random() < 0.35) this.enemies.push({kind: 'coin', x: e.x, y: e.y, vx: -1.2, hp: 1, r: 6, t: 0}); this.boom(e.x, e.y, e.kind === 'boss', e.kind === 'ast' ? '#aaa' : null); if (A()) e.kind === 'boss' ? A().sfx.bossDown() : A().sfx.smallBoom(); if (e.kind === 'boss') { this.boss = null; if (A()) A().setBoss(false); this.phase = 'land'; this.landT = 0; this.enemies = this.enemies.filter(z => z.kind === 'heart'); G.flow.banner('Sternenpirat besiegt!', 2, 'Landung auf dem ' + (PLANETS[this.target] || PLANETS.mond).name); if (G.flow.achieve) G.flow.achieve('pirate'); } else if (A()) A().sfx.smallBoom(); } else if (A()) A().sfx.pop(); } }
+        if (e.kind !== 'plasma' && e.kind !== 'heart' && e.kind !== 'coin') for (const b of this.bullets) { if (!b.dead && Math.abs(b.x - e.x) < e.r + 4 && Math.abs(b.y - e.y) < e.r + 2) { b.dead = true; e.hp--; e.flash = 0.1; if (e.hp <= 0) { e.dead = true; this.kills++; this.score += e.kind === 'boss' ? 5000 : (e.kind === 'ast' ? 100 : 200); this.pay(e.kind === 'boss' ? 150 : 2); if (e.kind !== 'boss' && Math.random() < 0.35) this.enemies.push({kind: 'coin', x: e.x, y: e.y, vx: -1.2, hp: 1, r: 6, t: 0}); this.boom(e.x, e.y, e.kind === 'boss', e.kind === 'ast' ? '#aaa' : null); if (A()) e.kind === 'boss' ? A().sfx.bossDown() : A().sfx.smallBoom(); if (e.kind === 'boss') { this.boss = null; if (A()) A().setBoss(false); this.phase = 'land'; this.landT = 0; this.enemies = this.enemies.filter(z => z.kind === 'heart'); G.flow.banner(tr('Sternenpirat besiegt!', 'Star Pirate defeated!'), 2, tr('Landung auf dem ' + (PLANETS[this.target] || PLANETS.mond).name, 'Landing on ' + (this.target === 'mond' || !PLANETS[this.target] ? 'the ' : '') + (PLANETS[this.target] || PLANETS.mond).name)); if (G.flow.achieve) G.flow.achieve('pirate'); } else if (A()) A().sfx.smallBoom(); } else if (A()) A().sfx.pop(); } }
         /* collision with the ship */
         if (!e.dead && Math.abs(e.x - s.x) < e.r + 14 && Math.abs(e.y - s.y) < e.r + 6) {
           if (e.kind === 'heart') { e.dead = true; s.hp = Math.min(s.maxHp, s.hp + 1); this.score += 300; if (A()) A().sfx.heart(); }
           else if (e.kind === 'coin') { e.dead = true; this.pay(5); if (A()) A().sfx.coin(); }
           else if (s.inv <= 0 && s.shield > 0) { s.shield = 0; s.inv = 1.2; if (A()) A().sfx.bubblePop(); this.boom(s.x, s.y, false, '#8fd3ff'); if (e.kind === 'plasma' || e.kind === 'bee') e.dead = true; }
-          else if (s.inv <= 0) { s.hp--; s.inv = 1.8; S().shake = 6; if (A()) A().sfx.rocketHit(); if (e.kind === 'plasma' || e.kind === 'bee') { e.dead = true; this.boom(e.x, e.y, false); } if (s.hp <= 0) { this.phase = 'dead'; this.landT = 0; this.boom(s.x, s.y, true); if (A()) { A().sfx.boom(); A().setBoss(false); } G.flow.speak('Oh no... Pookie...', {sad: true}); } }
+          else if (s.inv <= 0) { s.hp--; s.inv = 1.8; S().shake = 6; if (A()) A().sfx.rocketHit(); if (e.kind === 'plasma' || e.kind === 'bee') { e.dead = true; this.boom(e.x, e.y, false); } if (s.hp <= 0) { this.phase = 'dead'; this.landT = 0; this.boom(s.x, s.y, true); if (A()) { A().sfx.boom(); A().setBoss(false); } G.flow.speak('Oh no... Mallo...', {sad: true}); } }
         }
         if (e.x < -60 || e.x > VW() + 200 || e.y < -40 || e.y > VH + 40) e.dead = true;
       }
@@ -138,15 +139,16 @@
       /* HUD: hearts, progress, score, boss bar */
       outlined(ctx, '● ' + this.money, 14, 30, 9, '#ffd84a', 'left');
       for (let i = 0; i < s.maxHp; i++) { ctx.save(); ctx.translate(14 + i * 14, 14); ctx.beginPath(); ctx.moveTo(0, 5); ctx.bezierCurveTo(-8, -2, -4, -8, 0, -4); ctx.bezierCurveTo(4, -8, 8, -2, 0, 5); ctx.fillStyle = i < s.hp ? '#ff6f9c' : 'rgba(255,255,255,.25)'; ctx.fill(); ctx.restore(); }
-      rr(ctx, W / 2 - 70, 7, 140, 8, 4); ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fill(); rr(ctx, W / 2 - 70, 7, Math.max(8, 140 * prog), 8, 4); ctx.fillStyle = '#8fd3ff'; ctx.fill();
-      outlined(ctx, (PLANETS[this.from] || PLANETS.erde).name + ' → ' + (PLANETS[this.target] || PLANETS.mond).name, W / 2, 24, 8, '#fff');
+      const bx = (G.input && G.input.touchMode) ? W / 2 + 90 : W / 2;   /* phones: the pause button sits at the top centre */
+      rr(ctx, bx - 70, 7, 140, 8, 4); ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fill(); rr(ctx, bx - 70, 7, Math.max(8, 140 * prog), 8, 4); ctx.fillStyle = '#8fd3ff'; ctx.fill();
+      outlined(ctx, (PLANETS[this.from] || PLANETS.erde).name + ' → ' + (PLANETS[this.target] || PLANETS.mond).name, bx, 24, 8, '#fff');
       outlined(ctx, String(this.score).padStart(6, '0'), W - 12, 14, 10, '#ffd84a', 'right');
-      if (this.boss) { rr(ctx, W / 2 - 60, VH - 18, 120, 8, 4); ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fill(); rr(ctx, W / 2 - 60, VH - 18, 120 * this.boss.hp / this.boss.maxHp, 8, 4); ctx.fillStyle = '#c9a0ff'; ctx.fill(); outlined(ctx, 'Sternenpirat', W / 2, VH - 26, 8, '#fff'); }
+      if (this.boss) { rr(ctx, W / 2 - 60, VH - 18, 120, 8, 4); ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fill(); rr(ctx, W / 2 - 60, VH - 18, 120 * this.boss.hp / this.boss.maxHp, 8, 4); ctx.fillStyle = '#c9a0ff'; ctx.fill(); outlined(ctx, PIRATE, W / 2, VH - 26, 8, '#fff'); }
       if (this.phase === 'land') { const k = ease(this.landT, 2.2, 3.4); if (k > 0) { ctx.fillStyle = 'rgba(255,255,255,' + k + ')'; ctx.fillRect(0, 0, W, VH); } }
       if (this.phase === 'dead') { const k = ease(this.landT, 0.8, 1.6); ctx.fillStyle = 'rgba(0,0,0,' + k + ')'; ctx.fillRect(0, 0, W, VH); }
     },
     /* launch from the globe: the rocket climbs out of the atmosphere, then docks at the station */
-    launch(wi, done) { mkStars(); this.lt = 0; this.ldone = done; if (A()) A().sfx.liftoff(); G.flow.speak('Rocket time! To the moon!', {happy: true}); S().outfit = 'weltraum'; },
+    launch(wi, done) { mkStars(); this.lt = 0; this.ldone = done; this.lwi = wi; if (A()) A().sfx.liftoff(); G.flow.speak('Rocket time! To the moon!', {happy: true}); S().outfit = 'weltraum'; },
     launchUpdate() { this.lt += 1 / 60; if (this.lt >= 4.2 && this.ldone) { const d = this.ldone; this.ldone = null; d(); } },
     launchFrame(ctx) {
       const t = this.lt, W = VW(), k = ease(t, 0, 3.2), fr = S().frames;
@@ -157,7 +159,7 @@
       for (let i = 0; i < 12; i++) { ctx.globalAlpha = 0.5 * Math.max(0, 1 - k * 1.3); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse((i * 97) % W, VH - 60 - i * 17 + t * 90 * (0.5 + i % 3 * 0.3), 50, 10, 0, 0, TAU); ctx.fill(); } ctx.globalAlpha = 1;
       const ry = VH * 0.55 - Math.sin(k * Math.PI) * 30; ctx.save(); ctx.translate(W / 2, ry); ctx.rotate(-Math.PI / 2); drawShip(ctx, 0, 0, 0, 1.2, 0, fr); ctx.restore();
       if (t > 3.0) { const d = ease(t, 3.0, 4.2); ctx.fillStyle = 'rgba(255,255,255,' + d + ')'; ctx.fillRect(0, 0, W, VH); }
-      outlined(ctx, 'Welt 7', W / 2, VH - 48, 15, '#ffd84a'); outlined(ctx, 'Weltraum', W / 2, VH - 28, 12, '#fff');
+      outlined(ctx, tr('Welt ', 'World ') + ((this.lwi | 0) + 1), W / 2, VH - 48, 15, '#ffd84a'); outlined(ctx, tr('Weltraum', 'Outer Space'), W / 2, VH - 28, 12, '#fff');
     },
   };
 })();

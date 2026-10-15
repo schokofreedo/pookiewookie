@@ -1,7 +1,11 @@
 {
-  "name": "Pookiewookie",
-  "short_name": "Pookiewookie",
-  "description": "Wookie rettet Pookie: Jump'n'Run von Schokofreedo Games",
+  "id": "./",
+  "name": "The Starway Home",
+  "short_name": "Starway Home",
+  "description": "Rette Mallo! Toffos Jump'n'Run durch 10 Welten mit 20 Rätseln, U-Boot, Raketenflug und großem Finale. Von Schokofreedo Games.",
+  "categories": ["games", "kids", "entertainment"],
+  "dir": "ltr",
+  "prefer_related_applications": false,
   "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreen",
@@ -13,5 +17,10 @@
     {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
     {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
     {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "screenshots": [
+    {"src": "shots/menu.jpg", "sizes": "1280x720", "type": "image/jpeg", "form_factor": "wide", "label": "Hauptmenü mit Heldenauswahl"},
+    {"src": "shots/level.jpg", "sizes": "1280x720", "type": "image/jpeg", "form_factor": "wide", "label": "Jump'n'Run durch 10 Welten"},
+    {"src": "shots/globe.jpg", "sizes": "1280x720", "type": "image/jpeg", "form_factor": "wide", "label": "3D-Weltkugel"}
   ]
 }

@@ -1,39 +1,40 @@
-/* Pookiewookie puzzle: "Die vier Höhlenfische" (world unterwasser, slot 1).
+/* The Starway Home puzzle: "Die vier Höhlenfische" (world unterwasser, slot 1).
    Einstein-style logic grid: four caves, each fish has a colour, a favourite food and a pattern. Two handcrafted clue sets,
    both verified for a unique solution by brute force at load time. Canvas for the caves and fish, DOM for the clue list. */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, FONT = '"Fredoka", sans-serif';
   const INK = '#2a2440', PINK = '#ff9eb0', ROSE = '#ff6f9c', GOLD = '#ffd84a', MINT = '#9be7a5', CREAM = '#fff4e0';
 
   const ATTR = {
-    c: {label: 'Farbe', vals: ['Rot', 'Gelb', 'Blau', 'Grün']},
-    f: {label: 'Futter', vals: ['Plankton', 'Krill', 'Algen', 'Muscheln']},
-    p: {label: 'Muster', vals: ['gestreift', 'gepunktet', 'gefleckt', 'einfarbig']},
+    c: {label: tr('Farbe', 'Color'), vals: tr(['Rot', 'Gelb', 'Blau', 'Grün'], ['Red', 'Yellow', 'Blue', 'Green'])},
+    f: {label: tr('Futter', 'Food'), vals: tr(['Plankton', 'Krill', 'Algen', 'Muscheln'], ['Plankton', 'Krill', 'Algae', 'Mussels'])},
+    p: {label: tr('Muster', 'Pattern'), vals: tr(['gestreift', 'gepunktet', 'gefleckt', 'einfarbig'], ['striped', 'dotted', 'patchy', 'plain'])},
   };
   const KEYS = ['c', 'f', 'p'];
   const FISHCOL = [['#ff5f6d', '#c9374a'], ['#ffd84a', '#d69a1c'], ['#5aa9ff', '#2f6fc9'], ['#5fd38a', '#2f9a5b']];
   /* clue = [type, a1, v1, a2, v2, (a3, v3)] ; type at: [at, a, v, cave] ; edge: [edge, a, v] */
   const VARIANTS = [
     {sol: {c: [1, 0, 3, 2], f: [2, 1, 3, 0], p: [1, 3, 0, 2]}, clues: [
-      [['at', 'c', 2, 3], 'Der <b class="k2">blaue</b> Fisch wohnt in Höhle 4, ganz rechts.'],
-      [['dleft', 'f', 1, 'c', 3], 'Der <b>Krillfresser</b> wohnt direkt links neben dem <b class="k3">grünen</b> Fisch.'],
-      [['same', 'p', 0, 'f', 3], 'Der <b>gestreifte</b> Fisch knackt <b>Muscheln</b>.'],
-      [['edge', 'c', 1], 'Der <b class="k1">gelbe</b> Fisch wohnt ganz außen – in Höhle 1 oder Höhle 4.'],
-      [['leftof', 'p', 0, 'p', 2], 'Der <b>gefleckte</b> Fisch wohnt irgendwo rechts vom <b>gestreiften</b>.'],
-      [['same', 'c', 0, 'p', 3], 'Der <b class="k0">rote</b> Fisch ist <b>einfarbig</b>.'],
-      [['next', 'f', 0, 'f', 3], 'Der <b>Planktonfresser</b> wohnt neben dem <b>Muschelknacker</b>.'],
-      [['leftof', 'f', 2, 'c', 0], 'Der <b>Algenfresser</b> wohnt irgendwo links vom <b class="k0">roten</b> Fisch.'],
+      [['at', 'c', 2, 3], tr('Der <b class="k2">blaue</b> Fisch wohnt in Höhle 4, ganz rechts.', 'The <b class="k2">blue</b> fish lives in cave 4, on the far right.')],
+      [['dleft', 'f', 1, 'c', 3], tr('Der <b>Krillfresser</b> wohnt direkt links neben dem <b class="k3">grünen</b> Fisch.', 'The <b>krill eater</b> lives directly to the left of the <b class="k3">green</b> fish.')],
+      [['same', 'p', 0, 'f', 3], tr('Der <b>gestreifte</b> Fisch knackt <b>Muscheln</b>.', 'The <b>striped</b> fish cracks <b>mussels</b>.')],
+      [['edge', 'c', 1], tr('Der <b class="k1">gelbe</b> Fisch wohnt ganz außen – in Höhle 1 oder Höhle 4.', 'The <b class="k1">yellow</b> fish lives at one of the ends – in cave 1 or cave 4.')],
+      [['leftof', 'p', 0, 'p', 2], tr('Der <b>gefleckte</b> Fisch wohnt irgendwo rechts vom <b>gestreiften</b>.', 'The <b>patchy</b> fish lives somewhere to the right of the <b>striped</b> one.')],
+      [['same', 'c', 0, 'p', 3], tr('Der <b class="k0">rote</b> Fisch ist <b>einfarbig</b>.', 'The <b class="k0">red</b> fish is <b>plain</b>.')],
+      [['next', 'f', 0, 'f', 3], tr('Der <b>Planktonfresser</b> wohnt neben dem <b>Muschelknacker</b>.', 'The <b>plankton eater</b> lives next to the <b>mussel cracker</b>.')],
+      [['leftof', 'f', 2, 'c', 0], tr('Der <b>Algenfresser</b> wohnt irgendwo links vom <b class="k0">roten</b> Fisch.', 'The <b>algae eater</b> lives somewhere to the left of the <b class="k0">red</b> fish.')],
     ]},
     {sol: {c: [3, 2, 1, 0], f: [3, 0, 1, 2], p: [2, 0, 3, 1]}, clues: [
-      [['at', 'f', 1, 2], 'Der <b>Krillfresser</b> wohnt in Höhle 3.'],
-      [['between', 'f', 1, 'c', 0, 'f', 3], 'Der <b>Krillfresser</b> wohnt irgendwo zwischen dem <b class="k0">roten</b> Fisch und dem <b>Muschelknacker</b>.'],
-      [['same', 'f', 2, 'c', 0], 'Der <b>Algenfresser</b> ist <b class="k0">rot</b>.'],
-      [['leftof', 'c', 3, 'f', 0], 'Der <b class="k3">grüne</b> Fisch wohnt irgendwo links vom <b>Planktonfresser</b>.'],
-      [['dleft', 'c', 3, 'p', 0], 'Der <b class="k3">grüne</b> Fisch wohnt direkt links neben dem <b>gestreiften</b>.'],
-      [['next', 'f', 1, 'p', 1], 'Der <b>Krillfresser</b> wohnt neben dem <b>gepunkteten</b> Fisch.'],
-      [['diff', 'c', 2, 'f', 1], 'Der <b class="k2">blaue</b> Fisch mag keinen <b>Krill</b>.'],
-      [['next', 'p', 3, 'p', 1], 'Der <b>einfarbige</b> Fisch wohnt neben dem <b>gepunkteten</b>.'],
+      [['at', 'f', 1, 2], tr('Der <b>Krillfresser</b> wohnt in Höhle 3.', 'The <b>krill eater</b> lives in cave 3.')],
+      [['between', 'f', 1, 'c', 0, 'f', 3], tr('Der <b>Krillfresser</b> wohnt irgendwo zwischen dem <b class="k0">roten</b> Fisch und dem <b>Muschelknacker</b>.', 'The <b>krill eater</b> lives somewhere between the <b class="k0">red</b> fish and the <b>mussel cracker</b>.')],
+      [['same', 'f', 2, 'c', 0], tr('Der <b>Algenfresser</b> ist <b class="k0">rot</b>.', 'The <b>algae eater</b> is <b class="k0">red</b>.')],
+      [['leftof', 'c', 3, 'f', 0], tr('Der <b class="k3">grüne</b> Fisch wohnt irgendwo links vom <b>Planktonfresser</b>.', 'The <b class="k3">green</b> fish lives somewhere to the left of the <b>plankton eater</b>.')],
+      [['dleft', 'c', 3, 'p', 0], tr('Der <b class="k3">grüne</b> Fisch wohnt direkt links neben dem <b>gestreiften</b>.', 'The <b class="k3">green</b> fish lives directly to the left of the <b>striped</b> one.')],
+      [['next', 'f', 1, 'p', 1], tr('Der <b>Krillfresser</b> wohnt neben dem <b>gepunkteten</b> Fisch.', 'The <b>krill eater</b> lives next to the <b>dotted</b> fish.')],
+      [['diff', 'c', 2, 'f', 1], tr('Der <b class="k2">blaue</b> Fisch mag keinen <b>Krill</b>.', 'The <b class="k2">blue</b> fish doesn’t like <b>krill</b>.')],
+      [['next', 'p', 3, 'p', 1], tr('Der <b>einfarbige</b> Fisch wohnt neben dem <b>gepunkteten</b>.', 'The <b>plain</b> fish lives next to the <b>dotted</b> one.')],
     ]},
   ];
   const posOf = (s, a, v) => s[a].indexOf(v);
@@ -198,11 +199,11 @@
     root.appendChild(cv);
     const ctx = cv.getContext('2d');
     const panel = document.createElement('div'); panel.className = 'pz-uf-clues';
-    panel.innerHTML = '<h3>Hinweise <small>antippen = abhaken</small></h3><div class="pz-uf-list"></div><div class="pz-uf-btns"><button type="button" class="pz-uf-reset">Leeren</button><button type="button" class="pz-uf-go">Prüfen</button></div>';
+    panel.innerHTML = '<h3>' + tr('Hinweise <small>antippen = abhaken</small>', 'Clues <small>tap = tick off</small>') + '</h3><div class="pz-uf-list"></div><div class="pz-uf-btns"><button type="button" class="pz-uf-reset">' + tr('Leeren', 'Clear') + '</button><button type="button" class="pz-uf-go">' + tr('Prüfen', 'Check') + '</button></div>';
     root.appendChild(panel);
     const list = panel.querySelector('.pz-uf-list');
     const rows = V.clues.map((cl, i) => { const d = document.createElement('div'); d.innerHTML = '<i>' + (i + 1) + '</i><span>' + cl[1] + '</span>'; list.appendChild(d); d.addEventListener('click', () => { d.classList.toggle('done'); sfx(d.classList.contains('done') ? 'tick' : 'select'); }); return d; });
-    const more = document.createElement('p'); more.className = 'more'; more.textContent = '▾'; more.title = 'weiter runter scrollen'; panel.appendChild(more);
+    const more = document.createElement('p'); more.className = 'more'; more.textContent = '▾'; more.title = tr('weiter runter scrollen', 'scroll down for more'); panel.appendChild(more);
     const btnBar = panel.querySelector('.pz-uf-btns');
     const moreCheck = () => { const m = list.scrollTop + list.clientHeight < list.scrollHeight - 6; list.classList.toggle('has-more', m); panel.classList.toggle('has-more', m); more.style.bottom = (btnBar.offsetHeight + 6) + 'px'; };
     list.addEventListener('scroll', moreCheck, {passive: true});
@@ -244,13 +245,13 @@
     function check() {
       if (S.won || S.busy) return;
       S.pick = null;
-      if (!full()) { api.msg('Gib erst jedem Fisch Farbe, Futter und Muster – dann prüfe.', 'bad'); sfx('bump'); draw(); return; }
+      if (!full()) { api.msg(tr('Gib erst jedem Fisch Farbe, Futter und Muster – dann prüfe.', 'First give every fish a color, a food and a pattern – then check.'), 'bad'); sfx('bump'); draw(); return; }
       const bad = []; V.clues.forEach((cl, i) => { if (!clueOk(cl[0], S.grid)) bad.push(i); });
       clearMarks(); void list.offsetWidth;
       if (!bad.length) { win(); return; }
       bad.forEach(i => rows[i].classList.add('bad'));
       if (rows[bad[0]]) rows[bad[0]].scrollIntoView({block: 'nearest', behavior: 'smooth'});
-      api.wrong(bad.length === 1 ? 'Ein Hinweis stimmt noch nicht – er leuchtet rot.' : bad.length + ' Hinweise stimmen noch nicht – sie leuchten rot.');
+      api.wrong(bad.length === 1 ? tr('Ein Hinweis stimmt noch nicht – er leuchtet rot.', 'One clue isn’t right yet – it glows red.') : tr(`${bad.length} Hinweise stimmen noch nicht – sie leuchten rot.`, `${bad.length} clues aren’t right yet – they glow red.`));
     }
     function win() {
       S.won = true; rows.forEach(r => { r.classList.remove('done', 'bad'); r.classList.add('good'); });
@@ -303,7 +304,7 @@
       /* plaque */
       const pw = Math.min(w * 0.7, 76), ph = L.small ? 16 : 19;
       rr(ctx, x + w / 2 - pw / 2, y - 2, pw, ph, 7); ctx.fillStyle = CREAM; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke();
-      T(ctx, 'Höhle ' + (i + 1), x + w / 2, y - 2 + ph / 2 + 1, L.small ? 10.5 : 12, '#2a2440');
+      T(ctx, tr('Höhle ', 'Cave ') + (i + 1), x + w / 2, y - 2 + ph / 2 + 1, L.small ? 10.5 : 12, '#2a2440');
     }
     function chipRect(i, k) { const L = Lay; return {x: colX(i) + 3, y: L.chipTop + k * (L.chipH + L.gap), w: L.colW - 6, h: L.chipH}; }
     function drawChip(i, k) {
@@ -337,7 +338,7 @@
         if (v < 0) T(ctx, '✕', bx + bs / 2, by + bs / 2 + 1, bs * 0.4, '#b0899c');
         else drawIcon(ctx, key, v, bx + bs / 2, by + bs / 2 - (L.small ? 0 : 2), bs * 0.28, time);
         if (used >= 0 && used !== i) { ctx.beginPath(); ctx.arc(bx + bs - 6, by + 6, 7, 0, TAU); ctx.fillStyle = '#5f6f8c'; ctx.fill(); T(ctx, String(used + 1), bx + bs - 6, by + 6.5, 9, '#fff'); }
-        if (!L.small) T(ctx, v < 0 ? 'leer' : ATTR[key].vals[v], bx + bs / 2, by + bs + 7, 9.5, '#5a4a6a', {w: 600});
+        if (!L.small) T(ctx, v < 0 ? tr('leer', 'none') : ATTR[key].vals[v], bx + bs / 2, by + bs + 7, 9.5, '#5a4a6a', {w: 600});
         hits.push({x: bx, y: by, w: bs, h: bs + (L.small ? 0 : 12), id: 'p' + v, fn: () => { setVal(i, key, v); S.pick = null; }});
       }
     }
@@ -387,10 +388,10 @@
 
   const DEF = {
     id: 'unterwasser-fische', world: 'unterwasser', slot: 1,
-    title: 'Die vier Höhlenfische',
-    intro: 'In jeder Höhle wohnt ein Fisch – mit eigener Farbe, eigenem Futter und eigenem Muster, keins kommt doppelt vor. Finde mit den Hinweisen heraus, wer wo wohnt. „Neben“ heißt: direkt daneben.',
-    letter: 'Fang mit dem Hinweis an, der nur eine einzige Höhle erlaubt. Von dort schwimmst du von Hinweis zu Hinweis – und wenn zwei Wege möglich sind, probier einen aus, bis er sich verheddert.',
-    hint: 'Setz zuerst den Hinweis mit der festen Höhlennummer ein. Suche dann Hinweise, die zwei Dinge fest verbinden („ist“, „direkt links neben“) – meist gibt es nur zwei Möglichkeiten. Spiel beide im Kopf durch: eine davon widerspricht einem anderen Hinweis.',
+    title: tr('Die vier Höhlenfische', 'The Four Cave Fish'),
+    intro: tr('In jeder Höhle wohnt ein Fisch – mit eigener Farbe, eigenem Futter und eigenem Muster, keins kommt doppelt vor. Finde mit den Hinweisen heraus, wer wo wohnt. „Neben“ heißt: direkt daneben.', 'A fish lives in every cave – each with its own color, its own food and its own pattern, nothing appears twice. Use the clues to find out who lives where. “Next to” means: right beside it.'),
+    letter: tr('Fang mit dem Hinweis an, der nur eine einzige Höhle erlaubt. Von dort schwimmst du von Hinweis zu Hinweis – und wenn zwei Wege möglich sind, probier einen aus, bis er sich verheddert.', 'Start with the clue that allows only one single cave. From there, swim from clue to clue – and when two ways are possible, try one until it gets tangled.'),
+    hint: tr('Setz zuerst den Hinweis mit der festen Höhlennummer ein. Suche dann Hinweise, die zwei Dinge fest verbinden („ist“, „direkt links neben“) – meist gibt es nur zwei Möglichkeiten. Spiel beide im Kopf durch: eine davon widerspricht einem anderen Hinweis.', 'First fill in the clue with the fixed cave number. Then look for clues that firmly link two things (“is”, “directly to the left of”) – usually there are only two options. Play both through in your head: one of them contradicts another clue.'),
     station, mount,
   };
   if (G.PZ) G.PZ.register(DEF);

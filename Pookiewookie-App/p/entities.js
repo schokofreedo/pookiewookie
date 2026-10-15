@@ -1,7 +1,8 @@
-/* Pookiewookie: enemies, hazards, platforms, projectiles, power-ups and bosses. Behaviours are generic; the look comes from the world. */
+/* The Starway Home: enemies, hazards, platforms, projectiles, power-ups and bosses. Behaviours are generic; the look comes from the world. */
 (function () {
   const G = window.PW = window.PW || {}, A = () => G.audio, T = 16, MH = 15;
   const E = () => G.eng, S = () => G.S, P = () => G.P, L = () => G.L;
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const M = G.entsMod = {
     make(ch, cx, cy, W, d) {
       const x = cx * T, y = cy * T, sp = 1 + d * 0.025;
@@ -23,7 +24,7 @@
       const boss = G.ents.find(e => e.kind === 'boss'); if (!boss) return;
       S().bossActive = true; S().camLock = L().arenaX - 40; boss.active = true; boss.t = 1.2; boss.atkT = 2.4; A().setBoss(true); S().shake = 6; A().sfx.thud();
       if (boss.weapon) { P().blaster = true; if (A().sfx.gadget) A().sfx.gadget(); }
-      G.flow.banner(boss.name, 3.2, boss.tip || ('Stampfe ' + boss.maxHp + '× auf den Kopf!'));
+      G.flow.banner(boss.name, 3.2, boss.tip || tr(`Stampfe ${boss.maxHp}× auf den Kopf!`, `Stomp on its head ${boss.maxHp}×!`));
     },
     throwAt(e, target, look) {
       const dx = target.x - e.x, dist = Math.abs(dx); if (dist > 230) return;
@@ -48,7 +49,7 @@
           continue;
         }
         else if (e.kind === 'gadget') {
-          /* the drawn gadget hops off the block and wanders like a mushroom so Wookie can grab it on the ground */
+          /* the drawn gadget hops off the block and wanders like a mushroom so Toffo can grab it on the ground */
           eng.moveX(e); if (e.hitWall) e.vx = -(e.lastVx || e.vx || 0.7); if (e.vx) e.lastVx = e.vx;
           e.vy = Math.min(4, (e.vy || 0) + 0.3); eng.moveY(e, false); if (e.y > (G.L ? G.L.h : MH) * T + 20) { ents.splice(i, 1); continue; }
         }
@@ -83,15 +84,15 @@
         else if (e.kind === 'bean') { e.t -= 1 / 60; e.vy += 0.35; eng.moveX(e); eng.moveY(e, false); if (e.onGround) e.vy = -3; if (e.hitWall || e.t <= 0 || e.y > (G.L ? G.L.h : MH) * T) { e.alive = false; e.dieT = 10; continue; } for (const o of ents) if (o !== e && o.alive && (o.stompable !== undefined || o.kind === 'boss') && o.kind !== 'bean' && eng.overlap(e, o)) { if (o.kind === 'boss') { if (o.inv <= 0 && o.active) { M.bossHit(o, 1); } } else if (o.look !== 'cannon') eng.kill(o, true); e.alive = false; e.dieT = 10; A().sfx.pop(); break; } }
         else if (e.kind === 'boss') M.updateBoss(e);
         }
-        /* interaction with Wookie */
+        /* interaction with Toffo */
         if (p.dead || G.goalSeq || !e.alive || p.cannon) continue;
         const box = {x: p.x, y: p.y, w: p.w, h: p.h}, star = p.gadget === 'star';
-        if (e.kind === 'milk' && eng.overlap(box, e)) { e.alive = false; e.dieT = 10; if (!p.big) { p.big = true; p.h = 24; p.y -= 10; } A().sfx.power(); s.score += 1000; eng.toast('Milch!'); continue; }
-        if (e.kind === 'coffee' && eng.overlap(box, e)) { e.alive = false; e.dieT = 10; p.coffee = true; if (!p.big) { p.big = true; p.h = 24; p.y -= 10; } A().sfx.power(); s.score += 1000; eng.toast('Kaffee!'); continue; }
-        if (e.kind === 'feather' && eng.overlap(box, e)) { e.alive = false; e.dieT = 10; p.wings = true; if (!p.big) { p.big = true; p.h = 24; p.y -= 10; } A().sfx.power(); s.score += 1000; eng.toast('Honigflügel! Springen halten = gleiten'); continue; }
-        if (e.kind === 'chute' && eng.overlap(box, e)) { e.alive = false; e.dieT = 10; p.chute = true; p.chuteOpen = 0; A().sfx.gadget(); G.flow.banner('Fallschirm!', 2.6, 'Spring in den Schokowasserfall und lenk mit ◀ ▶. Unten ist heißer Kakao!'); continue; }
+        if (e.kind === 'milk' && eng.overlap(box, e)) { e.alive = false; e.dieT = 10; if (!p.big) { p.big = true; p.h = 24; p.y -= 10; } A().sfx.power(); s.score += 1000; eng.toast(tr('Milch!', 'Milk!')); continue; }
+        if (e.kind === 'coffee' && eng.overlap(box, e)) { e.alive = false; e.dieT = 10; p.coffee = true; if (!p.big) { p.big = true; p.h = 24; p.y -= 10; } A().sfx.power(); s.score += 1000; eng.toast(tr('Kaffee!', 'Coffee!')); continue; }
+        if (e.kind === 'feather' && eng.overlap(box, e)) { e.alive = false; e.dieT = 10; p.wings = true; if (!p.big) { p.big = true; p.h = 24; p.y -= 10; } A().sfx.power(); s.score += 1000; eng.toast(tr('Honigflügel! Springen halten = gleiten', 'Honey wings! Hold jump = glide')); continue; }
+        if (e.kind === 'chute' && eng.overlap(box, e)) { e.alive = false; e.dieT = 10; p.chute = true; p.chuteOpen = 0; A().sfx.gadget(); G.flow.banner(tr('Fallschirm!', 'Parachute!'), 2.6, tr('Spring in den Schokowasserfall und lenk mit ◀ ▶. Unten ist heißer Kakao!', 'Jump into the chocolate waterfall and steer with ◀ ▶. Hot cocoa at the bottom!')); continue; }
         if (e.kind === 'gadget' && eng.overlap(box, e)) { e.alive = false; e.dieT = 10; G.gad.give(e.id); continue; }
-        if (e.kind === 'cannon' && p.launch <= 0 && p.cannonCd <= 0 && eng.overlap(box, e)) { p.cannon = e; e.loadT = 0.75; p.hidden = true; p.vx = p.vy = 0; p.pound = false; p.climbing = false; A().sfx.cannonLoad(); eng.toast('Honigkanone!', e.x + 4, e.y - 16); continue; }
+        if (e.kind === 'cannon' && p.launch <= 0 && p.cannonCd <= 0 && eng.overlap(box, e)) { p.cannon = e; e.loadT = 0.75; p.hidden = true; p.vx = p.vy = 0; p.pound = false; p.climbing = false; A().sfx.cannonLoad(); eng.toast(tr('Honigkanone!', 'Honey cannon!'), e.x + 4, e.y - 16); continue; }
         if (e.kind === 'beam' && e.active && M.beamHits(e, box)) { eng.hurt('beam'); continue; }
         if (e.kind === 'shot' && eng.overlap(box, e)) { e.alive = false; e.dieT = 10; if (star) { eng.puff(e.x + 4, e.y + 4, 4, '#ffd84a'); A().sfx.pop(); } else eng.hurt(e.look); continue; }
         if ((e.kind === 'walker' || e.kind === 'flyer' || e.kind === 'spiky' || e.kind === 'thrower' || e.kind === 'jumper') && eng.overlap(box, e)) {
@@ -112,9 +113,9 @@
       }
     },
     bossHit(b, dmg) {
-      b.hp -= dmg; b.inv = b.weapon ? 0.3 : 1.2; b.flash = 0.4; S().shake = 6; A().sfx.bossHit(); E().toast(b.hp > 0 ? 'Treffer!' : 'Besiegt!', b.x, b.y - 10);
+      b.hp -= dmg; b.inv = b.weapon ? 0.3 : 1.2; b.flash = 0.4; S().shake = 6; A().sfx.bossHit(); E().toast(b.hp > 0 ? tr('Treffer!', 'Hit!') : tr('Besiegt!', 'Defeated!'), b.x, b.y - 10);
       for (let i = 0; i < 8; i++) G.parts.push({kind: 'star', x: b.x + 15, y: b.y + 6, vx: (Math.random() - 0.5) * 4, vy: -2 - Math.random() * 2, t: 0.8});
-      if (b.hp <= 0) { if (G.eco) G.eco.add(150, b.x, b.y - 20); b.active = false; b.alive = false; b.dieT = -1.2; b.defeated = true; L().bossDone = true; S().score += b.points; S().bossActive = false; A().sfx.bossDown(); for (let i = 0; i < 24; i++) G.parts.push({kind: 'puff', x: b.x + 15 + (Math.random() - 0.5) * 20, y: b.y + 15, vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 3, t: 1.2, col: '#fff'}); setTimeout(() => E().openGate(), 1300); G.flow.banner('Boss besiegt!', 2, 'Das Tor öffnet sich.'); }
+      if (b.hp <= 0) { if (G.eco) G.eco.add(150, b.x, b.y - 20); b.active = false; b.alive = false; b.dieT = -1.2; b.defeated = true; L().bossDone = true; S().score += b.points; S().bossActive = false; A().sfx.bossDown(); for (let i = 0; i < 24; i++) G.parts.push({kind: 'puff', x: b.x + 15 + (Math.random() - 0.5) * 20, y: b.y + 15, vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 3, t: 1.2, col: '#fff'}); setTimeout(() => E().openGate(), 1300); G.flow.banner(tr('Boss besiegt!', 'Boss defeated!'), 2, tr('Das Tor öffnet sich.', 'The gate opens.')); }
     },
     /* ---------- boss attacks: projectiles, falling hazards with warning marks, telegraphed beams ---------- */
     groundBelow(x, y) { const eng = E(), Lv = L(); let cy = Math.floor(y / T); const cx = Math.floor(x / T); while (cy < Lv.h && !eng.solidAt(cx, cy) && E().tileAt(cx, cy) !== '~') cy++; return cy * T; },

@@ -1,8 +1,9 @@
-/* Pookiewookie puzzle: "Die Türme des Vulkans" (Lava, slot 1).
+/* The Starway Home puzzle: "Die Türme des Vulkans" (Lava, slot 1).
    Towers of Hanoi with 5 glowing lava discs on 3 obsidian pillars: move the whole tower from the left to the right pillar.
    A bigger disc may never lie on a smaller one (illegal drops hiss and bounce back). At most 40 moves (31 is optimal). */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, ND = 5, LIMIT = 40, OL = '#2a1508';
   const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
   function rr(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
@@ -20,10 +21,10 @@
   G.PZ = G.PZ || {register() {}};
   G.PZ.register({
     id: 'lava-hanoi', world: 'lava', slot: 1,
-    title: 'Die Türme des Vulkans',
-    intro: 'Bring alle fünf Lavascheiben von links nach rechts. Tippe eine Säule zum Heben, dann eine zum Ablegen – nie groß auf klein! Höchstens 40 Züge.',
-    letter: 'Bei einer ungeraden Zahl von Scheiben wandert die kleinste immer im Kreis: links, rechts, Mitte, links … Sie ist bei jedem zweiten Zug dran, und dazwischen gibt es immer nur einen erlaubten Zug ohne sie.',
-    hint: 'Denk in kleineren Türmen: Um 5 Scheiben nach rechts zu bringen, müssen zuerst die oberen 4 in die Mitte, dann wandert die größte nach rechts, dann kommen die 4 wieder obendrauf. Für 4 Scheiben gilt dasselbe mit 3 – und so weiter. Der allererste Zug: die kleinste Scheibe direkt nach rechts.',
+    title: tr('Die Türme des Vulkans', 'The Volcano Towers'),
+    intro: tr('Bring alle fünf Lavascheiben von links nach rechts. Tippe eine Säule zum Heben, dann eine zum Ablegen – nie groß auf klein! Höchstens 40 Züge.', 'Move all five lava discs from left to right. Tap a pillar to lift, then one to drop – never big on small! 40 moves at most.'),
+    letter: tr('Bei einer ungeraden Zahl von Scheiben wandert die kleinste immer im Kreis: links, rechts, Mitte, links … Sie ist bei jedem zweiten Zug dran, und dazwischen gibt es immer nur einen erlaubten Zug ohne sie.', 'With an odd number of discs, the smallest one always goes round in a circle: left, right, middle, left … It moves every other turn, and in between there is only ever one allowed move without it.'),
+    hint: tr('Denk in kleineren Türmen: Um 5 Scheiben nach rechts zu bringen, müssen zuerst die oberen 4 in die Mitte, dann wandert die größte nach rechts, dann kommen die 4 wieder obendrauf. Für 4 Scheiben gilt dasselbe mit 3 – und so weiter. Der allererste Zug: die kleinste Scheibe direkt nach rechts.', 'Think in smaller towers: to move 5 discs to the right, the top 4 first go to the middle, then the biggest one moves right, then the 4 go back on top. For 4 discs it is the same with 3 – and so on. The very first move: the smallest disc straight to the right.'),
     station(c, x, y, t, solved) {
       c.save(); c.translate(x, y); c.lineJoin = 'round';
       /* stone gate */
@@ -58,7 +59,7 @@
         sc = Math.min(H / DH, W / DW); LW = W / sc; LH = H / sc;
         const top = (LH - DH) / 2, cx = LW / 2, sp = 220;
         L = {top, cx, px: [cx - sp, cx, cx + sp], baseY: top + 246, pillarH: 160, dh: 25, hoverY: top + 52, colW: sp};
-        L.btn = {x: 14, y: top + 76, w: 126, h: 34};
+        L.btn = {x: 14, y: top + 76, w: 126, h: 42};   /* >= 36 px on a phone (scale ~0.85) */
         if (st.discs.length) for (const d of st.discs) { const p = slotPos(d.peg, d.idx); if (d !== st.held) { d.x = p.x; d.y = p.y; d.way = []; } else if (!(st.drag && st.drag.moved)) { d.x = L.px[st.heldFrom]; d.y = L.hoverY; d.way = []; } }
       }
       const dw = k => 62 + k * 30;
@@ -92,7 +93,7 @@
           const over = {x: L.px[p], y: L.baseY - L.dh * (pg.length + 1.4)};
           d.way = [{x: L.px[p], y: L.hoverY}, over, {x: L.px[p], y: L.hoverY - 16, bounce: true}, {x: L.px[from], y: L.hoverY}, slotPos(from, st.peg[from].length - 1)];
           for (let i = 0; i < 10; i++) st.parts.push({kind: 'steam', x: L.px[p] + (rnd() - 0.5) * 40, y: over.y, vx: (rnd() - 0.5) * 1.2, vy: -1 - rnd() * 1.5, r: 6 + rnd() * 8, life: 0.9 + rnd() * 0.4});
-          api.msg('Zisch! Eine größere Scheibe darf nie auf einer kleineren liegen.', 'bad');
+          api.msg(tr('Zisch! Eine größere Scheibe darf nie auf einer kleineren liegen.', 'Hiss! A bigger disc may never sit on a smaller one.'), 'bad');
           return;
         }
         /* legal move */
@@ -104,7 +105,7 @@
         if (st.moves >= LIMIT) {
           st.busy = true;
           later(() => {
-            api.wrong('40 Züge sind um – der Vulkan grollt und baut die Türme neu auf!');
+            api.wrong(tr('40 Züge sind um – der Vulkan grollt und baut die Türme neu auf!', 'All 40 moves are used up – the volcano rumbles and rebuilds the towers!'));
             st.shake = 1; noise(0.8, {type: 'lowpass', freq: 300, freqTo: 60, gain: 0.5});
             later(() => { reset(); for (const dd of st.discs) { dd.y -= 120 + dd.k * 20; dd.way = [slotPos(dd.peg, dd.idx)]; } }, 700);
           }, 350);
@@ -118,7 +119,7 @@
           [0, 4, 7, 12, 16].forEach((n, i) => tone(392 * Math.pow(2, n / 12), 0.3, {type: 'triangle', gain: 0.12, delay: i * 0.09}));
           for (let i = 0; i < 70; i++) { const a = -Math.PI / 2 + (rnd() - 0.5) * 1.6, v = 3 + rnd() * 7; st.parts.push({kind: 'lava', x: L.px[2] + (rnd() - 0.5) * 30, y: L.baseY - L.dh * ND, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 2 + rnd() * 4, life: 1.2 + rnd() * 0.8}); }
           for (let i = 0; i < 24; i++) st.parts.push({kind: 'spark', x: L.cx + (rnd() - 0.5) * LW * 0.8, y: L.top + 30 + rnd() * 200, vx: 0, vy: -0.6, r: 12 + rnd() * 10, life: 0.8 + rnd() * 0.8});
-          api.msg('Der Vulkan jubelt! Alle Scheiben stehen rechts' + (st.moves === 31 ? ' – perfekt in 31 Zügen!' : ' (' + st.moves + ' Züge).'), 'good');
+          api.msg(tr('Der Vulkan jubelt! Alle Scheiben stehen rechts' + (st.moves === 31 ? ' – perfekt in 31 Zügen!' : ' (' + st.moves + ' Züge).'), 'The volcano cheers! All discs are on the right' + (st.moves === 31 ? ' – perfect in 31 moves!' : ' (' + st.moves + ' moves).')), 'good');
           later(() => api.solved(), 1100);
         }, st.quick ? 150 : 350);
       }
@@ -187,7 +188,7 @@
           c.strokeStyle = 'rgba(255,100,30,' + (0.4 + 0.3 * Math.sin(t * 2 + p)) + ')'; c.lineWidth = 1.5;
           c.beginPath(); c.moveTo(x - 2, top + 20); c.lineTo(x + 2, top + 50); c.lineTo(x - 1, top + 80); c.lineTo(x + 3, top + 120); c.stroke();
           c.beginPath(); c.arc(x, top, 9, 0, TAU); c.fillStyle = '#4a3a5a'; c.fill(); c.strokeStyle = '#05030a'; c.lineWidth = 2; c.stroke();
-          txt(c, ['START', 'MITTE', 'ZIEL'][p], x, L.baseY + 10, 12, p === 2 ? '#9be7a5' : '#ffcf9a', 'center', 700);
+          txt(c, ['START', tr('MITTE', 'MIDDLE'), tr('ZIEL', 'GOAL')][p], x, L.baseY + 10, 12, p === 2 ? '#9be7a5' : '#ffcf9a', 'center', 700);
         }
         /* discs: resting first, moving/held on top */
         const order = st.discs.slice().sort((a, b) => (a.way.length || a === st.held ? 1 : 0) - (b.way.length || b === st.held ? 1 : 0));
@@ -204,13 +205,13 @@
         /* HUD: move counter */
         const left = LIMIT - st.moves, warn = left <= 5;
         rr(c, LW - 168, L.top + 8, 154, 58, 14); c.fillStyle = 'rgba(20,8,14,.7)'; c.fill(); c.strokeStyle = warn ? '#ff6f6f' : 'rgba(255,160,80,.6)'; c.lineWidth = 2; c.stroke();
-        txt(c, 'Züge', LW - 91, L.top + 22, 12, '#ffcf9a', 'center', 600);
+        txt(c, tr('Züge', 'Moves'), LW - 91, L.top + 22, 12, '#ffcf9a', 'center', 600);
         txt(c, st.moves + ' / ' + LIMIT, LW - 91, L.top + 46, 24, warn ? '#ff8f8f' : '#fff4e0', 'center', 700);
         rr(c, 14, L.top + 8, 150, 58, 14); c.fillStyle = 'rgba(20,8,14,.7)'; c.fill(); c.strokeStyle = 'rgba(255,160,80,.6)'; c.stroke();
-        txt(c, 'Bestwert', 89, L.top + 22, 12, '#ffcf9a', 'center', 600);
-        txt(c, '31 Züge', 89, L.top + 46, 20, '#ffe14a', 'center', 700);
+        txt(c, tr('Bestwert', 'Best'), 89, L.top + 22, 12, '#ffcf9a', 'center', 600);
+        txt(c, tr('31 Züge', '31 moves'), 89, L.top + 46, 20, '#ffe14a', 'center', 700);
         const b = L.btn; rr(c, b.x, b.y, b.w, b.h, b.h / 2); c.fillStyle = st.busy ? 'rgba(255,111,156,.4)' : '#ff6f9c'; c.fill(); c.strokeStyle = '#7a3b57'; c.lineWidth = 3; c.stroke();
-        txt(c, 'Neu aufbauen', b.x + b.w / 2, b.y + b.h / 2 + 1, 14, '#fff', 'center', 700);
+        txt(c, tr('Neu aufbauen', 'Start over'), b.x + b.w / 2, b.y + b.h / 2 + 1, 14, '#fff', 'center', 700);
         if (st.flash > 0) { c.fillStyle = 'rgba(255,200,90,' + st.flash * 0.5 + ')'; c.fillRect(-20, -20, LW + 40, LH + 40); }
       }
 
@@ -248,7 +249,7 @@
       function pegAt(p) { let best = -1, bd = 1e9; for (let i = 0; i < 3; i++) { const d = Math.abs(p.x - L.px[i]); if (d < bd) { bd = d; best = i; } } return bd < L.colW / 2 + 20 && p.y > L.top - 10 && p.y < L.baseY + 40 ? best : -1; }
       function onDown(e) {
         e.preventDefault(); const p = pt(e); st.ptr = p;
-        const b = L.btn; if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h) { if (!st.busy && !st.done) { try { api.sfx('select'); } catch (er) {} reset(); api.msg('Die Türme stehen wieder links.', 'info'); draw(); } return; }
+        const b = L.btn; if (p.x > b.x && p.x < b.x + b.w && p.y > b.y && p.y < b.y + b.h) { if (!st.busy && !st.done) { try { api.sfx('select'); } catch (er) {} reset(); api.msg(tr('Die Türme stehen wieder links.', 'The tower is back on the left.'), 'info'); draw(); } return; }
         if (st.busy || st.done) return;
         const pg = pegAt(p); if (pg < 0) return;
         try { cv.setPointerCapture(e.pointerId); } catch (er) {}
@@ -280,7 +281,7 @@
           timers.forEach(clearTimeout); timers.length = 0;
           st.quick = true; reset(); st.busy = true;
           const seq = solveSeq(ND, 0, 2, 1, []);
-          api.msg('Die kleinste Scheibe wandert im Kreis: links → rechts → Mitte …', 'info');
+          api.msg(tr('Die kleinste Scheibe wandert im Kreis: links → rechts → Mitte …', 'The smallest disc goes round in a circle: left → right → middle …'), 'info');
           const next = () => { const m = seq.shift(); if (!m) return; st.busy = false; lift(m[0]); drop(m[1]); st.busy = !st.done; if (seq.length) later(next, 45); };
           later(next, 120);
         },

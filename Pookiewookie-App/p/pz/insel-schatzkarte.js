@@ -1,9 +1,10 @@
-/* Pookiewookie puzzle: "Die Schatzkarte des Papageis" (Kokosinsel, slot 0).
+/* The Starway Home puzzle: "Die Schatzkarte des Papageis" (Kokosinsel, slot 0).
    A hand-drawn 8x8 island map (north up) with palms on the beach and in the forest, two huts, rocks, a well, a shipwreck and a lagoon.
    The parrot's six instructions lead to exactly one cell; the player taps it (tap = mark, tap again or "Hier graben!" = dig).
    Wrong digs leave a sand hole. The path is checked in code at mount (see walk()). */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, N = 8;
   const TERRAIN = [
     '~~ssss~~',
@@ -24,20 +25,32 @@
     [7, 6, 'wreck'],
   ];
   const TREASURE = [1, 5];
-  const STEPS = [
+  const STEPS = tr([
     'Start an der Hütte mit dem <b>roten</b> Dach. Kraah!',
     'Geh so viele Felder nach <b>Osten</b>, wie Palmen am Strand stehen.',
     'Dann nach <b>Süden</b> – so lange, bis ein Felsen direkt vor deiner Nase liegt.',
     'Jetzt <b>halb so weit</b> nach <b>Westen</b>, wie du eben nach Süden gestapft bist.',
     'Dann nach <b>Norden</b>, bis der Brunnen direkt westlich neben dir steht.',
     'Zum Schluss schräg nach <b>Südwesten</b>, bis du zum ersten Mal Sand unter den Pfoten hast. Grab da, Landratte!',
-  ];
-  const WRONG = [
+  ], [
+    'Start at the hut with the <b>red</b> roof. Squawk!',
+    'Walk as many squares <b>east</b> as there are palm trees on the beach.',
+    'Then go <b>south</b> – until a rock lies right in front of your nose.',
+    'Now go <b>half as far</b> <b>west</b> as you just stomped south.',
+    'Then go <b>north</b> until the well stands right next to you on the west side.',
+    'Last, go diagonally <b>southwest</b> until you feel sand under your paws for the first time. Dig there, landlubber!',
+  ]);
+  const WRONG = tr([
     'Arrr! Nur Sand und eine verdutzte Krabbe. Zähl nochmal nach!',
     'Kraah! Hier liegt nur eine alte Socke. Falsches Feld!',
     'Nix da, Landratte! Lies jeden Schritt ganz genau.',
     'Blubb … nur Muscheln. Der Schatz liegt woanders!',
-  ];
+  ], [
+    'Arrr! Only sand and a puzzled crab. Count again!',
+    'Squawk! Just an old sock in here. Wrong square!',
+    'No way, landlubber! Read every step very carefully.',
+    'Blub … only seashells. The treasure is somewhere else!',
+  ]);
   const terr = (c, r) => (c < 0 || r < 0 || c >= N || r >= N ? '~' : TERRAIN[r][c]);
   const markAt = (c, r) => { const m = MARKS.find(m => m[0] === c && m[1] === r); return m ? m[2] : null; };
   const isLand = (c, r) => terr(c, r) === 's' || terr(c, r) === 'g';
@@ -169,7 +182,7 @@
     c.lineWidth = R * 0.12; c.strokeStyle = '#fff4e0'; c.fillStyle = '#c8402c';
     c.strokeText('N', 0, -R * 1.18); c.fillText('N', 0, -R * 1.18);
     c.fillStyle = '#6b3e1f'; c.font = 'bold ' + Math.round(R * 0.3) + 'px "Fredoka", sans-serif';
-    for (const [l, a] of [['O', 0], ['S', Math.PI / 2], ['W', Math.PI]]) { const px = Math.cos(a) * R * 1.18, py = Math.sin(a) * R * 1.18; c.strokeText(l, px, py); c.fillText(l, px, py); }
+    for (const [l, a] of [[tr('O', 'E'), 0], ['S', Math.PI / 2], ['W', Math.PI]]) { const px = Math.cos(a) * R * 1.18, py = Math.sin(a) * R * 1.18; c.strokeText(l, px, py); c.fillText(l, px, py); }
     c.restore();
   }
   function drawParrot(c, x, y, s, t, look) {
@@ -206,10 +219,10 @@
 
   G.PZ && G.PZ.register({
     id: 'insel-schatzkarte', world: 'insel', slot: 0,
-    title: 'Die Schatzkarte des Papageis',
-    intro: 'Folge Käpt\'n Kraks Weg Feld für Feld (Norden ist oben). Tippe das Schatzfeld an und nochmal zum Graben – falsche Löcher bleiben!',
-    letter: 'Glaub dem Papagei jedes Wort, er lügt nie. Aber pass gut auf: Er zählt nur, was am Strand steht.',
-    hint: 'Zähl nur die Palmen auf dem gelben Sand, nicht die im grünen Wald. „Vor deiner Nase“ heißt: Der Felsen ist das nächste Feld, du bleibst davor stehen. Schräg nach Südwesten heißt: pro Schritt ein Feld nach Westen und eins nach Süden.',
+    title: tr('Die Schatzkarte des Papageis', 'The Parrot’s Treasure Map'),
+    intro: tr('Folge Käpt\'n Kraks Weg Feld für Feld (Norden ist oben). Tippe das Schatzfeld an und nochmal zum Graben – falsche Löcher bleiben!', 'Follow Captain Krak’s path square by square (north is up). Tap the treasure square, then tap it again to dig – wrong holes stay!'),
+    letter: tr('Glaub dem Papagei jedes Wort, er lügt nie. Aber pass gut auf: Er zählt nur, was am Strand steht.', 'Believe every word the parrot says, he never lies. But watch out: he only counts what stands on the beach.'),
+    hint: tr('Zähl nur die Palmen auf dem gelben Sand, nicht die im grünen Wald. „Vor deiner Nase“ heißt: Der Felsen ist das nächste Feld, du bleibst davor stehen. Schräg nach Südwesten heißt: pro Schritt ein Feld nach Westen und eins nach Süden.', 'Count only the palm trees on the yellow sand, not the ones in the green forest. “In front of your nose” means: the rock is the very next square, and you stop right before it. Diagonally southwest means: each step goes one square west and one square south.'),
 
     station(ctx, x, y, t, solved) {
       ctx.save();
@@ -249,7 +262,7 @@
       const panel = document.createElement('div'); panel.className = 'sk-panel'; wrap.appendChild(panel);
       const head = document.createElement('div'); head.className = 'sk-head'; panel.appendChild(head);
       const pc = document.createElement('canvas'); head.appendChild(pc);
-      const say = document.createElement('div'); say.className = 'sk-say'; say.innerHTML = 'Kraah! Käpt\'n Kraks Schatzweg:<small>Tipp auf einen Schritt, um ihn abzuhaken.</small>'; head.appendChild(say);
+      const say = document.createElement('div'); say.className = 'sk-say'; say.innerHTML = tr('Kraah! Käpt\'n Kraks Schatzweg:<small>Tipp auf einen Schritt, um ihn abzuhaken.</small>', 'Squawk! Captain Krak’s treasure path:<small>Tap a step to tick it off.</small>'); head.appendChild(say);
       const ul = document.createElement('ol'); ul.className = 'sk-steps'; panel.appendChild(ul);
       const stepEls = STEPS.map((html, i) => {
         const li = document.createElement('li'); li.className = 'sk-step'; li.innerHTML = '<span class="sk-num">' + (i + 1) + '</span><span>' + html + '</span>';
@@ -257,9 +270,9 @@
         ul.appendChild(li); return li;
       });
       const foot = document.createElement('div'); foot.className = 'sk-foot'; panel.appendChild(foot);
-      const info = document.createElement('span'); info.textContent = 'Tippe ein Feld an, um es zu markieren.'; foot.appendChild(info);
-      const bReset = document.createElement('button'); bReset.className = 'sk-btn sm'; bReset.type = 'button'; bReset.textContent = 'Haken weg'; foot.appendChild(bReset);
-      const bDig = document.createElement('button'); bDig.className = 'sk-btn'; bDig.type = 'button'; bDig.textContent = '⛏ Hier graben!'; bDig.disabled = true; foot.appendChild(bDig);
+      const info = document.createElement('span'); info.textContent = tr('Tippe ein Feld an, um es zu markieren.', 'Tap a square to mark it.'); foot.appendChild(info);
+      const bReset = document.createElement('button'); bReset.className = 'sk-btn sm'; bReset.type = 'button'; bReset.textContent = tr('Haken weg', 'Clear ticks'); foot.appendChild(bReset);
+      const bDig = document.createElement('button'); bDig.className = 'sk-btn'; bDig.type = 'button'; bDig.textContent = tr('⛏ Hier graben!', '⛏ Dig here!'); bDig.disabled = true; foot.appendChild(bDig);
       bReset.addEventListener('click', () => { stepEls.forEach((li, i) => { li.classList.remove('ok'); li.querySelector('.sk-num').textContent = String(i + 1); }); try { api.sfx('select'); } catch (e) {} });
 
       /* --- state --- */
@@ -421,7 +434,7 @@
 
       function setSel(p) {
         sel = p; bDig.disabled = !p || found;
-        info.textContent = p ? 'Feld markiert. Nochmal tippen oder graben!' : 'Tippe ein Feld an, um es zu markieren.';
+        info.textContent = p ? tr('Feld markiert. Nochmal tippen oder graben!', 'Square marked. Tap again or dig!') : tr('Tippe ein Feld an, um es zu markieren.', 'Tap a square to mark it.');
         draw();
       }
       function dig() {
@@ -438,17 +451,17 @@
       }
       function win() {
         if (done) return; done = true; found = performance.now(); sel = null; bDig.disabled = true;
-        info.textContent = 'Arrr, der Schatz! Goldtaler überall!';
+        info.textContent = tr('Arrr, der Schatz! Goldtaler überall!', 'Arrr, the treasure! Gold coins everywhere!');
         try { api.sfx('star'); G.audio.bell(1047, 0.4, 0.1, 0.1); G.audio.bell(1319, 0.5, 0.1, 0.25); } catch (e) {}
         puff(TREASURE, 26, ['#ffd84a', '#ffe98a', '#ffc21a'], true); puff(TREASURE, 16, ['#fff', '#ffd84a']); kick();
-        api.msg('Kraah! Der Schatz ist gefunden!', 'good');
+        api.msg(tr('Kraah! Der Schatz ist gefunden!', 'Squawk! The treasure is found!'), 'good');
         later(() => api.solved(), 900);
       }
       function onDown(e) {
         if (done || digging || solving) return; e.preventDefault(); const p = cellAt(e); if (!p) return;
         const k = terr(p[0], p[1]);
-        if (k === '~' || k === 'l') { api.msg(k === 'l' ? 'In der Lagune gräbt kein Pirat – blubb!' : 'Im Meer gräbt kein Pirat, Landratte!', 'info'); try { api.sfx('splash'); } catch (er) {} return; }
-        if (isHole(p)) { api.msg('Da hast du schon gegraben – leer!', 'info'); try { api.sfx('bump'); } catch (er) {} return; }
+        if (k === '~' || k === 'l') { api.msg(k === 'l' ? tr('In der Lagune gräbt kein Pirat – blubb!', 'No pirate digs in the lagoon – blub!') : tr('Im Meer gräbt kein Pirat, Landratte!', 'No pirate digs in the sea, landlubber!'), 'info'); try { api.sfx('splash'); } catch (er) {} return; }
+        if (isHole(p)) { api.msg(tr('Da hast du schon gegraben – leer!', 'You already dug there – empty!'), 'info'); try { api.sfx('bump'); } catch (er) {} return; }
         if (same(p, sel)) { dig(); return; }
         try { api.sfx('tick'); } catch (er) {} setSel(p);
       }

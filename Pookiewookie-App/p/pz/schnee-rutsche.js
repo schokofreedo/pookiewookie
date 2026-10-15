@@ -1,9 +1,10 @@
-/* Pookiewookie puzzle: "Die Pinguin-Rutsche" (Schnee, slot 0).
+/* The Starway Home puzzle: "Die Pinguin-Rutsche" (Schnee, slot 0).
    Ice sliding on 9x9: the penguin slides until a rock or the edge stops it, and it has to STOP exactly on the igloo tile (sliding
    over the igloo does not stop it). Fields are generated with random rocks and a reverse BFS until the optimal solution needs 8-11
    moves and the start is not in line with the igloo. Move limit = optimum + 2. Swipe, arrow buttons or arrow keys. */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, S = 9, NC = S * S;
   const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
   const snd = f => { try { const A = G.audio; if (A && A.ctx) f(A); } catch (e) {} };
@@ -92,10 +93,10 @@
 
   G.PZ.register({
     id: 'schnee-rutsche', world: 'schnee', slot: 0, _gen: generate,
-    title: 'Die Pinguin-Rutsche',
-    intro: 'Der Pinguin rutscht immer, bis ihn ein Fels oder der Rand stoppt. Er muss genau AUF dem Iglu-Feld anhalten (über das Iglu rutscht er drüber). Wische, tippe die Pfeile oder nutze die Pfeiltasten. Die Züge sind begrenzt!',
-    letter: 'Manchmal musst du erst vom Iglu wegrutschen, um anzukommen. Und ein Fels ist dein bester Freund.',
-    hint: 'Denk rückwärts: Von welchen Feldern aus würde der Pinguin genau auf dem Iglu stehen bleiben? Dafür braucht es einen Fels oder den Rand direkt hinter dem Iglu. Such diesen Haltepunkt zuerst und überlege dann, wie du auf seine Linie kommst.',
+    title: tr('Die Pinguin-Rutsche', 'The Penguin Slide'),
+    intro: tr('Der Pinguin rutscht immer, bis ihn ein Fels oder der Rand stoppt. Er muss genau AUF dem Iglu-Feld anhalten (über das Iglu rutscht er drüber). Wische, tippe die Pfeile oder nutze die Pfeiltasten. Die Züge sind begrenzt!', 'The penguin always slides until a rock or the edge stops it. It has to stop exactly ON the igloo tile (it slides right over the igloo otherwise). Swipe, tap the arrows or use the arrow keys. Your moves are limited!'),
+    letter: tr('Manchmal musst du erst vom Iglu wegrutschen, um anzukommen. Und ein Fels ist dein bester Freund.', 'Sometimes you have to slide away from the igloo first to get there. And a rock is your best friend.'),
+    hint: tr('Denk rückwärts: Von welchen Feldern aus würde der Pinguin genau auf dem Iglu stehen bleiben? Dafür braucht es einen Fels oder den Rand direkt hinter dem Iglu. Such diesen Haltepunkt zuerst und überlege dann, wie du auf seine Linie kommst.', 'Think backwards: from which tiles would the penguin stop exactly on the igloo? That needs a rock or the edge right behind the igloo. Find that stopping point first, then work out how to get onto its line.'),
     station(ctx, x, y, t, solved) {
       ctx.save(); ctx.translate(x, y); ctx.lineJoin = 'round';
       /* snow mound */
@@ -120,7 +121,7 @@
       const ctx = cv.getContext('2d');
       const mkBtn = (txt, big) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ghost'; b.innerHTML = txt; b.style.cssText = 'position:absolute;margin:0;padding:0 10px;font-size:13px;min-height:36px;background:rgba(30,70,110,.55);border-color:rgba(190,235,255,.7);color:#f2fbff;white-space:nowrap;display:flex;align-items:center;justify-content:center;touch-action:manipulation' + (big ? ';font-size:20px;padding:0;border-radius:12px' : ''); root.appendChild(b); return b; };
       const arrows = ['▲', '▶', '▼', '◀'].map(a => mkBtn(a, true));
-      const bUndo = mkBtn('↶ Zug zurück'), bReset = mkBtn('Von vorn');
+      const bUndo = mkBtn(tr('↶ Zug zurück', '↶ Undo')), bReset = mkBtn(tr('Von vorn', 'Restart'));
 
       let W = 0, H = 0, dpr = 1, cell = 30, bx = 0, by = 0, compact = false, padX = 0, panelX = 0;
       let P = null, pos = 0, hist = [], moves = 0, limit = 0, done = false, busy = false, solvedAt = 0, timers = [];
@@ -222,14 +223,14 @@
         drawPanel(t);
         if (done) {
           const a = Math.min(1, (t - solvedAt) / 0.4); ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'; fnt(ctx, '700', compact ? 22 : 30);
-          const tx = bx + bw / 2, ty = by + bw * 0.22 + Math.sin(t * 4) * 3; ctx.lineWidth = 7; ctx.lineJoin = 'round'; ctx.strokeStyle = '#2a4a6a'; ctx.strokeText('Ab ins Iglu!', tx, ty); ctx.fillStyle = '#fff'; ctx.fillText('Ab ins Iglu!', tx, ty); ctx.restore();
+          const tx = bx + bw / 2, ty = by + bw * 0.22 + Math.sin(t * 4) * 3; ctx.lineWidth = 7; ctx.lineJoin = 'round'; ctx.strokeStyle = '#2a4a6a'; const wt = tr('Ab ins Iglu!', 'Into the igloo!'); ctx.strokeText(wt, tx, ty); ctx.fillStyle = '#fff'; ctx.fillText(wt, tx, ty); ctx.restore();
         }
       }
       function drawPanel(t) {
         const x = panelX, w = W - panelX - 8; if (w < 60) return;
         ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
         let y = by + (compact ? 14 : 20);
-        fnt(ctx, '700', compact ? 14 : 17); ctx.fillStyle = '#2a4a6a'; ctx.fillText('Züge', x, y);
+        fnt(ctx, '700', compact ? 14 : 17); ctx.fillStyle = '#2a4a6a'; ctx.fillText(tr('Züge', 'Moves'), x, y);
         y += compact ? 32 : 42;
         const left = limit - moves;
         fnt(ctx, '700', compact ? 30 : 40); ctx.lineJoin = 'round'; ctx.lineWidth = 5; ctx.strokeStyle = '#2a4a6a'; const txt = moves + ' / ' + limit; ctx.strokeText(txt, x, y); ctx.fillStyle = left <= 1 && !done ? '#ffb3c4' : '#ffffff'; ctx.fillText(txt, x, y);
@@ -238,7 +239,7 @@
         for (let k = 0; k < limit; k++) { ctx.beginPath(); ctx.arc(x + dw / 2 + k * (dw + 2), y, dw / 2, 0, TAU); ctx.fillStyle = k < moves ? (k >= P.opt ? '#ff9eb0' : '#5b7fc9') : 'rgba(255,255,255,.75)'; ctx.fill(); ctx.strokeStyle = '#2a4a6a'; ctx.lineWidth = 1; ctx.stroke(); }
         y += compact ? 18 : 26;
         fnt(ctx, '600', compact ? 11 : 13); ctx.fillStyle = '#21405e';
-        ctx.fillText('Beste Lösung: ' + P.opt + ' Züge', x, y);
+        ctx.fillText(tr('Beste Lösung: ' + P.opt + ' Züge', 'Best solution: ' + P.opt + ' moves'), x, y);
       }
 
       let raf = 0, alive = true;
@@ -262,14 +263,14 @@
           busy = true;
           timers.push(setTimeout(() => {
             if (!alive) return;
-            api.wrong('Keine Züge mehr! Die Bestlösung braucht nur ' + P.opt + '. Der Pinguin rutscht zurück zum Start.');
+            api.wrong(tr('Keine Züge mehr! Die Bestlösung braucht nur ' + P.opt + '. Der Pinguin rutscht zurück zum Start.', 'Out of moves! The best solution needs only ' + P.opt + '. The penguin slides back to the start.'));
             timers.push(setTimeout(() => { if (alive) { reset(); draw(performance.now() / 1000); } }, 900));
           }, dur * 1000 + 120));
         }
       }
       function win() {
         if (done) return; done = true; busy = true; solvedAt = performance.now() / 1000;
-        api.msg('Genau angehalten! Der Pinguin watschelt ins Iglu.', 'good');
+        api.msg(tr('Genau angehalten! Der Pinguin watschelt ins Iglu.', 'A perfect stop! The penguin waddles into the igloo.'), 'good');
         const now = solvedAt; for (let k = 0; k < 28; k++) { const a = rng() * TAU, v = 30 + rng() * 80; fx.push({x: cx(P.goal), y: cy(P.goal), vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, g: 40, r: 2 + rng() * 3, life: 0.8 + rng() * 0.6, t0: now + rng() * 0.3, col: k % 2 ? '#ffffff' : '#ffd84a', flake: k % 3 === 0}); }
         snd(A => { [784, 988, 1175, 1568, 1976].forEach((f, k) => A.bell(f, 0.4, 0.1, k * 0.08)); A.tone(500, 0.2, {type: 'square', gain: 0.04, slide: 900, delay: 0.45}); });
         draw(now);
@@ -299,7 +300,7 @@
       cv.addEventListener('pointerdown', onDown); cv.addEventListener('pointerup', onUp); cv.addEventListener('pointercancel', () => { sw = null; });
       arrows.forEach((b, d) => b.addEventListener('pointerdown', e => { e.preventDefault(); move(d); }));
       bUndo.addEventListener('click', undo);
-      bReset.addEventListener('click', () => { if (busy) return; api.sfx('select'); reset(); api.msg('Zurück zum Start.', 'info'); });
+      bReset.addEventListener('click', () => { if (busy) return; api.sfx('select'); reset(); api.msg(tr('Zurück zum Start.', 'Back to the start.'), 'info'); });
       const KEYS = {ArrowUp: 0, KeyW: 0, ArrowRight: 1, KeyD: 1, ArrowDown: 2, KeyS: 2, ArrowLeft: 3, KeyA: 3};
       const onKey = e => {
         if (!root.isConnected) return;

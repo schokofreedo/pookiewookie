@@ -1,10 +1,11 @@
-/* Pookiewookie puzzle: "Das Nordlicht-Prisma" (Schnee, slot 1).
+/* The Starway Home puzzle: "Das Nordlicht-Prisma" (Schnee, slot 1).
    8x8 grid: an aurora crystal on the edge shines a beam into the field; ice walls stop it, mirrors turn it by 90 degrees.
    6 mirrors can be flipped (/ <-> \) by tapping, 2 are frozen. Both target crystals must glow at the same time (the beam passes
    through a crystal). The field is built around a random beam path; at mount all 2^6 mirror states are brute-forced: the start
    must be unsolved and at most two states may solve it. */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, S = 8;
   const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
   const SL = [1, 0, 3, 2], BS = [3, 2, 1, 0];   /* '/' and '\' reflections of dir 0=up 1=right 2=down 3=left */
@@ -106,8 +107,8 @@
       let start = null;
       for (let s = 0; s < 160 && !start; s++) {
         const ori = solOri.slice(); let wrong = 0; for (let b = 0; b < 6; b++) { ori[b] = R(2); if (ori[b] !== solOri[b] && !mirrors[b].decoy) wrong++; }
-        const tr = trace(F, ori);
-        if (!tr.solved && !tr.lit[0] && !tr.lit[1] && wrong >= (s < 120 ? 3 : 2)) start = ori;
+        const tc = trace(F, ori);
+        if (!tc.solved && !tc.lit[0] && !tc.lit[1] && wrong >= (s < 120 ? 3 : 2)) start = ori;
       }
       if (!start) continue;
       F.start = start; F.sol = solOri; F.sols = sols; F.turns = turns;
@@ -129,10 +130,10 @@
 
   G.PZ.register({
     id: 'schnee-spiegel', world: 'schnee', slot: 1, _gen: generate,
-    title: 'Das Nordlicht-Prisma',
-    intro: 'Der Nordlicht-Kristall schickt einen Lichtstrahl ins Eis. Tippe auf die hellen Spiegel, um sie zu kippen (/ oder \\). Die dunklen Spiegel sind festgefroren, Eiswände schlucken das Licht. Beide Kristalle müssen GLEICHZEITIG leuchten.',
-    letter: 'Licht biegt immer rechtwinklig ab. Geh rückwärts vom letzten Kristall aus.',
-    hint: 'Beginne beim Kristall, der am weitesten vom Strahl entfernt ist: Aus welcher Richtung kann Licht ihn überhaupt erreichen, ohne an eine Eiswand zu stoßen? Verfolge diese Linie zurück zum nächsten Spiegel. Die festgefrorenen Spiegel stehen schon richtig und gehören zum Weg.',
+    title: tr('Das Nordlicht-Prisma', 'The Northern Lights Prism'),
+    intro: tr('Der Nordlicht-Kristall schickt einen Lichtstrahl ins Eis. Tippe auf die hellen Spiegel, um sie zu kippen (/ oder \\). Die dunklen Spiegel sind festgefroren, Eiswände schlucken das Licht. Beide Kristalle müssen GLEICHZEITIG leuchten.', 'The aurora crystal shines a beam of light into the ice. Tap the bright mirrors to tilt them (/ or \\). The dark mirrors are frozen solid, and ice walls swallow the light. Both crystals must glow AT THE SAME TIME.'),
+    letter: tr('Licht biegt immer rechtwinklig ab. Geh rückwärts vom letzten Kristall aus.', 'Light always turns at a right angle. Work backwards from the last crystal.'),
+    hint: tr('Beginne beim Kristall, der am weitesten vom Strahl entfernt ist: Aus welcher Richtung kann Licht ihn überhaupt erreichen, ohne an eine Eiswand zu stoßen? Verfolge diese Linie zurück zum nächsten Spiegel. Die festgefrorenen Spiegel stehen schon richtig und gehören zum Weg.', 'Start with the crystal farthest from the beam: from which direction can light reach it at all without hitting an ice wall? Follow that line back to the next mirror. The frozen mirrors are already set right and are part of the path.'),
     station(ctx, x, y, t, solved) {
       ctx.save(); ctx.translate(x, y); ctx.lineJoin = 'round';
       /* pedestal */
@@ -158,7 +159,7 @@
       cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:pointer';
       root.appendChild(cv);
       const ctx = cv.getContext('2d');
-      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn ghost'; btn.textContent = 'Zurücksetzen';
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn ghost'; btn.textContent = tr('Zurücksetzen', 'Reset');
       btn.style.cssText = 'position:absolute;margin:0;padding:6px 14px;font-size:13px;min-height:36px;background:rgba(30,30,80,.55);border-color:rgba(190,170,255,.7);color:#f4f0ff;white-space:nowrap';
       root.appendChild(btn);
 
@@ -292,29 +293,29 @@
         ctx.globalAlpha = 1;
         if (done) {
           const a = Math.min(1, (t - solvedAt) / 0.4); ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'; fnt(ctx, '700', compact ? 22 : 30);
-          const tx = bx + bw / 2, ty = by + bw / 2 + Math.sin(t * 4) * 3; ctx.lineWidth = 7; ctx.lineJoin = 'round'; ctx.strokeStyle = '#1b1a4a'; ctx.strokeText('Nordlicht!', tx, ty); ctx.fillStyle = '#b8ffd8'; ctx.fillText('Nordlicht!', tx, ty); ctx.restore();
+          const tx = bx + bw / 2, ty = by + bw / 2 + Math.sin(t * 4) * 3; ctx.lineWidth = 7; ctx.lineJoin = 'round'; ctx.strokeStyle = '#1b1a4a'; const wt = tr('Nordlicht!', 'Northern lights!'); ctx.strokeText(wt, tx, ty); ctx.fillStyle = '#b8ffd8'; ctx.fillText(wt, tx, ty); ctx.restore();
         }
       }
       function drawPanel(t) {
         const x = panelX, w = W - panelX - 8; if (w < 60) return;
         ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
         let y = by + (compact ? 12 : 18);
-        fnt(ctx, '700', compact ? 14 : 17); ctx.fillStyle = '#ffd84a'; ctx.fillText('Kristalle', x, y);
+        fnt(ctx, '700', compact ? 14 : 17); ctx.fillStyle = '#ffd84a'; ctx.fillText(tr('Kristalle', 'Crystals'), x, y);
         y += compact ? 10 : 14;
         const s = compact ? 26 : 34;
         for (let k = 0; k < 2; k++) { const cx0 = x + s / 2 + k * (s + 10); ctx.beginPath(); ctx.arc(cx0, y + s / 2, s / 2, 0, TAU); ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fill(); crystal(ctx, cx0, y + s / 2, s * 0.55, beam.lit[k], t, k ? '#ff9ee0' : '#ffd84a'); }
         y += s + (compact ? 16 : 24);
-        fnt(ctx, '600', compact ? 12 : 14); const n = beam.lit.filter(Boolean).length; ctx.fillStyle = n === 2 ? '#9be7a5' : '#e8e4ff'; ctx.fillText(n + ' von 2 leuchten', x, y);
+        fnt(ctx, '600', compact ? 12 : 14); const n = beam.lit.filter(Boolean).length; ctx.fillStyle = n === 2 ? '#9be7a5' : '#e8e4ff'; ctx.fillText(tr(n + ' von 2 leuchten', n + ' of 2 glowing'), x, y);
         if (!compact || H > 230) {
           y += compact ? 22 : 32;
           /* legend */
           const r = compact ? 9 : 11;
           ctx.beginPath(); ctx.arc(x + r, y - r * 0.4, r, 0, TAU); ctx.fillStyle = 'rgba(200,235,255,.28)'; ctx.fill(); ctx.strokeStyle = '#e9fbff'; ctx.lineWidth = 1.5; ctx.stroke();
           ctx.strokeStyle = '#e9fbff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x + r - r * 0.6, y - r * 0.4 + r * 0.6); ctx.lineTo(x + r + r * 0.6, y - r * 0.4 - r * 0.6); ctx.stroke();
-          fnt(ctx, '500', compact ? 11 : 12.5); ctx.fillStyle = '#e8e4ff'; ctx.fillText('kippbar', x + r * 2 + 8, y);
+          fnt(ctx, '500', compact ? 11 : 12.5); ctx.fillStyle = '#e8e4ff'; ctx.fillText(tr('kippbar', 'tiltable'), x + r * 2 + 8, y);
           y += compact ? 22 : 28;
           rr(ctx, x, y - r * 1.4, r * 2, r * 2, 4); ctx.fillStyle = '#3b3f66'; ctx.fill(); ctx.strokeStyle = '#c9b6ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x + r * 0.4, y - r * 0.4 + r * 0.6); ctx.lineTo(x + r * 1.6, y - r * 0.4 - r * 0.6); ctx.stroke();
-          ctx.fillStyle = '#e8e4ff'; ctx.fillText('festgefroren', x + r * 2 + 8, y);
+          ctx.fillStyle = '#e8e4ff'; ctx.fillText(tr('festgefroren', 'frozen'), x + r * 2 + 8, y);
         }
       }
 
@@ -333,11 +334,11 @@
             snd(A => { A.bell(k ? 1568 : 1319, 0.5, 0.1, 0.05); A.bell(k ? 2093 : 1760, 0.4, 0.06, 0.12); });
           }
         });
-        if (beam.solved) win();
+        if (beam.solved && !quiet) win();   /* quiet = "Zurücksetzen" flipping back: a passing state must not count as solved */
       }
       function win() {
         if (done) return; done = true; busy = true; solvedAt = performance.now() / 1000;
-        api.msg('Beide Kristalle leuchten, das Nordlicht tanzt!', 'good');
+        api.msg(tr('Beide Kristalle leuchten, das Nordlicht tanzt!', 'Both crystals glow, the northern lights dance!'), 'good');
         const now = solvedAt;
         for (const p of beam.pts) for (let j = 0; j < 4; j++) { const a = rng() * TAU, v = 15 + rng() * 40; fx.push({x: gx(p[0]), y: gy(p[1]), vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 2 + rng() * 3, life: 0.8 + rng() * 0.5, t0: now + rng() * 0.5, col: ['#b8ffd8', '#ffffff', '#c9b6ff', '#ffd84a'][j]}); }
         snd(A => { [659, 880, 1047, 1319, 1760, 2093].forEach((f, k) => A.bell(f, 0.6, 0.08, k * 0.09)); });
@@ -351,14 +352,14 @@
         F.mirrors.forEach((m, i) => { const dx = x - gx(m.x), dy = y - gy(m.y), d = dx * dx + dy * dy; if (d < bd) { bd = d; best = i; } });
         if (best < 0) return;
         e.preventDefault();
-        if (F.mirrors[best].fixed) { snd(A => A.tone(220, 0.1, {type: 'triangle', gain: 0.1})); api.msg('Dieser Spiegel ist festgefroren und lässt sich nicht kippen.', 'info'); return; }
+        if (F.mirrors[best].fixed) { snd(A => A.tone(220, 0.1, {type: 'triangle', gain: 0.1})); api.msg(tr('Dieser Spiegel ist festgefroren und lässt sich nicht kippen.', 'This mirror is frozen solid and can\'t be tilted.'), 'info'); return; }
         flip(best);
       };
       cv.addEventListener('pointerdown', onDown); cv.addEventListener('contextmenu', e => e.preventDefault());
       btn.addEventListener('click', () => {
         if (busy) return; api.sfx('select');
         F.mirrors.forEach((m, i) => { if (!m.fixed && ori[i] !== F.start[i]) flip(i, true); });
-        api.msg('Alle Spiegel stehen wieder wie am Anfang.', 'info');
+        api.msg(tr('Alle Spiegel stehen wieder wie am Anfang.', 'All mirrors are back the way they started.'), 'info');
       });
 
       setup();

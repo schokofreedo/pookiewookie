@@ -1,12 +1,14 @@
-/* Pookiewookie puzzle: "Das Zuckergedicht" (Zuckerwattewiese, slot 1).
+/* The Starway Home puzzle: "Das Zuckergedicht" (Zuckerwattewiese, slot 1).
    A riddle poem on a candy-stripe signboard describes one thing. The player spells the answer with letter tiles
    (answer letters + 5 decoys, shuffled): tap a tile to put it into the next free slot, tap a slot to give the letter back. */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2;
-  const ANSWER = 'LÖWENZAHN';
+  /* English: same idea, the name is built from two parts (DANDY-start + LION) plus the summer puff; also 9 letters */
+  const ANSWER = tr('LÖWENZAHN', 'DANDELION');
   const DECOYS = ['B', 'U', 'R', 'S', 'T'];
-  const POEM = [
+  const POEM = tr([
     'Im Frühling steh ich gelb und strahle wie ein Stern,',
     'die Bienen und die Kinder haben mich so gern.',
     'Mein Name ist ein König, der in der Steppe brüllt,',
@@ -14,14 +16,28 @@
     'Im Sommer werd ich weiß, ein Kopf aus weichem Flaum,',
     'ein Pusten – und ich fliege davon wie in \'nem Traum.',
     'Mit hundert kleinen Schirmchen reis ich übers Land:',
-    'Wie heiß ich, lieber Wookie? Hast du mich erkannt?',
-  ];
-  const WRONG = [
+    'Wie heiß ich, lieber Toffo? Hast du mich erkannt?',
+  ], [
+    'In spring I stand so yellow, shining like a star,',
+    'the bees and all the children love me near and far.',
+    'My name ends with the king who roars across the plain,',
+    'and starts much like a dandy, a fine gent with a cane.',
+    'In summer I turn white, a ball of softest fluff,',
+    'and off I fly just like a dream – with one small puff!',
+    'With a hundred tiny parachutes I drift on every breeze:',
+    'What is my name, dear Toffo? Tell me, if you please!',
+  ]);
+  const WRONG = tr([
     'Nicht ganz … das Wort ist es noch nicht. Lies das Gedicht Zeile für Zeile.',
     'Nicht ganz … wer brüllt denn da in Zeile 3 – und womit beißt er?',
     'Nicht ganz … was wird im Sommer weiß und fliegt beim Pusten davon?',
     'Nicht ganz … alle neun Felder müssen ein einziges Wort ergeben.',
-  ];
+  ], [
+    'Not quite … that’s not the word yet. Read the poem line by line.',
+    'Not quite … who roars like a king in line 3 – and how does line 4 say the name starts?',
+    'Not quite … what turns white in summer and flies away with one puff?',
+    'Not quite … all nine boxes must spell one single word.',
+  ]);
   const TILE_COLS = ['#ff9eb0', '#ffd84a', '#9be7a5', '#8fd3ff', '#ffc2e2', '#ffb27a', '#d8b4ff'];
   const sfx = (api, n) => { try { api.sfx(n); } catch (e) {} };
   const tone = (f, d, o) => { try { if (G.audio && G.audio.tone) G.audio.tone(f, d, o); } catch (e) {} };
@@ -87,10 +103,10 @@
 
   G.PZ && G.PZ.register({
     id: 'wiese-gedicht', world: 'wiese', slot: 1,
-    title: 'Das Zuckergedicht',
-    intro: 'Das Gedicht beschreibt EIN Ding. Lege sein Wort aus den Buchstaben – fünf sind zu viel. Feld antippen = Buchstabe zurück.',
-    letter: 'Auf der Zuckerwattewiese blüht etwas, das gefährlich heißt und doch ganz sanft ist. Im Sommer genügt ein einziges Pusten, und es reist davon.',
-    hint: 'Die Zeilen 3 und 4 ergeben zusammen ein Wort: ein Tier, das als König brüllt, plus das, womit es zubeißt. Und die Zeilen 5 bis 7 beschreiben, was im Sommer aus der gelben Blume wird.',
+    title: tr('Das Zuckergedicht', 'The Sugar Poem'),
+    intro: tr('Das Gedicht beschreibt EIN Ding. Lege sein Wort aus den Buchstaben – fünf sind zu viel. Feld antippen = Buchstabe zurück.', 'The poem describes ONE thing. Spell its name with the letter tiles – five of them are extra. Tap a box = letter goes back.'),
+    letter: tr('Auf der Zuckerwattewiese blüht etwas, das gefährlich heißt und doch ganz sanft ist. Im Sommer genügt ein einziges Pusten, und es reist davon.', 'Something blooms on the Cotton Candy Meadow that has a fierce name and yet is ever so gentle. In summer, one single puff is enough, and off it travels.'),
+    hint: tr('Die Zeilen 3 und 4 ergeben zusammen ein Wort: ein Tier, das als König brüllt, plus das, womit es zubeißt. Und die Zeilen 5 bis 7 beschreiben, was im Sommer aus der gelben Blume wird.', 'Lines 3 and 4 build one word together: it starts like the word “dandy” (but with an E instead of the Y) and ends with the animal that roars like a king. And lines 5 to 7 describe what the yellow flower turns into in summer.'),
 
     station(ctx, x, y, t, solved) {
       ctx.save();
@@ -143,15 +159,15 @@
       const paper = document.createElement('div'); paper.className = 'wg-paper'; board.appendChild(paper);
       for (const s of ['l', 'r']) { const l = document.createElement('div'); l.className = 'wg-lolli ' + s; board.appendChild(l); }
       POEM.forEach((ln, i) => { const d = document.createElement('div'); d.className = 'wg-line' + (i && i % 2 === 0 ? ' gap' : ''); d.textContent = ln; paper.appendChild(d); });
-      const ask = document.createElement('div'); ask.className = 'wg-ask'; ask.textContent = '❀ Wer bin ich? ❀'; paper.appendChild(ask);
+      const ask = document.createElement('div'); ask.className = 'wg-ask'; ask.textContent = tr('❀ Wer bin ich? ❀', '❀ Who am I? ❀'); paper.appendChild(ask);
 
       const side = document.createElement('div'); side.className = 'wg-side'; wrap.appendChild(side);
-      const label = document.createElement('div'); label.className = 'wg-label'; label.textContent = 'Das Lösungswort'; side.appendChild(label);
+      const label = document.createElement('div'); label.className = 'wg-label'; label.textContent = tr('Das Lösungswort', 'The answer'); side.appendChild(label);
       const slotsEl = document.createElement('div'); slotsEl.className = 'wg-slots'; side.appendChild(slotsEl);
       const tilesEl = document.createElement('div'); tilesEl.className = 'wg-tiles'; side.appendChild(tilesEl);
       const btns = document.createElement('div'); btns.className = 'wg-btns'; side.appendChild(btns);
-      const bMix = document.createElement('button'); bMix.className = 'wg-btn'; bMix.type = 'button'; bMix.textContent = '⟲ Mischen'; btns.appendChild(bMix);
-      const bClr = document.createElement('button'); bClr.className = 'wg-btn'; bClr.type = 'button'; bClr.textContent = 'Leeren'; btns.appendChild(bClr);
+      const bMix = document.createElement('button'); bMix.className = 'wg-btn'; bMix.type = 'button'; bMix.textContent = tr('⟲ Mischen', '⟲ Shuffle'); btns.appendChild(bMix);
+      const bClr = document.createElement('button'); bClr.className = 'wg-btn'; bClr.type = 'button'; bClr.textContent = tr('Leeren', 'Clear'); btns.appendChild(bClr);
       const fx = document.createElement('canvas'); fx.className = 'wg-fx'; wrap.appendChild(fx);
 
       /* --- state --- */
@@ -273,7 +289,7 @@
           s.classList.add('win'); tone(660 * Math.pow(2, i / 8), 0.18, {type: 'sine', gain: 0.07});
           const p = centerOf(s); burst(p.x, p.y, 12, ['#ffd84a', '#fff', '#ff9eb0', '#9be7a5'], 3.2);
         }, i * 70));
-        later(() => { const r = centerOf(slotsEl); burst(r.x, r.y, 40, ['#ffd84a', '#fff', '#ff9eb0', '#8fd3ff', '#9be7a5'], 5.5); api.msg('Ein Löwenzahn! Puste – und das Tor fliegt auf.', 'good'); }, ANSWER.length * 70 + 80);
+        later(() => { const r = centerOf(slotsEl); burst(r.x, r.y, 40, ['#ffd84a', '#fff', '#ff9eb0', '#8fd3ff', '#9be7a5'], 5.5); api.msg(tr('Ein Löwenzahn! Puste – und das Tor fliegt auf.', 'A dandelion! One puff – and the gate flies open.'), 'good'); }, ANSWER.length * 70 + 80);
         later(() => api.solved(), ANSWER.length * 70 + 420);
       }
       bMix.addEventListener('click', mix);

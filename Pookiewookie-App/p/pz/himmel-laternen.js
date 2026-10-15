@@ -1,9 +1,10 @@
-/* Pookiewookie puzzle: himmel-laternen "Die Laternen des Schlosses".
+/* The Starway Home puzzle: himmel-laternen "Die Laternen des Schlosses".
    Lights Out 5x5 with castle lanterns: tapping a lantern toggles it and its four neighbours; goal: all 25 lit.
    The start is 6..9 random taps applied to "all lit" (so it is always solvable), with at least 8 dark lanterns; a GF(2) solver
    checks every start, rates it (minimum number of taps) and drives autoSolve from the current state. */
 (function () {
   const G = window.PW = window.PW || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const TAU = Math.PI * 2, FONT = '"Fredoka", sans-serif';
   const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
 
@@ -156,7 +157,7 @@
   /* ---------- mount ---------- */
   function mount(root, api) {
     const rng = api.rng || Math.random;
-    let start = generate(rng), dark = start, moves = 0, done = false, winT = -1, lastTap = -1;
+    let start = generate(rng), dark = start, moves = 0, done = false, winT = -1, lastTap = -1, auto = false;
     const cells = []; for (let i = 0; i < 25; i++) { const d = (dark >> i) & 1; cells.push({lv: d ? 0 : 1, sw: 0, swV: 0, pop: 0, ph: Math.random() * 6}); }
     const parts = [], stars = [];
     for (let i = 0; i < 70; i++) stars.push({x: Math.random(), y: Math.random() * 0.8, r: 0.5 + Math.random() * 1.3, ph: Math.random() * 6});
@@ -194,12 +195,12 @@
     function reset() {
       if (done) return; dark = start; moves = 0; for (let i = 0; i < 25; i++) cells[i].swV += (Math.random() - 0.5) * 3;
       tone(392, 0.12, {type: 'triangle', gain: 0.14}); tone(330, 0.16, {type: 'triangle', gain: 0.12, delay: 0.08});
-      api.msg('Zurück zum Anfangsmuster.', 'info');
+      api.msg(tr('Zurück zum Anfangsmuster.', 'Back to the starting pattern.'), 'info');
     }
     function fresh() {
       if (done) return; start = generate(rng); dark = start; moves = 0; for (let i = 0; i < 25; i++) cells[i].swV += (Math.random() - 0.5) * 4;
       try { G.audio.sfx.appear(); } catch (e) {}
-      api.msg('Ein neues Laternenmuster!', 'info');
+      api.msg(tr('Ein neues Laternenmuster!', 'A new lantern pattern!'), 'info');
     }
 
     function draw(g, S) {
@@ -271,14 +272,14 @@
       rr(g, P.x, P.y, P.w, P.h, 16); g.fillStyle = 'rgba(74,34,58,.82)'; g.fill(); g.lineWidth = 2.5; g.strokeStyle = 'rgba(255,158,176,.55)'; g.stroke();
       const cx = P.x + P.w / 2; let y = P.y + (small ? 8 : 16);
       const litN = 25 - pop(dark);
-      txt(g, 'Leuchten', cx, y + 6, small ? 11 : 13, '#e6c9d6', {w: 600}); y += small ? 14 : 22;
+      txt(g, tr('Leuchten', 'Lit'), cx, y + 6, small ? 11 : 13, '#e6c9d6', {w: 600}); y += small ? 14 : 22;
       /* progress bar */
       const bw = P.w - 28, bh = small ? 12 : 16;
       rr(g, cx - bw / 2, y, bw, bh, bh / 2); g.fillStyle = 'rgba(0,0,0,.35)'; g.fill();
       rr(g, cx - bw / 2, y, Math.max(bh, bw * litN / 25), bh, bh / 2); const pg = g.createLinearGradient(cx - bw / 2, 0, cx + bw / 2, 0); pg.addColorStop(0, '#ffb347'); pg.addColorStop(1, '#ffd84a'); g.fillStyle = pg; g.fill();
       txt(g, litN + ' / 25', cx, y + bh / 2 + 0.5, bh * 0.8, '#fff', {w: 700, stroke: '#3a2030', sw: 3});
       y += bh + (small ? 8 : 16);
-      txt(g, 'Züge', cx, y + 4, small ? 11 : 13, '#e6c9d6', {w: 600}); y += small ? 6 : 10;
+      txt(g, tr('Züge', 'Moves'), cx, y + 4, small ? 11 : 13, '#e6c9d6', {w: 600}); y += small ? 6 : 10;
       const mh = small ? 28 : 46;
       txt(g, String(moves), cx, y + mh / 2, mh * 0.85, '#ffd84a', {stroke: '#3a2030', sw: 5, glow: 'rgba(255,216,74,.5)', blur: 10});
       y += mh + (small ? 6 : 14);
@@ -289,7 +290,7 @@
       if (spare >= 58) {
         /* little plus diagram: what one tap does */
         const q = Math.min(15, (spare - 26) / 3), dx = cx - q * 1.5, dy = y + (spare - q * 3 - 18) / 2;
-        txt(g, 'Ein Tipp wechselt:', cx, dy, 11, '#e6c9d6', {w: 600});
+        txt(g, tr('Ein Tipp wechselt:', 'One tap switches:'), cx, dy, 11, '#e6c9d6', {w: 600});
         const pulse = 0.5 + 0.5 * Math.sin(t * 4);
         for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
           const on = (r === 1 || c === 1), ctr = r === 1 && c === 1;
@@ -297,27 +298,27 @@
           g.fillStyle = on ? (ctr ? 'rgba(255,216,74,' + (0.7 + 0.3 * pulse) + ')' : 'rgba(255,179,71,' + (0.45 + 0.3 * pulse) + ')') : 'rgba(255,255,255,.08)'; g.fill();
         }
       }
-      button(g, S, 'reset', '↺ Zurücksetzen', P.x + 12, y0, P.w - 24, bH, '#7a3b57');
-      button(g, S, 'new', '✦ Neues Muster', P.x + 12, y0 + bH + gap, P.w - 24, bH, '#ff6f9c');
-      if (done) { g.save(); g.globalAlpha = Math.min(1, winT * 3); txt(g, 'Alle leuchten!', cx, P.y + P.h * 0.5, small ? 16 : 22, '#fff4e0', {stroke: '#7a3b57', sw: 5}); g.restore(); }
+      button(g, S, 'reset', tr('↺ Zurücksetzen', '↺ Reset'), P.x + 12, y0, P.w - 24, bH, '#7a3b57');
+      button(g, S, 'new', tr('✦ Neues Muster', '✦ New pattern'), P.x + 12, y0 + bH + gap, P.w - 24, bH, '#ff6f9c');
+      if (done) { g.save(); g.globalAlpha = Math.min(1, winT * 3); txt(g, tr('Alle leuchten!', 'All lit up!'), cx, P.y + P.h * 0.5, small ? 16 : 22, '#fff4e0', {stroke: '#7a3b57', sw: 5}); g.restore(); }
       void t;
     }
 
     const S = makeStage(root, {
       layout, draw,
       down(h) {
-        if (!h || done) return;
+        if (!h || done || auto) return;
         if (h.id[0] === 'c') tap(h.data);
         else if (h.id === 'reset') { pressBtn = 'reset'; pressT = 0.15; reset(); }
         else if (h.id === 'new') { pressBtn = 'new'; pressT = 0.15; fresh(); }
       },
     });
-    api.msg('Tippe eine Laterne an: Sie und ihre vier Nachbarn wechseln zwischen an und aus.', 'info');
+    api.msg(tr('Tippe eine Laterne an: Sie und ihre vier Nachbarn wechseln zwischen an und aus.', 'Tap a lantern: it and its four neighbors switch between on and off.'), 'info');
 
     return {
       destroy() { S.destroy(); timers.forEach(clearTimeout); },
       autoSolve() {
-        if (done) return;
+        if (done || auto) return; auto = true;   /* the precomputed taps must not be mixed with player taps */
         const sol = solve(dark); if (sol === null) { dark = 0; win(); return; }
         const list = []; for (let i = 0; i < 25; i++) if ((sol >> i) & 1) list.push(i);
         list.forEach((i, k) => later(() => tap(i), 120 + k * 150));
@@ -328,10 +329,10 @@
 
   G.PZ.register({
     id: 'himmel-laternen', world: 'himmel', slot: 1,
-    title: 'Die Laternen des Schlosses',
-    intro: 'Bring alle 25 Laternen zum Leuchten! Tippst du eine an, wechseln sie und ihre Nachbarn oben, unten, links und rechts zwischen an und aus.',
-    letter: 'Arbeite Reihe für Reihe von oben nach unten: Ist eine Laterne dunkel, tippe die direkt darunter an. Was ganz unten dunkel übrig bleibt, verrät dir, wie du oben anfangen musst.',
-    hint: 'Jage die dunklen Laternen nach unten (unter jede dunkle tippen). Bleiben in der untersten Reihe dunkle übrig (Plätze 1–5 von links), tippe in der obersten Reihe: 1+5 dunkel → 1 und 2 · 2+4 → 1 und 4 · 1+2+3 → 2 · 3+4+5 → 4 · 1+3+4 → 5 · 2+3+5 → 1 · 1+2+4+5 → 3. Danach noch einmal von oben nach unten jagen.',
+    title: tr('Die Laternen des Schlosses', 'The Castle Lanterns'),
+    intro: tr('Bring alle 25 Laternen zum Leuchten! Tippst du eine an, wechseln sie und ihre Nachbarn oben, unten, links und rechts zwischen an und aus.', 'Make all 25 lanterns glow! When you tap one, it and its neighbors above, below, left and right switch between on and off.'),
+    letter: tr('Arbeite Reihe für Reihe von oben nach unten: Ist eine Laterne dunkel, tippe die direkt darunter an. Was ganz unten dunkel übrig bleibt, verrät dir, wie du oben anfangen musst.', 'Work row by row from top to bottom: if a lantern is dark, tap the one right below it. Whatever stays dark at the very bottom tells you how to start at the top.'),
+    hint: tr('Jage die dunklen Laternen nach unten (unter jede dunkle tippen). Bleiben in der untersten Reihe dunkle übrig (Plätze 1–5 von links), tippe in der obersten Reihe: 1+5 dunkel → 1 und 2 · 2+4 → 1 und 4 · 1+2+3 → 2 · 3+4+5 → 4 · 1+3+4 → 5 · 2+3+5 → 1 · 1+2+4+5 → 3. Danach noch einmal von oben nach unten jagen.', 'Chase the dark lanterns down (tap below every dark one). If dark ones are left in the bottom row (spots 1–5 from the left), tap in the top row: 1+5 dark → 1 and 2 · 2+4 → 1 and 4 · 1+2+3 → 2 · 3+4+5 → 4 · 1+3+4 → 5 · 2+3+5 → 1 · 1+2+4+5 → 3. Then chase them down from top to bottom once more.'),
     station,
     mount,
   });

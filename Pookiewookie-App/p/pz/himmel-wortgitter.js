@@ -1,24 +1,33 @@
-/* Pookiewookie puzzle: "Das Wolken-Wortgitter" (Wolkenschloss, slot 0).
+/* The Starway Home puzzle: "Das Wolken-Wortgitter" (Wolkenschloss, slot 0).
    11x11 letters on little clouds. Ten weather words hide in all 8 directions as decoys; the answer of the cloud king's riddle
    (WETTERHAHN) hides backwards on a diagonal. Drag from the first to the last letter (or tap first, then last).
+   English: own riddle, words and letter pool, 12x12 so the 11-letter WEATHERVANE has as many diagonal spots as WETTERHAHN.
    The grid is generated at mount and validated: every hidden word appears exactly once, no rude words by accident. */
 (function () {
   const G = window.PW = window.PW || {};
-  const TAU = Math.PI * 2, N = 11;
-  const ANSWER = 'WETTERHAHN';
-  const DECOYS = ['DONNER', 'BLITZ', 'NEBEL', 'HAGEL', 'STURM', 'WOLKE', 'SONNE', 'FROST', 'FÖHN', 'WIND'];
-  const UNIQUE = [ANSWER, 'WETTER', 'HAHN'].concat(DECOYS);
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
+  const TAU = Math.PI * 2, N = tr(11, 12);
+  const ANSWER = tr('WETTERHAHN', 'WEATHERVANE');
+  const DECOYS = tr(['DONNER', 'BLITZ', 'NEBEL', 'HAGEL', 'STURM', 'WOLKE', 'SONNE', 'FROST', 'FÖHN', 'WIND'], ['THUNDER', 'BREEZE', 'STORM', 'CLOUD', 'FROST', 'SLEET', 'RAIN', 'SNOW', 'HAIL', 'MIST']);
   /* parts of the answer and other weather words that may turn up by chance: they get a friendly reply, never a "no word here" */
-  const PARTS = ['WETTER', 'HAHN'];
-  const EXTRA = ['EIS', 'TAU', 'REIF', 'LUFT', 'BÖE', 'ORKAN', 'DUNST', 'HITZE', 'KÄLTE', 'SCHNEE', 'GRAUPEL', 'TAIFUN', 'GEWITTER', 'WOLKEN', 'HIMMEL', 'NASS', 'KALT', 'WARM', 'MOND', 'STERN'];
-  const BAD = ['NEGER', 'NAZI', 'FICK', 'HURE', 'ARSCH', 'SCHEIS', 'KACKE', 'FOTZE', 'PIMMEL', 'NUTTE', 'SEX', 'MORD', 'HITLER'];
-  const POOL = 'EEEEEEENNNNNRRRRTTTTHHHHAAAAWWWIIISSSLLLDDOOOUUGGBBMMKKFFZZÄÖÜCP';
-  const RIDDLE = [
+  const PARTS = tr(['WETTER', 'HAHN'], ['WEATHER', 'VANE']);
+  const UNIQUE = [ANSWER].concat(PARTS, DECOYS);
+  const EXTRA = tr(['EIS', 'TAU', 'REIF', 'LUFT', 'BÖE', 'ORKAN', 'DUNST', 'HITZE', 'KÄLTE', 'SCHNEE', 'GRAUPEL', 'TAIFUN', 'GEWITTER', 'WOLKEN', 'HIMMEL', 'NASS', 'KALT', 'WARM', 'MOND', 'STERN'],
+    ['ICE', 'DEW', 'WIND', 'GUST', 'GALE', 'HAZE', 'HEAT', 'COLD', 'WARM', 'WET', 'DRY', 'SUN', 'SKY', 'MOON', 'STAR', 'SUNNY', 'RAINY', 'WINDY', 'SNOWY', 'STORMY', 'CLOUDS', 'SHOWER', 'DRIZZLE', 'RAINBOW', 'TORNADO']);
+  const BAD = tr(['NEGER', 'NAZI', 'FICK', 'HURE', 'ARSCH', 'SCHEIS', 'KACKE', 'FOTZE', 'PIMMEL', 'NUTTE', 'SEX', 'MORD', 'HITLER'],
+    ['FUCK', 'SHIT', 'CUNT', 'DICK', 'COCK', 'PISS', 'ASS', 'SEX', 'TIT', 'FAG', 'NAZI', 'KILL', 'BITCH', 'SLUT', 'WHORE', 'PORN', 'NIGGER', 'NIGGA', 'HITLER', 'CRAP', 'DAMN', 'HELL', 'FART', 'POO', 'PEE', 'BUTT', 'BOOB', 'SUCK', 'DIE', 'DEAD']);
+  const POOL = tr('EEEEEEENNNNNRRRRTTTTHHHHAAAAWWWIIISSSLLLDDOOOUUGGBBMMKKFFZZÄÖÜCP', 'EEEEEEETTTTTAAAAAOOOOIIIINNNNSSSRRRRHHHLLLDDDCCUUMMWWFFGGYYPPBBVK');
+  const RIDDLE = tr([
     'Ich trag einen Kamm und krähe doch nie,',
     'auf Kirchturmspitzen steh ich – frag nicht, wie.',
     'Ich drehe mich, wohin der Wind gerade will,',
     'und zeig dir das Wetter, ganz stumm und still.',
-  ];
+  ], [
+    'I have a comb but never crow,',
+    'I sit on rooftops, high, not low.',
+    'I turn to every wind that blows',
+    'and show you where the weather goes.',
+  ]);
   const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
   const rev = s => s.split('').reverse().join('');
 
@@ -93,10 +102,10 @@
 
   G.PZ && G.PZ.register({
     id: 'himmel-wortgitter', world: 'himmel', slot: 0,
-    title: 'Das Wolken-Wortgitter',
-    intro: 'Löse das Rätsel und finde die Antwort im Gitter. Wörter laufen in alle 8 Richtungen – auch rückwärts und schräg.',
-    letter: 'Der Wolkenkönig ist ein Schelm: Das Wichtigste versteckt er immer rückwärts. Und der Vogel, den er meint, fliegt nie – er dreht sich nur im Wind.',
-    hint: 'Die Antwort hat 10 Buchstaben und steht schräg im Gitter – rückwärts, also von rechts nach links gelesen. Gesucht ist ein Blech-Tier mit Kamm, das auf dem Kirchturm die Windrichtung zeigt. Die Wetterwörter sind nur Ablenkung.',
+    title: tr('Das Wolken-Wortgitter', 'The Cloud Word Grid'),
+    intro: tr('Löse das Rätsel und finde die Antwort im Gitter. Wörter laufen in alle 8 Richtungen – auch rückwärts und schräg.', 'Solve the riddle and find the answer in the grid. Words run in all 8 directions – even backwards and diagonally.'),
+    letter: tr('Der Wolkenkönig ist ein Schelm: Das Wichtigste versteckt er immer rückwärts. Und der Vogel, den er meint, fliegt nie – er dreht sich nur im Wind.', 'The Cloud King is a trickster: he always hides the most important thing backwards. And the bird he means never flies – it only turns in the wind.'),
+    hint: tr('Die Antwort hat 10 Buchstaben und steht schräg im Gitter – rückwärts, also von rechts nach links gelesen. Gesucht ist ein Blech-Tier mit Kamm, das auf dem Kirchturm die Windrichtung zeigt. Die Wetterwörter sind nur Ablenkung.', 'The answer has 11 letters and runs diagonally through the grid – backwards, so it reads from right to left. You are looking for the metal rooster on a rooftop that turns to show where the wind blows. The weather words are only there to trick you.'),
 
     station(ctx, x, y, t, solved) {
       ctx.save();
@@ -115,7 +124,7 @@
       ctx.beginPath(); ctx.moveTo(x - 8, ty + 8); ctx.lineTo(x - 8, ty - 5); ctx.quadraticCurveTo(x - 8, ty - 10, x, ty - 10); ctx.quadraticCurveTo(x + 8, ty - 10, x + 8, ty - 5); ctx.lineTo(x + 8, ty + 8); ctx.closePath();
       ctx.fillStyle = solved ? '#e6fff0' : '#fff4c4'; ctx.fill(); ctx.strokeStyle = O; ctx.lineWidth = 1.4; ctx.stroke();
       ctx.font = 'bold 5px "Fredoka", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#c88a00';
-      ctx.fillText('A ? Z', x, ty - 3); ctx.fillText('? Ö ?', x, ty + 4);
+      ctx.fillText('A ? Z', x, ty - 3); ctx.fillText(tr('? Ö ?', '? W ?'), x, ty + 4);
       if (solved) {
         const cols = ['#ff6f9c', '#ffb27a', '#ffd84a', '#9be7a5', '#8fd3ff', '#b49cff'];
         cols.forEach((c, i) => { ctx.strokeStyle = c; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(x, ty + 2, 16 - i * 1.6, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke(); });
@@ -133,13 +142,13 @@
       const cv = document.createElement('canvas'); cv.className = 'wl-cv'; wrap.appendChild(cv);
       const side = document.createElement('div'); side.className = 'wl-side'; wrap.appendChild(side);
       const card = document.createElement('div'); card.className = 'wl-card'; side.appendChild(card);
-      card.innerHTML = '<div class="wl-crown">♛ Das Rätsel des Wolkenkönigs</div><div class="wl-poem">' + RIDDLE.map(l => '<div>' + l + '</div>').join('') + '</div><div class="wl-q">Wer bin ich?</div>';
+      card.innerHTML = '<div class="wl-crown">' + tr('♛ Das Rätsel des Wolkenkönigs', '♛ The Cloud King’s riddle') + '</div><div class="wl-poem">' + RIDDLE.map(l => '<div>' + l + '</div>').join('') + '</div><div class="wl-q">' + tr('Wer bin ich?', 'What am I?') + '</div>';
       const poem = card.querySelector('.wl-poem');
-      const selEl = document.createElement('div'); selEl.className = 'wl-sel empty'; selEl.textContent = 'Deine Auswahl …'; side.appendChild(selEl);
+      const selEl = document.createElement('div'); selEl.className = 'wl-sel empty'; selEl.textContent = tr('Deine Auswahl …', 'Your selection …'); side.appendChild(selEl);
       const found = document.createElement('div'); found.className = 'wl-found'; side.appendChild(found);
       const row = document.createElement('div'); row.className = 'wl-row'; side.appendChild(row);
-      const bNew = document.createElement('button'); bNew.className = 'wl-btn'; bNew.type = 'button'; bNew.textContent = '⟲ Neu mischen'; row.appendChild(bNew);
-      const how = document.createElement('div'); how.className = 'wl-how'; how.textContent = 'Ziehen – oder ersten, dann letzten Buchstaben antippen.'; row.appendChild(how);
+      const bNew = document.createElement('button'); bNew.className = 'wl-btn'; bNew.type = 'button'; bNew.textContent = tr('⟲ Neu mischen', '⟲ Shuffle'); row.appendChild(bNew);
+      const how = document.createElement('div'); how.className = 'wl-how'; how.textContent = tr('Ziehen – oder ersten, dann letzten Buchstaben antippen.', 'Drag – or tap the first, then the last letter.'); row.appendChild(how);
 
       let grid, place, foundSet, done = false, raf = 0, timers = [], parts = [];
       let W = 0, H = 0, dpr = 1, gs = 300, cell = 27, gx = 0, gy = 0, phone = false, cloud = null;
@@ -152,12 +161,12 @@
       function build() {
         let res = generate(rng);
         if (!res) { res = generate(() => Math.random()); }
-        if (!res) { console.error('PZ_ERROR himmel-wortgitter: no grid'); res = {g: Array.from({length: N}, () => new Array(N).fill('A')), pl: {[ANSWER]: {c: 9, r: 9, dx: -1, dy: -1, len: 10}}}; }
+        if (!res) { console.error('PZ_ERROR himmel-wortgitter: no grid'); res = {g: Array.from({length: N}, () => new Array(N).fill('A')), pl: {[ANSWER]: {c: ANSWER.length - 1, r: ANSWER.length - 1, dx: -1, dy: -1, len: ANSWER.length}}}; }
         grid = res.g; place = res.pl; foundSet = new Set(); anchor = null; drag = null; flash = null; showSel(null);
         renderFound();
       }
       function renderFound() {
-        found.innerHTML = '<b>Wetterwörter: ' + foundSet.size + '/' + DECOYS.length + '</b>';
+        found.innerHTML = '<b>' + tr('Wetterwörter: ', 'Weather words: ') + foundSet.size + '/' + DECOYS.length + '</b>';
         for (const w of DECOYS) if (foundSet.has(w)) { const c = document.createElement('span'); c.className = 'wl-chip'; c.textContent = w; found.appendChild(c); }
       }
 
@@ -281,36 +290,36 @@
         if (part) {
           flash = {a, b, col: 'rgba(255,216,74,.6)', until: performance.now() + 700}; kick(); later(draw, 720);
           sfx('bubblePop'); tone(784, 0.12, {gain: 0.05}); tone(988, 0.14, {gain: 0.05, delay: 0.08});
-          api.msg('„' + part + '“ – ganz warm! Aber das ist erst ein Teil der Antwort.', 'info'); return;
+          api.msg(tr('„' + part + '“ – ganz warm! Aber das ist erst ein Teil der Antwort.', '“' + part + '” – getting warm! But that is only part of the answer.'), 'info'); return;
         }
         const extra = EXTRA.find(w => w === s || w === sr);
         if (extra) {
           flash = {a, b, col: 'rgba(160,210,255,.7)', until: performance.now() + 600}; kick(); later(draw, 620);
-          sfx('bubblePop'); api.msg('„' + extra + '“ – auch ein Wetterwort, aber das öffnet die Tür nicht.', 'info'); return;
+          sfx('bubblePop'); api.msg(tr('„' + extra + '“ – auch ein Wetterwort, aber das öffnet die Tür nicht.', '“' + extra + '” – another weather word, but it does not open the door.'), 'info'); return;
         }
         const d = DECOYS.find(w => w === s || w === sr);
         if (d) {
           const p = place[d], inPlace = (same(a, [p.c, p.r]) && same(b, endOf(p))) || (same(b, [p.c, p.r]) && same(a, endOf(p)));
-          if (inPlace && foundSet.has(d)) { api.msg('„' + d + '“ hast du schon gefunden.', 'info'); sfx('bump'); return; }
+          if (inPlace && foundSet.has(d)) { api.msg(tr('„' + d + '“ hast du schon gefunden.', 'You already found “' + d + '”.'), 'info'); sfx('bump'); return; }
           foundSet.add(d); renderFound(); sfx('bubblePop'); [0, 4, 7].forEach((k, i) => tone(660 * Math.pow(2, k / 12), 0.15, {gain: 0.06, delay: i * 0.06}));
           sparkle(cells, 3, ['#fff', '#8fd3ff', '#ffd84a']);
-          api.msg('„' + d + '“ – schönes Wort, aber das öffnet die Tür nicht.', 'info');
-          if (foundSet.size === DECOYS.length) later(() => api.msg('Alle Wetterwörter gefunden – doch die Antwort auf das Rätsel fehlt noch!', 'info'), 1400);
+          api.msg(tr('„' + d + '“ – schönes Wort, aber das öffnet die Tür nicht.', '“' + d + '” – nice word, but it does not open the door.'), 'info');
+          if (foundSet.size === DECOYS.length) later(() => api.msg(tr('Alle Wetterwörter gefunden – doch die Antwort auf das Rätsel fehlt noch!', 'All weather words found – but the answer to the riddle is still missing!'), 'info'), 1400);
           draw(); return;
         }
         flash = {a, b, col: 'rgba(255,111,156,.45)', until: performance.now() + 450}; kick(); later(draw, 470);
-        sfx('bump'); api.msg('„' + s + '“ – hier versteckt sich kein Wort.', 'bad');
+        sfx('bump'); api.msg(tr('„' + s + '“ – hier versteckt sich kein Wort.', '“' + s + '” – no word is hiding here.'), 'bad');
       }
       const same = (p, q) => p[0] === q[0] && p[1] === q[1];
       function showSel(cells) {
         const txt = cells && cells.length ? cells.map(q => grid[q[1]][q[0]]).join('') : '';
-        selEl.textContent = txt || 'Deine Auswahl …'; selEl.classList.toggle('empty', !txt);
+        selEl.textContent = txt || tr('Deine Auswahl …', 'Your selection …'); selEl.classList.toggle('empty', !txt);
       }
       function win(line) {
         if (done) return; done = true; winLine = {a: line[0], b: line[1]}; drag = null; anchor = null;
         const cells = lineCells(line[0], line[1]); showSel(cells);
         cells.forEach((q, i) => later(() => { tone(523 * Math.pow(2, i / 7), 0.2, {gain: 0.07}); sparkle([q], 6, ['#ff6f9c', '#ffd84a', '#9be7a5', '#8fd3ff', '#fff']); }, i * 60));
-        api.msg('Der Wetterhahn! Der Wolkenkönig verneigt sich.', 'good');
+        api.msg(tr('Der Wetterhahn! Der Wolkenkönig verneigt sich.', 'The weathervane! The Cloud King takes a bow.'), 'good');
         draw(); kick();
         later(() => api.solved(), cells.length * 60 + 500);
       }
@@ -331,11 +340,11 @@
         if (!same(d.a, d.b)) { anchor = null; showSel(null); evaluate(d.a, d.b); }
         else if (d.anchor) { anchor = null; showSel(null); evaluate(d.anchor, d.a); }
         else if (anchor && same(anchor, d.a)) { anchor = null; showSel(null); }
-        else { anchor = d.a; showSel([anchor]); api.msg('Jetzt den letzten Buchstaben antippen.', 'info'); }
+        else { anchor = d.a; showSel([anchor]); api.msg(tr('Jetzt den letzten Buchstaben antippen.', 'Now tap the last letter.'), 'info'); }
         draw();
       }
       cv.addEventListener('pointerdown', onDown); cv.addEventListener('pointermove', onMove); cv.addEventListener('pointerup', onUp); cv.addEventListener('pointercancel', () => { drag = null; showSel(anchor ? [anchor] : null); draw(); });
-      bNew.addEventListener('click', () => { if (done) return; build(); sfx('spring'); api.msg('Neues Gitter! Die Wörter haben sich neu versteckt.', 'info'); draw(); });
+      bNew.addEventListener('click', () => { if (done) return; build(); sfx('spring'); api.msg(tr('Neues Gitter! Die Wörter haben sich neu versteckt.', 'A new grid! The words have hidden somewhere else.'), 'info'); draw(); });
 
       build(); layout(); kick();
       let ro = null; try { ro = new ResizeObserver(() => layout()); ro.observe(root); } catch (e) { window.addEventListener('resize', layout); }

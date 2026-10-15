@@ -1,4 +1,4 @@
-/* Pookiewookie finale, part 2 (world 'finale'):
+/* The Starway Home finale, part 2 (world 'finale'):
    G.modes.ranch  - level 3 "Ranch": the gun is locked in the barn safe (puzzle 'finale-tresor'), then a run-and-gun showdown against
                     the chocolate mafia (limousine waves, cover that wears down, five named bosses, Der Pate with two phases).
    G.modes.cinema - level 4 "Zuhause": the ending film (sunset hug, seaplane flight, snowy city, cozy apartment, "Ende", credits).
@@ -6,6 +6,7 @@
 (function () {
   const G = window.PW = window.PW || {};
   G.modes = G.modes || {};
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de);
   const VH = 270, TAU = Math.PI * 2, DT = 1 / 60;
   const VW = () => G.VW || 480;
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -49,11 +50,11 @@
   /* ======================================================================================================== RANCH */
   const GY = 228, AX = 780, SAFE_X = 505, MAXHP = 5;
   const BOSSES = {
-    pralino: {name: 'Don Pralino', hp: 24, sub: 'Blitzschnelle Pistolen-Salven – duck dich hinter die Deckung!', spot: 'crate', fur: '#6a3a20', band: '#ff6f9c', sc: 0.82, gun: 'pistol'},
-    trueffel: {name: 'Big Trüffel', hp: 28, sub: 'Wirft Dynamit! Lauf weg, geh in Deckung oder schieß es in der Luft ab.', spot: 'door', fur: '#4a2a18', band: '#ffd84a', sc: 0.9, wide: 1.4, gun: 'dyn'},
-    luigi: {name: 'Luigi Nougat', hp: 30, sub: 'Schrotflinte! Er wechselt ständig seine Deckung.', spot: 'barrel', fur: '#b07a4a', band: '#2f9e5b', sc: 0.84, gun: 'shotgun'},
-    marzipan: {name: 'Madame Marzipan', hp: 32, sub: 'Zwei Pistolen und eine flinke Rolle!', spot: 'crate', fur: '#f3c9a8', band: '#ff9eb0', sc: 0.8, gun: 'dual'},
-    pate: {name: 'Der Pate', hp: 48, sub: 'Maschinengewehr auf dem Dach! Ducken oder drüberspringen.', spot: 'roof', fur: '#a4a2b0', band: '#fff4e0', sc: 0.92, gun: 'mg'},
+    pralino: {name: 'Don Pralino', hp: 24, sub: tr('Blitzschnelle Pistolen-Salven – duck dich hinter die Deckung!', 'Lightning-fast pistol volleys – duck behind cover!'), spot: 'crate', fur: '#6a3a20', band: '#ff6f9c', sc: 0.82, gun: 'pistol'},
+    trueffel: {name: tr('Big Trüffel', 'Big Truffle'), hp: 28, sub: tr('Wirft Dynamit! Lauf weg, geh in Deckung oder schieß es in der Luft ab.', 'Throws dynamite! Run, take cover or shoot it out of the air.'), spot: 'door', fur: '#4a2a18', band: '#ffd84a', sc: 0.9, wide: 1.4, gun: 'dyn'},
+    luigi: {name: 'Lorenzo Nougat', hp: 30, sub: tr('Schrotflinte! Er wechselt ständig seine Deckung.', 'Shotgun! He keeps switching cover.'), spot: 'barrel', fur: '#b07a4a', band: '#2f9e5b', sc: 0.84, gun: 'shotgun'},
+    marzipan: {name: 'Madame Marzipan', hp: 32, sub: tr('Zwei Pistolen und eine flinke Rolle!', 'Two pistols and a speedy roll!'), spot: 'crate', fur: '#f3c9a8', band: '#ff9eb0', sc: 0.8, gun: 'dual'},
+    pate: {name: tr('Der Pate', 'The Chocfather'), hp: 48, sub: tr('Der Boss der Schoko-Mafia will Mallos Kakao-Rezept! MG auf dem Dach: ducken oder drüberspringen.', "The Choco Mafia boss wants Mallo's cocoa recipe! Roof gun: duck or jump over."), spot: 'roof', fur: '#a4a2b0', band: '#fff4e0', sc: 0.92, gun: 'mg'},
   };
   const BOSS_ORDER = ['pralino', 'trueffel', 'luigi', 'marzipan', 'pate'];
   const MOOK = {fur: '#8a5a3a', band: '#c23a3a', sc: 0.76, hp: 4, gun: 'pistol'};
@@ -86,7 +87,7 @@
   function drawCrate(ctx, x, y, w, h) {
     rr(ctx, x - w / 2, y - h, w, h, 2); fsr(ctx, '#c08a4a', OL, 1.2);
     ctx.strokeStyle = '#7a5028'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x - w / 2 + 2, y - h + 2); ctx.lineTo(x + w / 2 - 2, y - 2); ctx.moveTo(x + w / 2 - 2, y - h + 2); ctx.lineTo(x - w / 2 + 2, y - 2); ctx.stroke();
-    rr(ctx, x - 8, y - h / 2 - 3.5, 16, 7, 2); fsr(ctx, '#fff4e0'); outlined(ctx, 'SCHOKO', x, y - h / 2, 3.6, '#7a3b57', 'center', 'rgba(0,0,0,0)', 700);
+    rr(ctx, x - 8, y - h / 2 - 3.5, 16, 7, 2); fsr(ctx, '#fff4e0'); outlined(ctx, tr('SCHOKO', 'CHOCO'), x, y - h / 2, 3.6, '#7a3b57', 'center', 'rgba(0,0,0,0)', 700);
   }
   function drawFence(ctx, x, y, w, h, frac) {
     const n = 4, pw = w / n - 1, left = Math.ceil(n * frac);
@@ -194,7 +195,7 @@
     if (Math.sin(t * 40) > -0.3) { starPath(ctx, 1.5, -10.5, 2.6, 1, 5, t * 9); fsr(ctx, '#ffe94a'); }
     ctx.restore();
   }
-  /* Wookie's cartoon tommy gun: origin = grip hand, pointing +x */
+  /* Toffo's cartoon tommy gun: origin = grip hand, pointing +x */
   function drawTommy(ctx, x, y, ang, face, recoil, flash, sc) {
     ctx.save(); ctx.translate(x, y); ctx.scale(face * (sc || 0.85), sc || 0.85); ctx.rotate(ang); ctx.translate(-recoil, 0); ctx.lineJoin = 'round';
     ctx.beginPath(); ctx.moveTo(-15, -1.5); ctx.lineTo(-5, -2.2); ctx.lineTo(-5, 1.8); ctx.lineTo(-13, 4.6); ctx.quadraticCurveTo(-16, 4, -15, -1.5); fsr(ctx, '#b06a32', OL, 1);
@@ -239,11 +240,16 @@
 
   const ranch = {
     R: null,
+    cp: null,   /* checkpoint: after a death the retry starts at the showdown stage where Toffo fell (kept on the module between start() calls) */
     start(opts) {
       const touch = !!(opts.isTouch || (G.input && G.input.touchMode));
+      const lo = opts.loadout || {}, maxHp = MAXHP + (lo.fat ? 1 : 0) + (lo.shield ? 1 : 0);
+      /* use the checkpoint only for the immediate retry after a death (the game removed exactly one life), never after a game over */
+      const cp = this.cp, lives = G.S && G.S.lives; this.cp = null;
+      const resume = cp && Date.now() - cp.at < 20 * 60e3 && (lives == null || cp.lives == null || lives === cp.lives - 1) ? cp : null;
       const R = this.R = {
-        opts, touch, t: 0, rt: 0, fr: 0, phase: 'explore', camX: 0, shake: 0, slowT: 0, over: false,
-        p: {x: 64, y: GY, vx: 0, vy: 0, on: true, jumps: 0, face: 1, crouch: false, hp: MAXHP, inv: 0, gun: false, ammo: 50, reload: 0, fireT: 0, burst: 0, recoil: 0, flash: 0, aim: 0, anim: 0, deadT: 0, minX: 12},
+        opts, touch, t: 0, rt: 0, fr: 0, phase: 'explore', camX: 0, shake: 0, slowT: 0, over: false, maxHp, fireGap: lo.laser >= 3 ? 4.5 : (lo.laser === 2 ? 5 : 6),
+        p: {x: 64, y: GY, vx: 0, vy: 0, on: true, jumps: 0, face: 1, crouch: false, hp: maxHp, inv: 0, gun: false, ammo: 50, reload: 0, fireT: 0, burst: 0, recoil: 0, flash: 0, aim: 0, anim: 0, deadT: 0, minX: 12},
         plats: [{x0: 176, x1: 216, y: GY - 15}, {x0: 284, x1: 314, y: GY - 16}, {x0: 316, x1: 346, y: GY - 16}, {x0: 300, x1: 330, y: GY - 32}, {x0: 574, x1: 622, y: GY - 62}, {x0: 548, x1: 572, y: GY - 20}, {x0: 548, x1: 566, y: GY - 40}],
         coins: [], covers: [], pb: [], eb: [], dyn: [], parts: [], hats: [], hearts: [], enemies: [],
         safe: 'locked', safeT: 0, gunFly: null, stage: -1, sst: 'none', sT: 0, car: null, ebar: null, bossesDown: 0, bossRef: null,
@@ -251,13 +257,29 @@
       };
       for (const [x, y] of [[196, GY - 30], [300, GY - 50], [315, GY - 56], [330, GY - 50], [584, GY - 76], [598, GY - 80], [612, GY - 76], [400, GY - 40], [420, GY - 46], [440, GY - 40]]) R.coins.push({x, y, got: false});
       for (const c of COVERS) R.covers.push({x: AX + c.lx, w: c.w, h: c.h, kind: c.kind, hp: 36, max: 36, pop: 0, hit: 0});
-      R.say = {text: 'Wookie! Die Schoko-Mafia hat uns gefunden! Die Tommy Gun liegt im Tresor in der Scheune!', t: 7};
-      try { opts.banner('Ranch', 2.6, 'Hol die Tommy Gun aus dem Tresor in der Scheune!'); } catch (e) {}
-      try { opts.speak('Pookie!'); } catch (e) {}
+      if (resume) {
+        /* straight back into the showdown: gun in hand, camera at the arena, the stage where Toffo fell */
+        const s = clamp(resume.stage | 0, 0, STAGES.length - 1), p = R.p;
+        p.gun = true; p.x = AX + 70; R.safe = 'open'; R.camX = AX; R.fightT = resume.fightT || 0; R.score = resume.score || 0;
+        R.bossesDown = Math.max(0, s - 1); this.startFight(R, s, true);
+        const who = STAGES[s].boss ? BOSSES[STAGES[s].boss].name : tr('die Handlanger', 'the henchmen');
+        try { opts.banner(tr('Weiter geht’s!', 'Back in action!'), 2.4, 'Checkpoint: ' + who); } catch (e) {}
+        try { opts.speak("I'm coming, Mallo!"); } catch (e) {}
+        return;
+      }
+      R.say = {text: tr('Toffo! Der Pate und seine Schoko-Mafia haben uns gefunden – sie wollen mein Kakao-Rezept! Die Tommy Gun liegt im Tresor in der Scheune!', 'Toffo! The Chocfather and his Choco Mafia found us – they want my cocoa recipe! The Tommy Gun is in the safe in the barn!'), t: 8};
+      try { opts.banner('Ranch', 2.6, tr('Hol die Tommy Gun aus dem Tresor in der Scheune!', 'Get the Tommy Gun from the safe in the barn!')); } catch (e) {}
+      try { opts.speak('Mallo!'); } catch (e) {}
     },
     debugWin() { const R = this.R; if (!R || R.over) return; this.finish('clear'); },
     finish(res) {
       const R = this.R; if (!R || R.over) return; R.over = true; setBoss(false);
+      this.cp = null;
+      if (res === 'dead' && R.p.gun && R.phase !== 'explore' && R.stage >= 0) {
+        /* remember the stage; a stage whose boss (or whose henchmen, in stage 0) is already beaten counts as done */
+        let s = R.stage; if (s >= 1 && R.bossesDown >= s) s++; else if (s === 0 && (R.sst === 'leave' || !R.car)) s++;
+        this.cp = {stage: Math.min(s, STAGES.length - 1), fightT: R.fightT, score: R.score, lives: G.S && G.S.lives, at: Date.now()};
+      }
       const info = {score: R.score, money: R.money, stars: [true, R.p.hp >= 3, R.fightT < 200], final: true};
       try { R.opts.done(res, res === 'clear' ? info : undefined); } catch (e) {}
     },
@@ -291,6 +313,8 @@
     update() {
       const R = this.R; if (!R || R.over) return;
       R.rt += DT; R.fr++;
+      /* update only runs again once the puzzle overlay is gone: closed without solving -> the safe is locked again */
+      if (R.safe === 'puzzle') R.safe = 'locked';
       let k = 1; if (R.slowT > 0) { R.slowT -= DT; k = 0.25; }
       R.t += DT * k;
       const inp = this.input(R), p = R.p;
@@ -313,12 +337,12 @@
       /* end sequences */
       if (R.phase === 'slowmo' && R.slowT <= 0) {
         R.phase = 'hug'; R.hugT = 0; R.pookie = {x: R.camX - 24, st: 'run'};
-        try { R.opts.banner('Der Pate ist besiegt!', 2.6, 'Die Ranch ist sicher – Pookie kommt!'); } catch (e) {}
+        try { R.opts.banner(tr('Der Pate ist besiegt!', 'Chocfather defeated!'), 3, tr('Das Kakao-Rezept bleibt geheim – Mallo kommt!', 'The cocoa recipe stays secret – here comes Mallo!')); } catch (e) {}
         sfx('rescue');
       }
       if (R.phase === 'hug') {
         R.hugT += DT; const pk = R.pookie, target = p.x - 19;
-        if (pk.st === 'run') { pk.x = Math.min(pk.x + 2.3, target); if (pk.x >= target - 0.5 && p.on && Math.abs(p.x - (AX + 146)) < 3 && Math.abs(p.vx) < 0.4) { pk.x = target; pk.st = 'hug'; pk.t = 0; sfx('heart'); try { R.opts.speak('Pookie!'); } catch (e) {} } }
+        if (pk.st === 'run') { pk.x = Math.min(pk.x + 2.3, target); if (pk.x >= target - 0.5 && p.on && Math.abs(p.x - (AX + 146)) < 3 && Math.abs(p.vx) < 0.4) { pk.x = target; pk.st = 'hug'; pk.t = 0; sfx('heart'); try { R.opts.speak('Mallo!'); } catch (e) {} } }
         else { pk.t += DT; if (R.fr % 14 === 0) R.parts.push({type: 'heart', x: p.x - 6 + rnd(-8, 8), y: p.y - 28, vx: rnd(-0.2, 0.2), vy: -0.6, life: 1.6, max: 1.6, r: rnd(0.6, 1)}); if (pk.t > 4.2) this.finish('clear'); }
         if (pk.x > p.x - 60 || pk.st === 'hug') p.face = -1;
       }
@@ -339,7 +363,7 @@
       const py = p.y; p.vy = Math.min(6.5, p.vy + 0.28 * k); p.x += p.vx * k; p.y += p.vy * k;
       /* bounds */
       let minX = 10, maxX = AX + W - 30;
-      if (R.phase === 'explore') { maxX = p.gun ? AX + 120 : 700; if (!p.gun && p.x > 690 && !R.hint) R.hint = {text: 'Erst die Tommy Gun aus dem Tresor holen! (Scheune, ▼)', t: 2.5}; }
+      if (R.phase === 'explore') { maxX = p.gun ? AX + 120 : 700; if (!p.gun && p.x > 690 && !R.hint) R.hint = {text: tr('Erst die Tommy Gun aus dem Tresor holen! (Scheune, ▼)', 'Get the Tommy Gun from the safe first! (barn, ▼)'), t: 2.5}; }
       else { minX = AX + 10; maxX = (R.ebar ? R.ebar.x : AX + W - 170) - 34; }
       p.x = clamp(p.x, minX, maxX);
       /* landing: ground, one-way platforms, cover tops */
@@ -372,7 +396,7 @@
       p.aim += (ta * (p.face > 0 ? 1 : 0) - p.aim) * 0.3 * k;
       p.fireT -= k;
       if (want && p.reload <= 0 && p.fireT <= 0) {
-        p.fireT = 6; p.ammo--; p.recoil = 2.2; p.flash = 0.06;
+        p.fireT = R.fireGap; p.ammo--; p.recoil = 2.2; p.flash = 0.06;
         const a = p.aim + rnd(-0.03, 0.03), mx = gx + p.face * Math.cos(p.aim) * 17, my = gy + Math.sin(p.aim) * 17;
         R.pb.push({x: mx, y: my, vx: p.face * Math.cos(a) * 8.5, vy: Math.sin(a) * 8.5, life: 1.4});
         R.parts.push({type: 'shell', x: gx, y: gy - 2, vx: -p.face * rnd(0.6, 1.4), vy: rnd(-2.6, -1.6), life: 0.7, max: 0.7, rot: 0});
@@ -399,17 +423,17 @@
     },
     grabGun(R) {
       R.safe = 'open'; R.gunFly = null; const p = R.p; p.gun = true; p.ammo = 50; sfx('powerup');
-      try { R.opts.banner('Tommy Gun!', 2.6, R.touch ? 'B = Feuerstoß · ▼ halten = in Deckung gehen' : 'B (Shift/X) halten = Dauerfeuer · ▼ hinter Deckung = verstecken'); } catch (e) {}
+      try { R.opts.banner('Tommy Gun!', 2.6, R.touch ? tr('B = Feuerstoß · ▼ halten = in Deckung gehen', 'B = burst · hold ▼ = take cover') : tr('B (Shift/X) halten = Dauerfeuer · ▼ hinter Deckung = verstecken', 'Hold B (Shift/X) = rapid fire · ▼ behind cover = hide')); } catch (e) {}
       try { R.opts.speak("Let's go!"); } catch (e) {}
-      R.hint = {text: 'Die Mafia kommt! Lauf nach rechts →', t: 4};
+      R.hint = {text: tr('Die Mafia kommt! Lauf nach rechts →', 'The mafia is coming! Run to the right →'), t: 4};
       for (let i = 0; i < 16; i++) R.parts.push({type: 'star', x: p.x + rnd(-10, 10), y: p.y - rnd(4, 26), vx: rnd(-1.4, 1.4), vy: rnd(-2, -0.4), life: 0.8, max: 0.8, r: rnd(2, 3.4), col: '#ffd84a'});
     },
     /* ---------- the showdown ---------- */
-    startFight(R) {
-      R.phase = 'fight'; R.stage = -1; R.p.minX = AX + 10; R.ebar = {x: AX + VW() - 176, w: 20, h: 26, dents: 0};
+    startFight(R, from, quiet) {
+      R.phase = 'fight'; R.stage = (from || 0) - 1; R.p.minX = AX + 10; R.ebar = {x: AX + VW() - 176, w: 20, h: 26, dents: 0};
       setBoss(true);
-      try { R.opts.banner('Showdown!', 2.4, R.touch ? 'B = Feuerstoß · ▼ halten = Deckung' : 'B halten = Dauerfeuer · ▼ hinter Heu, Zaun, Trog oder Fass = Deckung'); } catch (e) {}
-      R.coverHintT = 9; this.nextStage(R);
+      if (!quiet) try { R.opts.banner('Showdown!', 2.4, R.touch ? tr('B = Feuerstoß · ▼ halten = Deckung', 'B = burst · hold ▼ = cover') : tr('B halten = Dauerfeuer · ▼ hinter Heu, Zaun, Trog oder Fass = Deckung', 'Hold B = rapid fire · ▼ behind hay, fence, trough or barrel = cover')); } catch (e) {}
+      R.coverHintT = quiet ? 0 : 9; this.nextStage(R);
     },
     nextStage(R) {
       R.stage++; const st = STAGES[R.stage]; if (!st) return;
@@ -446,13 +470,13 @@
         else if (R.sst === 'arrive') {
           R.sst = 'fight';
           if (R.bossRef && R.bossRef.kind === 'pate' && R.bossRef.st === 'ride') { R.bossRef.st = 'hide'; R.bossRef.tm = 1.2; this.bossIntro(R, R.bossRef); }
-          if (!st.boss) try { R.opts.banner('Die Mafia kommt!', 2, 'Zwei Handlanger – schieß, wenn sie auftauchen!'); } catch (e) {}
+          if (!st.boss) try { R.opts.banner(tr('Die Mafia kommt!', 'The mafia is here!'), 2, tr('Zwei Handlanger – schieß, wenn sie auftauchen!', 'Two henchmen – shoot when they pop up!')); } catch (e) {}
         }
         /* reinforcements for the godfather */
         if (st.boss === 'pate' && R.sst === 'fight' && R.bossRef && R.bossRef.st !== 'die') {
           R.reinT -= DT * k;
           const mooks = R.enemies.filter(e => e.kind === 'mook' && e.st !== 'die');
-          if (R.reinT <= 0 && mooks.length < 2) { const sp = this.spots(R), used = mooks.map(m => m.spot); const free = ['crate', 'barrel', 'door'].filter(s => !used.includes(s)); if (free.length) { R.enemies.push(this.mkEnemy(R, 'mook', free[0])); R.hint = {text: 'Verstärkung!', t: 1.4}; sfx('pop'); } R.reinT = R.bossRef.phase2 ? 5.5 : 7; void sp; }
+          if (R.reinT <= 0 && mooks.length < 2) { const sp = this.spots(R), used = mooks.map(m => m.spot); const free = ['crate', 'barrel', 'door'].filter(s => !used.includes(s)); if (free.length) { R.enemies.push(this.mkEnemy(R, 'mook', free[0])); R.hint = {text: tr('Verstärkung!', 'Backup!'), t: 1.4}; sfx('pop'); } R.reinT = R.bossRef.phase2 ? 5.5 : 7; void sp; }
         }
         /* stage cleared? */
         if (R.sst === 'fight') {
@@ -482,7 +506,7 @@
       const exposed = !(e.st === 'hide' || e.st === 'lower');
       e.e += ((exposed ? 1 : 0) - e.e) * Math.min(1, 0.22 * k);
       e.tm -= DT * k;
-      /* aim the arm at Wookie */
+      /* aim the arm at Toffo */
       const r = eRect(e), mx = e.x - 8, my = r.top + 11 * e.sc;
       e.aim = clamp(Math.atan2((p.y - 14) - my, mx - p.x), -0.5, 0.7) * -1;
       const run = (to, spd) => { const d = to - e.x; e.x += clamp(d, -spd * k, spd * k); e.run = Math.abs(d) > 0.5; return Math.abs(d) < 0.6; };
@@ -522,14 +546,14 @@
       e.e += ((exposed ? 1 : 0) - e.e) * Math.min(1, 0.18 * k);
       e.tm -= DT * k;
       const mx = e.x - 26, my = e.y - 19;
-      if (!e.phase2 && e.hp <= e.max / 2) { e.phase2 = true; c.rock = true; try { R.opts.banner('Der Pate wird wütend!', 2.2, 'Phase 2: schnelleres MG und Dynamit!'); } catch (er) {} this.resupply(R, true); sfx('bossHit'); R.shake = 6; e.st = 'hide'; e.tm = 0.8; }
+      if (!e.phase2 && e.hp <= e.max / 2) { e.phase2 = true; c.rock = true; try { R.opts.banner(tr('Der Pate wird wütend!', 'Chocfather gets mad!'), 2.2, tr('Phase 2: schnelleres MG und Dynamit!', 'Phase 2: faster gun and dynamite!')); } catch (er) {} this.resupply(R, true); sfx('bossHit'); R.shake = 6; e.st = 'hide'; e.tm = 0.8; }
       switch (e.st) {
         case 'hide': if (e.tm <= 0) { e.st = 'aim'; e.tm = e.phase2 ? 0.55 : 0.75; e.wx = p.x; } break;
         case 'aim': e.wx += (p.x - e.wx) * 0.05 * k; e.sweep = 0; if (e.tm <= 0) { e.st = 'sweep'; e.dur = e.phase2 ? 2.2 : 1.9; e.tm = e.dur; e.fireN = 0; } break;
         case 'sweep': {
           const s = 1 - e.tm / e.dur; e.sweep = e.phase2 ? (s < 0.5 ? s * 2 : 2 - s * 2) : s;
           e.fireN += k; if (e.fireN >= (e.phase2 ? 3 : 4)) { e.fireN = 0; const a = this.pateAngle(e); R.eb.push({x: mx, y: my, vx: Math.cos(a) * 4.6, vy: Math.sin(a) * 4.6, r: 2, kind: 'mg'}); e.fire = 1; noise(0.05, {type: 'bandpass', freq: 1200, q: 1, gain: 0.07}); }
-          if (e.tm <= 0) { e.st = 'cool'; e.tm = e.phase2 ? 1.1 : 1.4; if (!R.coolHint) { R.coolHint = true; R.hint = {text: 'Das MG ist heiß gelaufen – jetzt feuern!', t: 2}; } }
+          if (e.tm <= 0) { e.st = 'cool'; e.tm = e.phase2 ? 1.1 : 1.4; if (!R.coolHint) { R.coolHint = true; R.hint = {text: tr('Das MG ist heiß gelaufen – jetzt feuern!', 'His gun overheated – fire now!'), t: 2}; } }
           break;
         }
         case 'cool': if (R.fr % 5 === 0) R.parts.push({type: 'cocoa', x: e.x - 30 + rnd(-3, 3), y: e.y - 22, vx: rnd(-0.3, 0.3), vy: -0.7, life: 0.8, max: 0.8, r: rnd(2, 4), col: 'rgba(240,240,240,.8)'}); if (e.tm <= 0) { if (e.phase2) { e.st = 'throw'; e.tm = 0.5; e.throwT = 0.4; this.throwDyn(R, e.x - 8, e.y - 26); } else { e.st = 'hide'; e.tm = 1.5; } } break;
@@ -554,7 +578,7 @@
       const p = R.p; if (R.opts.autoplay || p.inv > 0 || R.phase === 'dead' || R.phase === 'hug' || R.phase === 'slowmo') return false;
       p.hp -= n || 1; p.inv = 1.3; R.shake = 5; R.hurtCount++; sfx('hurt'); p.vy = Math.min(p.vy, -1.5);
       for (let i = 0; i < 6; i++) R.parts.push({type: 'star', x: p.x + rnd(-6, 6), y: p.y - 14 + rnd(-6, 6), vx: rnd(-1.5, 1.5), vy: rnd(-1.5, 0.5), life: 0.5, max: 0.5, r: 2.2, col: '#ffd84a'});
-      if (p.hp <= 0) { p.hp = 0; R.phase = 'dead'; p.deadT = 0; sfx('die'); setBoss(false); try { R.opts.speak('Oh no... Pookie...'); } catch (e) {} }
+      if (p.hp <= 0) { p.hp = 0; R.phase = 'dead'; p.deadT = 0; sfx('die'); setBoss(false); try { R.opts.speak('Oh no... Mallo...'); } catch (e) {} }
       return true;
     },
     kill(R, e) {
@@ -566,10 +590,11 @@
         if (e.kind === 'pate') this.pateDown(R, e);
       } else {
         R.score += 150; this.pay(R, 3, e.x, r.top - 6); sfx('stomp');
-        if (R.p.hp < MAXHP && Math.random() < 0.4) R.hearts.push({x: e.x - 10, y: r.top, vx: -1.4, vy: -2.6, t: 0});
+        if (R.p.hp < R.maxHp && Math.random() < 0.4) R.hearts.push({x: e.x - 10, y: r.top, vx: -1.4, vy: -2.6, t: 0});
       }
     },
     pateDown(R, e) {
+      if (R.phase === 'dead') { R.p.hp = 1; R.p.deadT = 0; R.p.inv = 2; }   /* his last bullet felled the godfather: that still counts */
       R.phase = 'slowmo'; R.slowT = 2.6; setBoss(false);
       const hat = R.hats[R.hats.length - 1]; hat.keep = true; hat.pate = true; const T = 80, g = 0.15, tx = R.p.x + 26; hat.vx = (tx - hat.x) / T; hat.vy = (GY - hat.y - 0.5 * g * T * T) / T; hat.g = g;
       for (const o of R.enemies) if (o !== e && o.st !== 'die') this.kill(R, o);
@@ -590,14 +615,14 @@
       const dx = p.x - d.x, dy = (p.y - 10) - d.y, dist = Math.hypot(dx, dy);
       if (dist < (air ? 26 : 40)) {
         const shielded = p.crouch && R.covers.some(c => c.hp > 0 && ((c.x > p.x - 3 && c.x < d.x) || (c.x < p.x + 3 && c.x > d.x)) && Math.abs(c.x - d.x) > 4);
-        if (shielded) { R.hint = {text: 'Puh! Die Deckung hat dich geschützt!', t: 1.6}; }
+        if (shielded) { R.hint = {text: tr('Puh! Die Deckung hat dich geschützt!', 'Phew! Your cover kept you safe!'), t: 1.6}; }
         else if (this.hurt(R, 1)) { p.vx += Math.sign(dx || 1) * 2.5; p.vy = -3.5; p.on = false; }
       }
     },
     resupply(R, all) {
       R.repairT = 0; let n = 0;
       for (const c of R.covers) { if (c.incoming || (all ? c.hp >= c.max * 0.75 : c.hp > 0)) continue; c.incoming = true; n++; const x0 = R.camX - 10 - n * 12, y0 = GY - 90, T = 46 + n * 6; R.drops.push({c, x: x0, y: y0, vx: (c.x - x0) / T, vy: (GY - 10 - y0 - 0.5 * 0.2 * T * T) / T, rot: 0}); }
-      if (n) { R.hint = {text: 'Pookie wirft dir neue Heuballen zu!', t: 2.2}; sfx('throwIt'); }
+      if (n) { R.hint = {text: tr('Mallo wirft dir neue Heuballen zu!', 'Mallo throws you new hay bales!'), t: 2.2}; sfx('throwIt'); }
     },
     chips(R, c, n) {
       const col = {hay: '#f2c45a', fence: '#c88a52', trough: '#8fd3ff', barrel: '#b0703a'}[c.kind];
@@ -605,7 +630,7 @@
     },
     projectiles(R, k) {
       const p = R.p, c = R.car, W = VW();
-      /* Wookie's bullets */
+      /* Toffo's bullets */
       for (const b of R.pb) {
         b.x += b.vx * k; b.y += b.vy * k; b.life -= DT * k;
         if (b.life <= 0 || b.x > R.camX + W + 20 || b.x < R.camX - 20 || b.y < -20) { b.gone = true; continue; }
@@ -621,7 +646,7 @@
             break;
           }
         }
-        if (!hit) for (const d of R.dyn) if (d.st === 'fly' && Math.abs(b.x - d.x) < 7 && Math.abs(b.y - d.y) < 8) { this.explode(R, d, true); R.score += 50; hit = true; R.hint = {text: 'Dynamit abgeschossen!', t: 1.2}; break; }
+        if (!hit) for (const d of R.dyn) if (d.st === 'fly' && Math.abs(b.x - d.x) < 7 && Math.abs(b.y - d.y) < 8) { this.explode(R, d, true); R.score += 50; hit = true; R.hint = {text: tr('Dynamit abgeschossen!', 'Dynamite shot down!'), t: 1.2}; break; }
         if (!hit) { const blk = this.blocker(R, b.x, b.y); if (blk) { hit = true; R.parts.push({type: 'spark', x: b.x, y: b.y, vx: -rnd(0.5, 1.5), vy: -rnd(0.2, 1.5), life: 0.2, max: 0.2, r: 3, col: '#ffe94a'}); if (Math.random() < 0.3) tone(1800 + Math.random() * 600, 0.05, {type: 'triangle', gain: 0.03});
           if (blk === 'car' && c && c.holes.length < 26 && Math.random() < 0.5) { c.holes.push([b.x - c.x, b.y - GY]); if (b.y < GY - 22 && c.cracks < 8 && Math.random() < 0.3) c.cracks++; }
           if (blk === 'door' && c && c.doorHoles.length < 10 && Math.random() < 0.5) c.doorHoles.push([rnd(0.2, 0.8), rnd(2, 22)]); } }
@@ -669,13 +694,13 @@
       for (const h of R.hearts) {
         h.t += DT * k; if (!h.on) { h.vy += 0.15 * k; h.x += h.vx * k; h.y += h.vy * k; h.x = clamp(h.x, AX + 16, (R.ebar ? R.ebar.x : AX + 300) - 30); if (h.y >= GY - 6) { h.y = GY - 6; h.on = true; } }
         if (h.t > 14) h.gone = true;
-        if (Math.abs(h.x - p.x) < 11 && Math.abs(h.y - (p.y - 10)) < 16 && R.phase !== 'dead') { h.gone = true; if (p.hp < MAXHP) p.hp++; R.score += 100; sfx('heart'); R.parts.push({type: 'text', x: h.x, y: h.y - 10, vx: 0, vy: -0.5, life: 1, max: 1, text: '+♥', col: '#ff6f9c'}); }
+        if (Math.abs(h.x - p.x) < 11 && Math.abs(h.y - (p.y - 10)) < 16 && R.phase !== 'dead') { h.gone = true; if (p.hp < R.maxHp) p.hp++; R.score += 100; sfx('heart'); R.parts.push({type: 'text', x: h.x, y: h.y - 10, vx: 0, vy: -0.5, life: 1, max: 1, text: '+♥', col: '#ff6f9c'}); }
       }
       R.hearts = R.hearts.filter(h => !h.gone);
       /* hats */
       for (const h of R.hats) { h.t += DT * k; if (!h.landed) { h.vy += (h.g || 0.2) * k; h.x += h.vx * k; h.y += h.vy * k; h.rot += h.vr * k; if (h.y >= GY - 1) { h.y = GY - 1; h.landed = true; h.rot = 0; sfx(h.pate ? 'thud' : 'bump'); if (h.pate) for (let i = 0; i < 8; i++) R.parts.push({type: 'dust', x: h.x + rnd(-8, 8), y: GY - 2, vx: rnd(-1, 1), vy: rnd(-0.6, -0.1), life: 0.6, max: 0.6, r: rnd(2, 5)}); } } if (h.landed && !h.keep && h.t > 12) h.gone = true; }
       R.hats = R.hats.filter(h => !h.gone);
-      /* Pookie throws new hay bales when the cover is shot to pieces */
+      /* Mallo throws new hay bales when the cover is shot to pieces */
       if (R.phase === 'fight') {
         const broken = R.covers.filter(c => c.hp <= 0 && !c.incoming).length;
         if (broken >= 2) { R.repairT += DT * k; if (R.repairT > 4) this.resupply(R, false); } else R.repairT = 0;
@@ -713,9 +738,9 @@
       /* pickups */
       for (const h of R.hearts) { if (h.t > 11 && Math.floor(h.t * 8) % 2) continue; ctx.save(); ctx.translate(h.x, h.y + (h.on ? Math.sin(h.t * 4) * 1.5 : 0)); heartPath(ctx, 0, 0, 0.9); fsr(ctx, '#ff6f9c', '#7a1a3a', 1); circ(ctx, -2.2, -2.5, 1.1, 'rgba(255,255,255,.8)'); ctx.restore(); }
       for (const co of R.coins) if (!co.got) { const sx = Math.abs(Math.cos(R.rt * 4 + co.x)); ctx.save(); ctx.translate(co.x, co.y + Math.sin(R.rt * 3 + co.x) * 1.5); ctx.scale(Math.max(0.25, sx), 1); circ(ctx, 0, 0, 4.4, '#ffd84a', '#a0741a', 1); ctx.fillStyle = '#a0741a'; ctx.fillRect(-0.6, -2.4, 1.2, 4.8); ctx.restore(); }
-      /* Wookie (+ Pookie at the end) */
-      this.drawWookie(ctx, R);
-      if (R.pookie) { const pk = R.pookie, hugging = pk.st === 'hug'; ctx.save(); if (hugging && pk.t > 1.1) { ctx.translate(pk.x, GY); ctx.rotate(0.14); ctx.translate(-pk.x, -GY); } bear(ctx, pk.x, GY, {scale: 1.05, facing: 1, frame: R.rt * 12, t: R.rt, pose: hugging ? (pk.t < 1.1 ? 'victory' : 'idle') : 'run', speed: 0.9, white: true, bow: true, mood: hugging ? 'happy' : 'wide'}); ctx.restore(); if (hugging && pk.t > 1.3) { ctx.globalAlpha = Math.min(1, (pk.t - 1.3) * 3); bubble(ctx, pk.x - 4, GY - 30, 'Mein Held!', 80, 6, -1e9, 1e9); ctx.globalAlpha = 1; } }
+      /* Toffo (+ Mallo at the end) */
+      this.drawToffo(ctx, R);
+      if (R.pookie) { const pk = R.pookie, hugging = pk.st === 'hug'; ctx.save(); if (hugging && pk.t > 1.1) { ctx.translate(pk.x, GY); ctx.rotate(0.14); ctx.translate(-pk.x, -GY); } bear(ctx, pk.x, GY, {scale: 1.05, facing: 1, frame: R.rt * 12, t: R.rt, pose: hugging ? (pk.t < 1.1 ? 'victory' : 'idle') : 'run', speed: 0.9, white: true, bow: true, mood: hugging ? 'happy' : 'wide'}); ctx.restore(); if (hugging && pk.t > 1.3) { ctx.globalAlpha = Math.min(1, (pk.t - 1.3) * 3); bubble(ctx, pk.x - 4, GY - 30, tr('Mein Held!', 'My hero!'), 80, 6, -1e9, 1e9); ctx.globalAlpha = 1; } }
       /* player cover (in front) */
       for (const cv of R.covers) this.drawCover(ctx, R, cv);
       for (const d of R.drops) { ctx.save(); ctx.translate(d.x, d.y + 8); ctx.rotate(d.rot); drawHay(ctx, 0, 8, 20, 14, 0); ctx.restore(); }
@@ -764,14 +789,14 @@
     },
     drawWorld(ctx, R, cam, W) {
       const t = R.rt, vis = (x0, x1) => x1 > cam - 10 && x0 < cam + W + 10;
-      /* farmhouse with Pookie at the window */
+      /* farmhouse with Mallo at the window */
       if (vis(0, 170)) {
         ctx.fillStyle = '#e8d0a8'; ctx.fillRect(14, GY - 82, 140, 82); ctx.strokeStyle = 'rgba(160,120,80,.4)'; ctx.lineWidth = 1; for (let y = GY - 76; y < GY; y += 7) { ctx.beginPath(); ctx.moveTo(14, y); ctx.lineTo(154, y); ctx.stroke(); }
         ctx.strokeStyle = OL; ctx.lineWidth = 1.4; ctx.strokeRect(14, GY - 82, 140, 82);
         ctx.beginPath(); ctx.moveTo(4, GY - 80); ctx.lineTo(84, GY - 124); ctx.lineTo(164, GY - 80); ctx.closePath(); fsr(ctx, '#c0473c', OL, 1.4); ctx.fillStyle = '#a03a30'; for (let i = 0; i < 4; i++) ctx.fillRect(20 + i * 34, GY - 92 + Math.abs(i - 1.5) * -4, 22, 2);
         ctx.fillStyle = '#9a4a3a'; ctx.fillRect(122, GY - 120, 12, 26); ctx.strokeRect(122, GY - 120, 12, 26);
         for (let i = 0; i < 3; i++) { const sy = GY - 124 - ((t * 10 + i * 12) % 36); circ(ctx, 128 + Math.sin(t + i) * 3, sy, 4 + ((t * 10 + i * 12) % 36) / 8, 'rgba(255,255,255,' + (0.6 - ((t * 10 + i * 12) % 36) / 60) + ')'); }
-        /* window with Pookie */
+        /* window with Mallo */
         const wx = 96, wy = GY - 70;
         rr(ctx, wx - 19, wy - 3, 38, 32, 4); fsr(ctx, '#fff4e0', OL, 1.4);
         ctx.save(); rr(ctx, wx - 16, wy, 32, 26, 3); ctx.clip(); const wg = ctx.createLinearGradient(0, wy, 0, wy + 26); wg.addColorStop(0, '#ffe2a8'); wg.addColorStop(1, '#f0b878'); ctx.fillStyle = wg; ctx.fillRect(wx - 16, wy, 32, 26);
@@ -814,7 +839,7 @@
         this.drawSafe(ctx, R);
       }
       /* the ranch sign at the arena */
-      if (vis(690, 760)) { ctx.fillStyle = '#8a5a30'; ctx.fillRect(706, GY - 46, 4, 46); ctx.fillRect(744, GY - 46, 4, 46); rr(ctx, 700, GY - 56, 54, 18, 3); fsr(ctx, '#d89a5e', OL, 1.2); outlined(ctx, 'Schoko-Ranch', 727, GY - 47, 7, '#fff4e0', 'center', '#7a3b57'); }
+      if (vis(690, 760)) { ctx.fillStyle = '#8a5a30'; ctx.fillRect(706, GY - 46, 4, 46); ctx.fillRect(744, GY - 46, 4, 46); rr(ctx, 700, GY - 56, 54, 18, 3); fsr(ctx, '#d89a5e', OL, 1.2); outlined(ctx, tr('Schoko-Ranch', 'Choco Ranch'), 727, GY - 47, 7, '#fff4e0', 'center', '#7a3b57'); }
       if (vis(AX + 280, AX + 640)) drawCactus(ctx, AX + VW() - 14, GY, 0.7);
     },
     drawSafe(ctx, R) {
@@ -857,7 +882,7 @@
       if (e.st !== 'die') { /* steel plate */ ctx.save(); ctx.translate(e.x - 17, e.y); rr(ctx, -4, -19, 8, 19, 2); fsr(ctx, '#7a7a8a', '#1a1a22', 1.2); ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(-2.5, -17, 1.4, 15); circ(ctx, 0, -15, 0.9, '#3a3a48'); circ(ctx, 0, -4, 0.9, '#3a3a48'); ctx.restore(); }
       if (e.st === 'ride' && R.car && R.car.st === 'arrive') { /* waving the hat: nothing extra */ }
     },
-    drawWookie(ctx, R) {
+    drawToffo(ctx, R) {
       const p = R.p; if (p.inv > 0 && Math.floor(p.inv * 12) % 2 && R.phase !== 'dead') ctx.globalAlpha = 0.45;
       let pose = !p.on ? (p.vy < 0 ? 'jump' : 'fall') : (Math.abs(p.vx) > 0.3 ? 'run' : 'idle');
       if (R.phase === 'dead') pose = 'dead';
@@ -872,7 +897,7 @@
         drawTommy(ctx, gx, gy, p.crouch ? -0.9 : p.aim * (p.face > 0 ? 1 : -1) * p.face, p.face, p.recoil, p.flash > 0 ? 1 : 0, 0.85);
       }
       ctx.globalAlpha = 1;
-      if (p.crouch && R.covers.some(c => c.hp > 0 && Math.abs(c.x - p.x) < c.w / 2 + 4)) { ctx.save(); ctx.globalAlpha = 0.85; ctx.translate(p.x, p.y - 22); ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(5, -3); ctx.lineTo(4, 2); ctx.lineTo(0, 5); ctx.lineTo(-4, 2); ctx.lineTo(-5, -3); ctx.closePath(); fsr(ctx, '#9be7a5', '#2a6a3a', 1); ctx.restore(); }
+      if (p.crouch && R.covers.some(c => c.hp > 0 && Math.abs(c.x - p.x) < c.w / 2 + 4)) { ctx.save(); ctx.globalAlpha = 0.85; ctx.translate(p.x, p.y - 30); ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(5, -3); ctx.lineTo(4, 2); ctx.lineTo(0, 5); ctx.lineTo(-4, 2); ctx.lineTo(-5, -3); ctx.closePath(); fsr(ctx, '#9be7a5', '#2a6a3a', 1); ctx.restore(); }
     },
     drawParts(ctx, R) {
       for (const q of R.parts) {
@@ -892,24 +917,24 @@
     },
     drawPrompts(ctx, R) {
       const p = R.p, t = R.rt;
-      if (R.say) { const a = Math.min(1, R.say.t * 2); ctx.globalAlpha = a; bubble(ctx, 96, GY - 78, R.say.text, 150, 7.5, R.camX + 4, R.camX + VW() - 4); ctx.globalAlpha = 1; }
+      if (R.say && R.camX < 60) { const a = Math.min(1, R.say.t * 2, (60 - R.camX) / 30); ctx.globalAlpha = a; bubble(ctx, 96, GY - 78, R.say.text, 150, 7.5, R.camX + 4, R.camX + VW() - 4); ctx.globalAlpha = 1; }
       if (!p.gun && R.safe !== 'opening') {
         const near = Math.abs(p.x - SAFE_X) < 20, by = GY - 48 + Math.sin(t * 5) * 2.5;
-        if (near) { rr(ctx, SAFE_X - 30, by - 9, 60, 16, 8); fsr(ctx, 'rgba(74,34,58,.9)', '#ffd84a', 1.2); outlined(ctx, '▼ Tresor öffnen', SAFE_X, by - 1, 7, '#fff', 'center', 'rgba(0,0,0,0)', 700); }
-        else { outlined(ctx, '▼', SAFE_X, by, 12, '#ffd84a'); outlined(ctx, 'Tresor', SAFE_X, by - 12, 7, '#fff'); }
+        if (near) { rr(ctx, SAFE_X - 30, by - 9, 60, 16, 8); fsr(ctx, 'rgba(74,34,58,.9)', '#ffd84a', 1.2); outlined(ctx, tr('▼ Tresor öffnen', '▼ Open safe'), SAFE_X, by - 1, 7, '#fff', 'center', 'rgba(0,0,0,0)', 700); }
+        else { outlined(ctx, '▼', SAFE_X, by, 12, '#ffd84a'); outlined(ctx, tr('Tresor', 'Safe'), SAFE_X, by - 12, 7, '#fff'); }
       }
-      if (p.gun && R.phase === 'explore') { const x = R.camX + VW() - 30 + Math.sin(t * 6) * 4; outlined(ctx, '➜', x, GY - 40, 16, '#ffd84a'); }
-      if (R.phase === 'fight' && R.coverHintT > 0 && R.stage === 0) { const c = R.covers.reduce((a, b) => (Math.abs(b.x - p.x) < Math.abs(a.x - p.x) ? b : a)); const y = GY - coverH(c) - 34 + Math.sin(t * 6) * 2; outlined(ctx, '▼ Deckung', c.x, y, 7, '#9be7a5'); }
+      if (p.gun && R.phase === 'explore') { const x = R.camX + VW() - 30 + Math.sin(t * 6) * 4; outlined(ctx, '➜', x, GY - 76, 16, '#ffd84a'); }
+      if (R.phase === 'fight' && R.coverHintT > 0 && R.stage === 0) { const c = R.covers.reduce((a, b) => (Math.abs(b.x - p.x) < Math.abs(a.x - p.x) ? b : a)); const y = GY - coverH(c) - 34 + Math.sin(t * 6) * 2; outlined(ctx, tr('▼ Deckung', '▼ Cover'), c.x, y, 7, '#9be7a5'); }
     },
     drawHud(ctx, R, W) {
       const p = R.p;
-      for (let i = 0; i < MAXHP; i++) { ctx.save(); ctx.translate(14 + i * 15, 14); const pul = i === p.hp - 1 && p.hp <= 2 ? 1 + Math.sin(R.rt * 10) * 0.12 : 1; ctx.scale(pul, pul); heartPath(ctx, 0, 0, 1.05); fsr(ctx, i < p.hp ? '#ff6f9c' : 'rgba(255,255,255,.35)', '#5a1a3a', 1.1); if (i < p.hp) circ(ctx, -2.5, -2.6, 1.2, 'rgba(255,255,255,.75)'); ctx.restore(); }
+      for (let i = 0; i < R.maxHp; i++) { ctx.save(); ctx.translate(14 + i * 15, 14); const pul = i === p.hp - 1 && p.hp <= 2 ? 1 + Math.sin(R.rt * 10) * 0.12 : 1; ctx.scale(pul, pul); heartPath(ctx, 0, 0, 1.05); fsr(ctx, i < p.hp ? '#ff6f9c' : 'rgba(255,255,255,.35)', '#5a1a3a', 1.1); if (i < p.hp) circ(ctx, -2.5, -2.6, 1.2, 'rgba(255,255,255,.75)'); ctx.restore(); }
       if (p.gun) {
         ctx.save(); ctx.translate(14, 32); circ(ctx, 0, 0, 6, '#2a2a34', '#fff4e0', 1.2); ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 5, -Math.PI / 2, -Math.PI / 2 + TAU * (p.reload > 0 ? 1 - p.reload / 1.1 : p.ammo / 50)); ctx.closePath(); fsr(ctx, p.reload > 0 ? '#ff9eb0' : '#ffd84a'); ctx.restore();
-        outlined(ctx, p.reload > 0 ? 'Nachladen…' : String(p.ammo), 24, 32.5, 8, p.reload > 0 ? '#ff9eb0' : '#fff', 'left');
+        outlined(ctx, p.reload > 0 ? tr('Nachladen…', 'Reloading…') : String(p.ammo), 24, 32.5, 8, p.reload > 0 ? '#ff9eb0' : '#fff', 'left');
       }
       outlined(ctx, String(R.score).padStart(6, '0'), W - 10, 13, 9, '#ffd84a', 'right');
-      outlined(ctx, '● ' + R.money, W - 10, 25, 8, '#fff4e0', 'right');
+      outlined(ctx, '● ' + (G.fmt ? G.fmt(R.money) : R.money), W - 10, 25, 8, '#fff4e0', 'right');
       /* five fedoras: bosses beaten */
       for (let i = 0; i < 5; i++) { ctx.save(); ctx.translate(W - 80 + i * 15, 40); ctx.scale(0.62, 0.62); ctx.globalAlpha = i < R.bossesDown ? 0.35 : 1; drawFedora(ctx, 0, 0, BOSS_ORDER[i], false); ctx.globalAlpha = 1; if (i < R.bossesDown) { ctx.strokeStyle = '#ff6f9c'; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(-7, -8); ctx.lineTo(7, 2); ctx.moveTo(7, -8); ctx.lineTo(-7, 2); ctx.stroke(); } ctx.restore(); }
       const b = R.bossRef;
@@ -919,7 +944,7 @@
         if (b.kind === 'pate') { ctx.fillStyle = '#fff'; ctx.fillRect(x + bw / 2 - 0.5, y - 1, 1, 8); }
         outlined(ctx, b.name + '  ·  Boss ' + (BOSS_ORDER.indexOf(b.kind) + 1) + '/5', W / 2, y - 8, 8, '#fff');
       }
-      if (R.hint) { const a = Math.min(1, R.hint.t * 3); ctx.globalAlpha = a; outlined(ctx, R.hint.text, W / 2, 44, 9, '#fff4e0'); ctx.globalAlpha = 1; }
+      if (R.hint) { const a = Math.min(1, R.hint.t * 3); ctx.globalAlpha = a; outlined(ctx, R.hint.text, W / 2, 66, 9, '#fff4e0'); ctx.globalAlpha = 1; }
     },
   };
   function coverH(c) { return c.hp <= 0 ? 0 : c.h * (0.72 + 0.28 * c.hp / c.max); }
@@ -934,13 +959,13 @@
   /* ======================================================================================================== CINEMA */
   const XF = 1.3;
   const SCENES = [
-    {s: 0, cap: 'Endlich wieder zusammen.'},
-    {s: 11, cap: 'Ab nach Hause!'},
-    {s: 17, cap: 'Über den Wolken …'},
-    {s: 23, cap: '… über das Mondmeer.'},
-    {s: 29.5, cap: 'Die Stadt der Lichter.'},
-    {s: 35, cap: 'Es fängt an zu schneien …'},
-    {s: 44, cap: 'Zuhause.'},
+    {s: 0, cap: tr('Endlich wieder zusammen.', 'Together again at last.')},
+    {s: 11, cap: tr('Ab nach Hause!', 'Off we go, home!')},
+    {s: 17, cap: tr('Über den Wolken …', 'Above the clouds …')},
+    {s: 23, cap: tr('… über das Mondmeer.', '… over the moonlit sea.')},
+    {s: 29.5, cap: tr('Die Stadt der Lichter.', 'The city of lights.')},
+    {s: 35, cap: tr('Es fängt an zu schneien …', 'It starts to snow …')},
+    {s: 44, cap: tr('Zuhause. Mit dem süßesten Kakao der Welt.', 'Home. With the sweetest cocoa in the world.')},
     {s: 60, cap: ''},
   ];
   const END = 80;
@@ -1049,9 +1074,11 @@
       ctx.fillStyle = '#5a2e5a'; const bx = 40 - cam * 0.5; ctx.fillRect(bx, 166, 40, 26); ctx.beginPath(); ctx.moveTo(bx - 3, 168); ctx.lineTo(bx + 20, 152); ctx.lineTo(bx + 43, 168); ctx.fill(); drawWindmill(ctx, bx + 80, 192, 0.6, lt, '#5a2e5a');
       const wg = ctx.createLinearGradient(0, 192, 0, VH); wg.addColorStop(0, '#e88a7a'); wg.addColorStop(1, '#5a3a7a'); ctx.fillStyle = wg; ctx.fillRect(0, 192, W, VH - 192);
       ctx.fillStyle = 'rgba(255,220,160,.5)'; for (let i = 0; i < 26; i++) { const x = ((hash(i, 41) * W - cam * 0.8) % W + W) % W, y = 196 + hash(i, 42) * 70; ctx.fillRect(x, y, 6 + hash(i, 43) * 16, 1); }
-      ctx.save(); ctx.globalAlpha = 0.35 * (1 - k); ctx.translate(0, 392); ctx.scale(1, -1); drawPlane(ctx, px, 196, 1.5, lt, {tilt: 0, light: false}); ctx.restore();
+      /* mirror image in the lake (mirrored about the waterline y = 196, so it sinks away as the plane climbs) */
+      const tilt = -k * 0.22 + Math.sin(lt * 2) * 0.02;
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 192, W, VH - 192); ctx.clip(); ctx.globalAlpha = 0.35 * (1 - k * 0.7); ctx.translate(0, 392); ctx.scale(1, -1); drawPlane(ctx, px, py, 1.5, lt, {tilt, light: false}); ctx.restore();
       if (k < 0.6) for (let i = 0; i < 12; i++) { const ph = (lt * 3 + i / 12) % 1, sx = px - 30 - ph * 40, sy = 222 - Math.sin(ph * Math.PI) * 10; ctx.globalAlpha = (1 - ph) * (1 - k / 0.6) * 0.9; circ(ctx, sx, sy, 2 + ph * 3, '#fff'); } ctx.globalAlpha = 1;
-      drawPlane(ctx, px, py, 1.5, lt, {tilt: -k * 0.22 + Math.sin(lt * 2) * 0.02, wave: true});
+      drawPlane(ctx, px, py, 1.5, lt, {tilt, wave: true});
     },
     /* 3: above the dusk clouds */
     function (ctx, lt, W) {
@@ -1096,7 +1123,7 @@
       const g = ctx.createLinearGradient(0, 0, 0, 200); g.addColorStop(0, '#141838'); g.addColorStop(1, '#3a3060'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, VH);
       buildings(ctx, W, 120, 101, ['#24224e'], lt, 0);
       /* facades */
-      const lamps = [], fac = ['#7a3a3a', '#5a4a6a', '#6a4a3a', '#4a5a6a', '#7a5a4a'], signs = ['Café', 'Bücher', 'Blumen', 'Bäckerei', 'Kakao'];
+      const lamps = [], fac = ['#7a3a3a', '#5a4a6a', '#6a4a3a', '#4a5a6a', '#7a5a4a'], signs = tr('Café|Bücher|Blumen|Bäckerei|Kakao', 'Café|Books|Flowers|Bakery|Cocoa').split('|');
       for (let i = -1; i < 8; i++) {
         const id = i + Math.floor(cam / 110), x = id * 110 - cam;
         if (x > W + 20 || x < -130) continue;
@@ -1212,19 +1239,19 @@
       if (ea > 0) {
         ctx.globalAlpha = ea; const pul = 1 + Math.sin(lt * 3) * 0.06;
         ctx.save(); ctx.translate(W / 2, VH / 2 - 34); ctx.scale(2.6 * pul, 2.6 * pul); heartPath(ctx, 0, 0, 1); fsr(ctx, '#ff6f9c', '#fff', 0.6); ctx.restore();
-        outlined(ctx, 'Ende', W / 2, VH / 2 + 18, 46, '#ffd84a', 'center', '#7a3b57');
+        outlined(ctx, tr('Ende', 'The End'), W / 2, VH / 2 + 18, 46, '#ffd84a', 'center', '#7a3b57');
         ctx.globalAlpha = 1;
       }
-      const lines = [['Pookiewookie', 30, '#ffd84a'], ['Ein Spiel von Schokofreedo Games', 13, '#fff4e0'], ['', 10], ['Wookie & Pookie', 18, '#ff9eb0', 'bears'], ['', 10], ['Danke fürs Spielen', 20, '#ffd84a', 'heart']];
+      /* rolling credits: they roll up from below and come to rest centred, all four lines on screen */
+      const lines = [['The Starway Home', 30, '#ffd84a', null, 0], [tr('Ein Spiel von Schokofreedo Games', 'A game by Schokofreedo Games'), 13, '#fff4e0', null, 30], ['Toffo & Mallo', 18, '#ff9eb0', 'bears', 74], [tr('Danke fürs Spielen', 'Thanks for playing'), 20, '#ffd84a', 'heart', 120]];
       const ct = lt - 6.2; if (ct > 0) {
-        let y = VH + 20 - ct * 34; const finalY = VH / 2 - 10;
-        const total = lines.length * 34; if (y + total - 34 < finalY) y = finalY - total + 34;
-        lines.forEach(([txt, px, col, extra], i) => {
-          const ly = y + i * 34; if (!txt) return;
+        const span = lines[lines.length - 1][4], restY = VH / 2 - span / 2 - 4, y = Math.max(restY, VH + 24 - ct * 34);
+        for (const [txt, px, col, extra, dy] of lines) {
+          const ly = y + dy; if (ly > VH + 30) continue;
           outlined(ctx, txt, W / 2, ly, px, col, 'center', '#3a1a2e');
           if (extra === 'heart') { font(ctx, px); const w = ctx.measureText(txt).width; ctx.save(); ctx.translate(W / 2 + w / 2 + 14, ly); ctx.scale(1.4, 1.4); heartPath(ctx, 0, 0, 1); fsr(ctx, '#ff6f9c', '#fff', 0.6); ctx.restore(); }
           if (extra === 'bears') { font(ctx, px); const w = ctx.measureText(txt).width; bear(ctx, W / 2 - w / 2 - 20, ly + 12, {scale: 1.2, facing: 1, t: lt, pose: 'victory', frame: lt * 8}); bear(ctx, W / 2 + w / 2 + 20, ly + 12, {scale: 1.15, facing: -1, t: lt + 0.4, pose: 'victory', frame: lt * 8, white: true, bow: true}); }
-        });
+        }
       }
     },
   ];
@@ -1250,7 +1277,10 @@
       const C = this.C = {opts, t: 0, done: false, nextBar: 0.3, bar: 0, crackT: 0, skip: false};
       try { if (G.audio && G.audio.stopMusic) G.audio.stopMusic(); } catch (e) {}
       setBoss(false);
-      C.key = e => { if ((e.code === 'Enter' || e.code === 'NumpadEnter') && C.t > 3) C.skip = true; };
+      /* Enter also skips, but not the Enter that resumes the game from its pause menu (no update ran while paused) */
+      const now = () => (window.performance && performance.now ? performance.now() : Date.now());
+      C.now = now; C.lastUpd = now();
+      C.key = e => { if ((e.code === 'Enter' || e.code === 'NumpadEnter') && !e.repeat && C.t > 3 && now() - C.lastUpd < 120) C.skip = true; };
       try { window.addEventListener('keydown', C.key); } catch (e) {}
     },
     end() { const C = this.C; if (C && C.key) try { window.removeEventListener('keydown', C.key); } catch (e) {} },
@@ -1258,7 +1288,7 @@
     debugWin() { this.finish(); },
     update() {
       const C = this.C; if (!C || C.done) return;
-      C.t += DT; const I = G.input || {};
+      C.t += DT; const I = G.input || {}; C.lastUpd = C.now();
       if (C.t > 3 && (I.jumpEdge || I.jumpKeyEdge || C.skip)) { sfx('select'); this.finish(); return; }
       if (C.t >= C.nextBar && C.bar < 22) { playBar(C.bar, Math.max(0, C.nextBar - C.t)); C.bar++; C.nextBar += BAR; }
       /* ambience: crackling fire in the apartment, a soft whoosh at take-off */
@@ -1285,7 +1315,7 @@
       const lb = 24 * sstep(t, 0, 1.6); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, lb); ctx.fillRect(0, VH - lb, W, lb);
       const cap = SCENES[i].cap, ca = sstep(t - SCENES[i].s, 0.8, 1.8) * (1 - sstep(t - SCENES[i].s, (i + 1 < SCENES.length ? SCENES[i + 1].s - SCENES[i].s : 99) - 1.2, (i + 1 < SCENES.length ? SCENES[i + 1].s - SCENES[i].s : 99) - 0.2));
       if (cap && ca > 0) { ctx.globalAlpha = ca; font(ctx, 9, 500); ctx.textAlign = 'center'; ctx.fillStyle = '#fff4e0'; ctx.fillText(cap, W / 2, VH - 12); ctx.globalAlpha = 1; }
-      if (t > 3 && t < END - 1) { ctx.globalAlpha = 0.55 + 0.2 * Math.sin(t * 3); font(ctx, 7, 600); ctx.textAlign = 'right'; ctx.fillStyle = '#fff'; ctx.fillText('A = überspringen', W - 10, 12); ctx.globalAlpha = 1; }
+      if (t > 3 && t < END - 1) { ctx.globalAlpha = 0.55 + 0.2 * Math.sin(t * 3); font(ctx, 7, 600); ctx.textAlign = 'right'; ctx.fillStyle = '#fff'; ctx.fillText(C && C.opts && !C.opts.isTouch ? tr('A (Leertaste) = überspringen', 'A (Space) = skip') : tr('A = überspringen', 'A = skip'), W - 10, 12); ctx.globalAlpha = 1; }
     },
   };
   G.modes.cinema = cinema;

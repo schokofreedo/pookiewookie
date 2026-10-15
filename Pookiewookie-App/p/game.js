@@ -1,17 +1,18 @@
-/* Pookiewookie: game flow (title → globe → dive → hub → level), saving, input, pause menu, fullscreen, settings, overlays, main loop. */
+/* The Starway Home: game flow (title → globe → dive → hub → level), saving, input, pause menu, fullscreen, settings, overlays, main loop. */
 (function () {
   const G = window.PW, $ = s => document.querySelector(s), A = () => G.audio, S = G.S, P = G.P, E = G.eng, input = G.input, VH = G.VH, T = G.T;
-  const HASH = location.hash.replace('&mobile', ''), MOBILE = location.hash.includes('mobile');
+  const HASH = location.hash.replace('&mobile', '').replace(/&hero=\w+/, '').replace(/&lang=\w+/, ''), MOBILE = location.hash.includes('mobile'), HERO_Q = (/&hero=(\w+)/.exec(location.hash) || [])[1];
+  const tr = (de, en) => (G.tr ? G.tr(de, en) : de), LOC = G.lang === 'en' ? 'en-US' : 'de-DE';
   const canvas = $('#c'); G.draw.init(canvas);
   const N = G.levelCount();
-  let cardT = 0, mapSel = 0, resetArmed = false, pausedFrom = 'play', assist = false;
+  let cardT = 0, mapSel = 0, resetArmed = false, pausedFrom = 'play', assist = false, curCustom = null;   /* curCustom: the daily level being played (reloaded after a death or restart) */
   try { assist = localStorage.getItem('pookie-assist') === '1'; } catch (e) {}
-  let save = {unlocked: 0, stars: {}, best: {}, done: {}, coins: {}, letters: {}, ach: {}, daily: {}, streak: 0, dailyLast: '', costume: '', gad: 0, money: 0, owned: {}, solved: {}};
+  let save = {unlocked: 0, stars: {}, best: {}, done: {}, coins: {}, letters: {}, ach: {}, daily: {}, streak: 0, dailyLast: '', costume: '', gad: 0, money: 0, owned: {}, solved: {}, hero: 'wookie', storySeen: 0, event: {}};
   try { save = Object.assign(save, JSON.parse(localStorage.getItem('pookie-save') || '{}') || {}); } catch (e) {}
   for (const k of ['stars', 'best', 'done', 'coins', 'letters', 'ach', 'daily']) if (!save[k] || typeof save[k] !== 'object') save[k] = {};
   const persist = () => { try { localStorage.setItem('pookie-save', JSON.stringify(save)); } catch (e) {} };
   /* Taler wallet and shop ownership live in the save */
-  if (!save.owned || typeof save.owned !== 'object') save.owned = {}; if (!save.solved || typeof save.solved !== 'object') save.solved = {};
+  if (!save.owned || typeof save.owned !== 'object') save.owned = {}; if (!save.event || typeof save.event !== 'object') save.event = {}; if (!save.solved || typeof save.solved !== 'object') save.solved = {};
   S.money = Math.max(0, +save.money || 0); G.eco.owned = save.owned;
   if (save.coins && Object.keys(save.coins).length && !save.coinsPaid) { S.money += Object.keys(save.coins).length * 200; save.coinsPaid = true; }   /* old chocolate-coin unlocks become Taler */
   let moneyTimer = 0;
@@ -24,12 +25,13 @@
     const migW = o => { const r = {}; for (const k in (o || {})) r[OLD[+k] || k] = o[k]; return r; };
     save.letters = migW(save.letters); save.coins = migW(save.coins); save.version = 2;
   }
-  const OVERLAYS = ['title', 'map', 'card', 'clear', 'over', 'win', 'pause', 'letter', 'keks', 'shop'];
+  const OVERLAYS = ['title', 'map', 'card', 'clear', 'over', 'win', 'pause', 'letter', 'keks', 'shop', 'settings'];
+  const MENU_MUSIC = {bpm: 100, pattern: 1, transpose: 0, lead: 'bell', bass: 'sine', perc: 1};
   const GLOBE_MUSIC = {bpm: 84, pattern: 2, transpose: 2, lead: 'bell', bass: 'sine', perc: 0};
   const globeOk = G.globe && G.globe.init($('#globe'), $('#globeUI'));
   /* touch devices get the on-screen pad, landscape prompt and fullscreen on start */
   const isTouch = MOBILE || (navigator.maxTouchPoints > 0 && matchMedia('(pointer: coarse)').matches) || matchMedia('(hover: none) and (pointer: coarse)').matches;
-  if (isTouch) { document.body.classList.add('touch'); input.run = true; input.touchMode = true; }   /* on touch Wookie always runs; B only shoots; A also climbs */
+  if (isTouch) { document.body.classList.add('touch'); input.run = true; input.touchMode = true; }   /* on touch Toffo always runs; B only shoots; A also climbs */
   const resetInput = () => { for (const k in input) input[k] = false; input.run = isTouch; input.touchMode = isTouch; };
   function goFullscreen() {
     if (document.fullscreenElement) return;
@@ -38,7 +40,7 @@
   /* start screen → publisher intro → title. The first tap also unlocks audio and (on phones) fullscreen. */
   function startBrand() {
     if (S.mode !== 'boot') return; if (!HASH.startsWith('#brand')) A().init(); if (isTouch) goFullscreen();   /* (#brand = headless screenshot run without audio) */
-    S.mode = 'brand'; hideAll(); G.brand.start(() => showTitle());
+    S.mode = 'brand'; hideAll(); G.brand.start(() => { if (!save.storySeen && G.story) playStory(showTitle); else showTitle(); });
   }
 
   /* ---------------- flow hooks used by the engine ---------------- */
@@ -52,7 +54,7 @@
     afterDeath() {
       S.lives--; $('#bubble').classList.remove('on');
       if (S.lives <= 0) { gameOver(); return; }
-      E.load(S.wi, S.li, true); S.mode = 'play'; A().startMusic(); if (assist) G.gad.give('bubble', true);
+      E.load(S.wi, S.li, true, curCustom || undefined); S.mode = 'play'; A().startMusic(); if (assist) G.gad.give('bubble', true);
     },
     levelClear() {
       S.mode = 'clear'; const bonus = Math.ceil(S.time) * 10; S.score += bonus; A().sfx.clear(); A().fast = false; A().slow = false;
@@ -63,49 +65,71 @@
         if (prevBest === undefined || used < prevBest) save.daily[L.daily] = used;
         if (save.dailyLast !== L.daily) { const y = new Date(Date.now() - 864e5); const yk = y.getFullYear() + '-' + String(y.getMonth() + 1).padStart(2, '0') + '-' + String(y.getDate()).padStart(2, '0'); save.streak = save.dailyLast === yk ? (save.streak || 0) + 1 : 1; save.dailyLast = L.daily; }
         G.eco.add(100, 0, 0, true); persist(); achieve('daily');
-        $('#clear').hidden = false; $('#clear-title').textContent = 'Tageslevel geschafft'; $('#clear-stars').textContent = S.stars.map(b => b ? '★' : '☆').join(' ');
-        $('#clear-stats').innerHTML = `<div class="row"><dt>Zeit</dt><dd>${used}s</dd></div><div class="row"><dt>Tagesbestzeit</dt><dd>${save.daily[L.daily]}s</dd></div><div class="row"><dt>Serie</dt><dd>${save.streak} Tag${save.streak === 1 ? '' : 'e'}</dd></div><div class="row"><dt>Punkte</dt><dd>${S.score.toLocaleString('de-DE')}</dd></div>`;
-        $('#clear-next').hidden = true; G.flow.speak('Yay! I did it!', {happy: true}); return;
+        $('#clear').hidden = false; $('#clear-title').textContent = tr('Tageslevel geschafft', 'Daily Level complete'); $('#clear-stars').textContent = S.stars.map(b => b ? '★' : '☆').join(' ');
+        $('#clear-stats').innerHTML = `<div class="row"><dt>${tr('Zeit', 'Time')}</dt><dd>${used}s</dd></div><div class="row"><dt>${tr('Tagesbestzeit', 'Best today')}</dt><dd>${save.daily[L.daily]}s</dd></div><div class="row"><dt>${tr('Serie', 'Streak')}</dt><dd>${save.streak} ${save.streak === 1 ? tr('Tag', 'day') : tr('Tage', 'days')}</dd></div><div class="row"><dt>${tr('Punkte', 'Points')}</dt><dd>${S.score.toLocaleString(LOC)}</dd></div>`;
+        $('#clear-next').hidden = true; $('#clear-map').textContent = tr('Zum Globus', 'To the globe'); G.flow.speak('Yay! I did it!', {happy: true}); return;
       }
+      if (L.event) {
+        /* Halloween event: three levels; the first clear of each pays more, all three unlock Hollo */
+        const dn = eventDone(), first = !dn[S.li]; dn[S.li] = true; const pay = first ? 150 : 40; G.eco.add(pay, 0, 0, true);
+        const all = !!(dn[0] && dn[1] && dn[2]); let unlocked = false;
+        if (all && !heroOwned('hollo')) { save.owned.h_hollo = true; G.eco.owned = save.owned; unlocked = true; achieve('halloween'); achieve('hero'); }
+        persist();
+        $('#clear').hidden = false; $('#clear-title').textContent = tr(L.sub + ' geschafft', L.sub + ' complete'); $('#clear-stars').textContent = S.stars.map(b => b ? '★' : '☆').join(' ');
+        $('#clear-stats').innerHTML = `<div class="row"><dt>${tr('Punkte', 'Points')}</dt><dd>${S.score.toLocaleString(LOC)}</dd></div><div class="row"><dt>${tr('Taler', 'Coins')}</dt><dd>+${pay}</dd></div><div class="row"><dt>${tr('Gruselnacht', 'Spooky Night')}</dt><dd>${[0, 1, 2].filter(i => dn[i]).length} / 3</dd></div><div class="row"><dt>Hollo</dt><dd>${heroOwned('hollo') ? '🎃 ✓' : '🔒'}</dd></div>`;
+        if (unlocked) G.flow.banner(tr('Hollo freigeschaltet!', 'Hollo unlocked!'), 3.2, tr('Der Kürbisgeist ist jetzt einer deiner Helden.', 'The pumpkin ghost is now one of your heroes.'));
+        $('#clear-next').hidden = false; $('#clear-next').textContent = all ? tr('Zum Menü', 'To the menu') : tr('Nächstes Gruselnacht-Level', 'Next Spooky Night level'); $('#clear-map').textContent = tr('Zum Menü', 'To the menu');
+        G.flow.speak('Happy Halloween!', {happy: true}); return;
+      }
+      $('#clear-map').textContent = tr('Zurück zur Welt', 'Back to the world');
       const pay = 50 + Math.floor(Math.max(0, S.time) / 10) + (L.tower ? 100 : 0); G.eco.add(pay, 0, 0, true);
       save.unlocked = Math.max(save.unlocked, idx + 1); save.done[k] = true;
       const prev = save.stars[k] || [false, false, false]; save.stars[k] = prev.map((b, i) => b || S.stars[i]);
       save.best[k] = Math.max(save.best[k] || 0, S.score); persist();
       achieve('first'); if (S.stars.every(Boolean)) achieve('stars3'); if (worldProgress(S.wi).done >= 4) achieve('world'); if (!S.hits) achieve('nohit');
-      if (L.world.boss.final && L.rescued) { const fi = G.WORLDS.findIndex(w => w.key === 'finale'); if (fi >= 0) { $('#clear').hidden = true; G.flow.banner('Frei!', 2.6, 'Doch das Raumschiff gerät in ein Schwarzes Loch ...'); setTimeout(() => startLevel(fi * 4), 2600); S.mode = 'clear'; return; } win(); return; }
-      $('#clear').hidden = false; $('#clear-title').textContent = (L.rocket ? 'Flug geschafft' : (L.tower ? 'Turm geschafft' : L.sub + ' geschafft'));
-      $('#clear-stars').textContent = L.rocket ? '🚀' : S.stars.map(b => b ? '★' : '☆').join(' ');
-      $('#clear-stats').innerHTML = `<div class="row"><dt>Zeitbonus</dt><dd>${bonus}</dd></div><div class="row"><dt>Punkte</dt><dd>${S.score.toLocaleString('de-DE')}</dd></div><div class="row"><dt>Taler für das Level</dt><dd>+${pay}</dd></div><div class="row"><dt>Taler gesamt</dt><dd>${S.money.toLocaleString('de-DE')}</dd></div>`;
-      $('#clear-next').hidden = idx + 1 >= N; $('#clear-next').textContent = S.li === 3 ? 'Nächste Welt' : 'Nächstes Level';
+      if (L.world.boss.final && L.rescued) { const fi = G.WORLDS.findIndex(w => w.key === 'finale'); if (fi >= 0) { $('#clear').hidden = true; G.flow.banner(tr('Frei!', 'Free!'), 2.6, tr('Doch das Raumschiff gerät in ein Schwarzes Loch ...', 'But the spaceship is drawn into a black hole ...')); setTimeout(() => startLevel(fi * 4), 2600); S.mode = 'clear'; return; } win(); return; }
+      $('#clear').hidden = false; $('#clear-title').textContent = (L.rocket ? tr('Flug geschafft', 'Flight complete') : (L.tower ? tr('Turm geschafft', 'Tower complete') : tr(L.sub + ' geschafft', L.sub + ' complete')));
+      $('#clear-stars').textContent = S.stars.map(b => b ? '★' : '☆').join(' ');
+      $('#clear-stats').innerHTML = `<div class="row"><dt>${tr('Zeitbonus', 'Time bonus')}</dt><dd>${bonus}</dd></div><div class="row"><dt>${tr('Punkte', 'Points')}</dt><dd>${S.score.toLocaleString(LOC)}</dd></div><div class="row"><dt>${tr('Taler für das Level', 'Coins for this level')}</dt><dd>+${pay}</dd></div><div class="row"><dt>${tr('Taler gesamt', 'Coins in total')}</dt><dd>${S.money.toLocaleString(LOC)}</dd></div>`;
+      $('#clear-next').hidden = idx + 1 >= N; $('#clear-next').textContent = S.li === 3 ? tr('Nächste Welt', 'Next world') : tr('Nächstes Level', 'Next level');
       mapSel = Math.min(N - 1, idx + 1);
       G.flow.speak('Yay! I did it!', {happy: true});
     },
     coin(wi) { save.coins[wi] = true; G.eco.add(200, 0, 0, true); persist(); achieve('coin'); },
-    moneyChanged() { save.money = S.money; clearTimeout(moneyTimer); moneyTimer = setTimeout(persist, 400); const sm = $('#shop-money'); if (sm) sm.textContent = S.money.toLocaleString('de-DE'); },
-    bought(id) { save.owned = G.eco.owned; save.money = S.money; const it = G.SHOP.outfits.find(o => o.id === id); if (it) save.costume = it.outfit; persist(); refreshCostumes(); renderShop(); achieve('shop'); },
+    moneyChanged() { save.money = S.money; clearTimeout(moneyTimer); moneyTimer = setTimeout(persist, 400); const sm = $('#shop-money'); if (sm) sm.textContent = S.money.toLocaleString(LOC); },
+    bought(id) { save.owned = G.eco.owned; save.money = S.money; const it = G.SHOP.outfits.find(o => o.id === id); if (it) save.costume = it.outfit; if (id.startsWith('h_')) { setHero(id.slice(2)); achieve('hero'); } persist(); refreshCostumes(); renderShop(); renderMenu(); achieve('shop'); },
     achieve(id) { achieve(id); },
   };
   /* ---------------- Keksdose (achievements), coins and costumes ---------------- */
-  const ACH = {shop: 'Etwas im Shop gekauft', allpuzzles: 'Alle 20 Rätsel gelöst', first: 'Erstes Level geschafft', stars3: 'Alle drei Sternkekse in einem Level', world: 'Eine ganze Welt geschafft', combo5: 'Fünffach-Combo', nohit: 'Ein Level ohne einen Treffer', gadgets10: 'Zehn Gadgets gezogen', puzzle: 'Eine Rätselkammer gelöst', coin: 'Eine Schokomünze gefunden', bonus: 'Einen Bonusraum entdeckt', pirate: 'Den Sternenpiraten abgeschossen', rescue: 'Pookie gerettet', daily: 'Ein Tageslevel geschafft'};
-  function achieve(id) { if (!ACH[id] || save.ach[id]) return; save.ach[id] = true; persist(); A().sfx.gadget(); E.toast('Keksdose: ' + ACH[id]); if (globeOk) G.globe.refreshMarkers(); }
-  function renderKeks() { const n = Object.keys(save.ach).length; $('#keks-list').innerHTML = Object.entries(ACH).map(([id, t]) => `<li class="${save.ach[id] ? 'done' : ''}"><b>${save.ach[id] ? '🍪' : '○'}</b>${t}</li>`).join(''); $('#keks-count').textContent = n + ' von ' + Object.keys(ACH).length + ' Keksen'; }
+  const ACH = {hero: tr('Einen neuen Helden freigeschaltet', 'Unlocked a new hero'), shop: tr('Etwas im Shop gekauft', 'Bought something in the shop'), allpuzzles: tr('Alle 20 Rätsel gelöst', 'Solved all 20 puzzles'), first: tr('Erstes Level geschafft', 'Finished your first level'), stars3: tr('Alle drei Sternkekse in einem Level', 'All three star cookies in one level'), world: tr('Eine ganze Welt geschafft', 'Finished a whole world'), combo5: tr('Fünffach-Combo', 'Five-hit combo'), nohit: tr('Ein Level ohne einen Treffer', 'A level without getting hit'), gadgets10: tr('Zehn Gadgets gezogen', 'Collected ten gadgets'), puzzle: tr('Eine Rätselkammer gelöst', 'Solved a puzzle gate'), bonus: tr('Einen Bonusraum entdeckt', 'Found a bonus room'), pirate: tr("Käpt'n Bitterbart besiegt", 'Defeated Captain Bitterbeard'), rescue: tr('Mallo gerettet', 'Rescued Mallo'), daily: tr('Ein Tageslevel geschafft', 'Finished a Daily Level'), halloween: tr('Die Gruselnacht überstanden', 'Survived the Spooky Night')};
+  function achieve(id) { if (!ACH[id] || save.ach[id]) return; save.ach[id] = true; persist(); A().sfx.gadget(); E.toast(tr('Keksdose: ', 'Cookie Jar: ') + ACH[id]); if (globeOk) G.globe.refreshMarkers(); }
+  function renderKeks() { const n = Object.keys(ACH).filter(id => save.ach[id]).length; $('#keks-list').innerHTML = Object.entries(ACH).map(([id, t]) => `<li class="${save.ach[id] ? 'done' : ''}"><b>${save.ach[id] ? '🍪' : '○'}</b>${t}</li>`).join(''); $('#keks-count').textContent = tr(n + ' von ' + Object.keys(ACH).length + ' Keksen', n + ' of ' + Object.keys(ACH).length + ' cookies'); }
   /* outfits are bought in the shop; the settings list shows the owned ones */
   function refreshCostumes() {
     const sel = $('#selCostume'), owned = G.SHOP.outfits.filter(o => G.eco.has(o.id));
-    sel.innerHTML = '<option value="">Welt-Outfit (passt sich an)</option>' + owned.map(o => `<option value="${o.outfit}">${o.name}</option>`).join('');
+    sel.innerHTML = '<option value="">' + tr('Welt-Outfit (passt sich an)', 'World outfit (changes per world)') + '</option>' + owned.map(o => `<option value="${o.outfit}">${o.name}</option>`).join('');
     if (!owned.some(o => o.outfit === save.costume)) save.costume = ''; sel.value = save.costume || ''; applyCostume();
-    $('#coinCount').textContent = owned.length + ' von ' + G.SHOP.outfits.length + ' Outfits · Shop auf dem Globus';
+    $('#coinCount').textContent = tr(owned.length + ' von ' + G.SHOP.outfits.length + ' Outfits gekauft · Outfits und Look gelten für Toffo, neue Outfits gibt es im Shop.', owned.length + ' of ' + G.SHOP.outfits.length + ' outfits bought · outfits and look are for Toffo, new outfits are in the shop.');
   }
   function renderShop(tab) {
     tab = tab || renderShop.tab || 'rocket'; renderShop.tab = tab;
     document.querySelectorAll('#shop .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-    $('#shop-money').textContent = S.money.toLocaleString('de-DE');
+    $('#shop-money').textContent = S.money.toLocaleString(LOC);
+    if (tab === 'heroes') {
+      save.heroesSeen = 1; persist(); if ($('#mShopBadge')) $('#mShopBadge').hidden = true;
+      $('#shop-list').innerHTML = heroList().map(h => { const own = heroOwned(h.id), active = (save.hero || 'wookie') === h.id;
+        const btn = own ? (active ? '<span class="owned">' + tr('✓ aktiv', '✓ active') + '</span>' : '<button class="btn" data-act="hero" data-id="' + h.id + '">' + tr('Auswählen', 'Choose') + '</button>') : '<button class="btn' + (S.money >= h.price ? '' : ' poor') + '" data-act="buyhero" data-id="' + h.id + '">' + h.price.toLocaleString(LOC) + tr(' Taler', ' coins') + '</button>';
+        return '<li class="' + (own ? 'own' : '') + '" data-id="' + h.id + '"><canvas class="hico" width="76" height="76" data-hero="' + h.id + '"></canvas><div><b>' + h.name + ' · ' + h.species + '</b><small>' + h.perk + '</small></div>' + btn + '</li>'; }).join('');
+      paintPortraits($('#shop-list')); return;
+    }
     const items = tab === 'rocket' ? G.SHOP.rocket : G.SHOP.outfits;
     $('#shop-list').innerHTML = items.map(it => { const own = G.eco.has(it.id), wearing = tab === 'outfits' && own && save.costume === it.outfit, locked = it.needs && !G.eco.has(it.needs), afford = S.money >= it.price;
-      const btn = own ? (tab === 'outfits' ? (wearing ? '<button class="btn ghost" data-act="off" data-id="' + it.id + '">Ausziehen</button>' : '<button class="btn" data-act="wear" data-id="' + it.id + '">Anziehen</button>') : '<span class="owned">✓ gekauft</span>') : (locked ? '<span class="lock">erst ' + (G.SHOP.rocket.find(r => r.id === it.needs) || {}).name + '</span>' : '<button class="btn' + (afford ? '' : ' poor') + '" data-act="buy" data-id="' + it.id + '">' + it.price.toLocaleString('de-DE') + ' Taler</button>');
+      const btn = own ? (tab === 'outfits' ? (wearing ? '<button class="btn ghost" data-act="off" data-id="' + it.id + '">' + tr('Ausziehen', 'Take off') + '</button>' : '<button class="btn" data-act="wear" data-id="' + it.id + '">' + tr('Anziehen', 'Wear') + '</button>') : '<span class="owned">' + tr('✓ gekauft', '✓ owned') + '</span>') : (locked ? '<span class="lock">' + tr('erst ', 'first ') + (G.SHOP.rocket.find(r => r.id === it.needs) || {}).name + '</span>' : '<button class="btn' + (afford ? '' : ' poor') + '" data-act="buy" data-id="' + it.id + '">' + it.price.toLocaleString(LOC) + tr(' Taler', ' coins') + '</button>');
       return '<li class="' + (own ? 'own' : '') + '"><i class="ico ico-' + (it.outfit || it.id) + '"></i><div><b>' + it.name + '</b><small>' + (it.desc || '') + '</small></div>' + btn + '</li>'; }).join('');
   }
   function shopAction(act, id) {
+    if (act === 'hero') { setHero(id); A().sfx.select(); renderShop(); renderMenu(); return; }
+    if (act === 'buyhero') { const h = heroList().find(x => x.id === id); if (!h) return; if (!G.eco.buy({id: 'h_' + id, price: h.price})) { A().sfx.wrong(); const li = document.querySelector('#shop-list li[data-id="' + id + '"]'); if (li) { li.classList.remove('nope'); void li.offsetWidth; li.classList.add('nope'); } return; } renderShop(); return; }
     const it = G.SHOP.rocket.concat(G.SHOP.outfits).find(x => x.id === id); if (!it) return;
     if (act === 'buy') { if (!G.eco.buy(it)) { A().sfx.wrong(); const li = document.querySelector('#shop-list [data-id="' + id + '"]'); if (li) { li.classList.remove('nope'); void li.offsetWidth; li.classList.add('nope'); } return; } A().sfx.gadget(); }
     else if (act === 'wear') { save.costume = it.outfit; persist(); refreshCostumes(); A().sfx.select(); }
@@ -113,15 +137,67 @@
     renderShop();
   }
   function openShop(tab) { A().init(); renderShop(tab); $('#shop').hidden = false; }
+  G.flow.openShop = openShop;
   function applyCostume() { const c = save.costume || ''; S.costume = c === 'gold' ? 'gold' : ''; S.outfitOverride = (c && c !== 'gold') ? c : null; if (S.outfitOverride) S.outfit = S.outfitOverride; else if (G.L) S.outfit = G.L.world.key; }
+  /* ---------------- heroes: Toffo plus buyable friends (fox, dino, robot) with small perks ---------------- */
+  const heroList = () => (G.heroes && G.heroes.list && G.heroes.list.length) ? G.heroes.list : [{id: 'wookie', name: 'Toffo', species: tr('Bär', 'Bear'), price: 0, perk: tr('Allrounder', 'All-rounder')}];
+  const heroOwned = id => id === 'wookie' || !!(save.owned && save.owned['h_' + id]);
+  function setHero(id) { if (!heroOwned(id) || !heroList().some(h => h.id === id)) id = 'wookie'; save.hero = id; S.hero = id === 'wookie' ? null : id; persist(); }
+  setHero(save.hero || 'wookie');
+  if (HERO_Q) S.hero = HERO_Q === 'wookie' ? null : HERO_Q;   /* tests: play as another hero */
+  let menuIdx = Math.max(0, heroList().findIndex(h => h.id === save.hero));
+  function paintPortraits(root) {
+    (root || document).querySelectorAll('canvas[data-hero]').forEach(cv => { const c = cv.getContext('2d'), id = cv.dataset.hero, k = cv.width / 38; c.setTransform(k, 0, 0, k, 0, 0); c.clearRect(0, 0, 38, 38);
+      try { if (id !== 'wookie' && G.heroes && G.heroes.portrait) G.heroes.portrait(c, 19, 20, 34, id, 0.4); else G.draw.drawBearAt(c, 19, 47, {scale: 2.05, facing: 1, pose: 'idle', t: 0.4, hero: id, outfit: 'wiese'}); } catch (e) {} });
+  }
+  /* the dashboard: hero on show, progress, Taler, daily level, achievements */
+  function renderMenu() {
+    if (!$('#mHeroName')) return;
+    const list = heroList(); menuIdx = ((menuIdx % list.length) + list.length) % list.length;
+    const h = list[menuIdx], own = heroOwned(h.id), active = (save.hero || 'wookie') === h.id;
+    if (G.menu) G.menu.setHero(h.id, !own);
+    $('#mHeroName').textContent = h.name; $('#mHeroPerk').textContent = h.species + ' · ' + h.perk;
+    const b = $('#mHeroBtn'); b.className = 'm-hbtn' + (active ? ' on' : (own ? ' pick' : (S.money >= h.price ? '' : ' poor')));
+    b.textContent = active ? tr('✓ Dein Held', '✓ Your hero') : (own ? tr('Mit ' + h.name + ' spielen', 'Play as ' + h.name) : '🔒 ' + tr('Freischalten · ', 'Unlock · ') + h.price.toLocaleString(LOC) + tr(' Taler', ' coins'));
+    $('#mMoneyN').textContent = S.money.toLocaleString(LOC);
+    const totalStars = Object.values(save.stars).reduce((a, st) => a + st.filter(Boolean).length, 0), done = Object.keys(save.done).length;
+    $('#mStars').textContent = totalStars + ' / ' + N * 3;
+    let next = 0; while (next < N && save.done[key(Math.floor(next / 4), next % 4)]) next++;
+    if (next >= N) $('#mNextLvl').textContent = tr('Alles geschafft! Jetzt alle Sternkekse sammeln', 'All done! Now collect every star cookie');
+    else { const W = G.WORLDS[Math.floor(next / 4)]; $('#mNextLvl').textContent = (done ? tr('Weiter: ', 'Continue: ') : tr('Los geht’s: ', 'Let’s go: ')) + tr('Welt ', 'World ') + (Math.floor(next / 4) + 1) + ' · ' + W.name + ' · ' + W.levels[next % 4]; }
+    $('#mBar').style.width = Math.round(done / N * 100) + '%';
+    $('#mKeks').textContent = Object.keys(ACH).filter(id => save.ach[id]).length + tr(' von ', ' of ') + Object.keys(ACH).length + tr(' Keksen', ' cookies');
+    $('#mKeksBar').style.width = Math.round(Object.keys(ACH).filter(id => save.ach[id]).length / Object.keys(ACH).length * 100) + '%';
+    { const box = $('#mFaces'), ids = list.filter(x => x.id !== 'wookie').map(x => x.id).join(','); if (box.dataset.ids !== ids) { box.dataset.ids = ids; box.innerHTML = list.filter(x => x.id !== 'wookie').map(x => '<canvas width="76" height="76" data-hero="' + x.id + '"></canvas>').join(''); paintPortraits(box); } }
+    $('#mShopBadge').hidden = !!save.heroesSeen || list.length < 2;
+    { const on = eventActive(), bar = $('#mEvent'); if (G.menu) G.menu.halloween = on; if (bar) { bar.hidden = !on; if (on) { const dn = eventDone(), n = [0, 1, 2].filter(i => dn[i]).length, d = eventDaysLeft(); $('#mEventS').textContent = heroOwned('hollo') ? tr(`Hollo gehört dir! ${n}/3 Level · noch ${d} Tage`, `Hollo is yours! ${n}/3 levels · ${d} days left`) : tr(`${n}/3 Level · schaff alle und Hollo gehört dir · noch ${d} Tage`, `${n}/3 levels · beat all three to unlock Hollo · ${d} days left`); $('#mEventBar').style.width = Math.round(n / 3 * 100) + '%'; } } }
+    if (h.event && !own && eventActive()) { b.className = 'm-hbtn pick'; b.textContent = '🎃 ' + tr('Gratis im Halloween-Event', 'Free in the Halloween event'); }
+    if ($('#mLang')) $('#mLang').textContent = G.lang === 'en' ? 'EN' : 'DE';
+    $('#mMute').textContent = A().muted ? tr('Ton an', 'Sound on') : tr('Ton aus', 'Sound off');
+    refreshDaily();
+  }
+  function menuHeroStep(d) { menuIdx += d; A().sfx.select(); renderMenu(); }
+  function menuHeroAction() {
+    const h = heroList()[menuIdx]; if (!h) return;
+    if (h.event && !heroOwned(h.id) && eventActive()) { A().sfx.select(); startEvent(); return; }
+    if (heroOwned(h.id)) { if (save.hero !== h.id) { setHero(h.id); A().sfx.gadget(); if (G.menu) G.menu.poke(); } renderMenu(); return; }
+    if (!G.eco.buy({id: 'h_' + h.id, price: h.price})) { A().sfx.wrong(); const b = $('#mHeroBtn'); b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); b.textContent = tr('Noch ' + (h.price - S.money).toLocaleString(LOC) + ' Taler sammeln', (h.price - S.money).toLocaleString(LOC) + ' more coins needed'); setTimeout(renderMenu, 1500); return; }
+    G.flow.speak('Yay! I did it!', {happy: true}); if (G.menu) G.menu.poke(); renderMenu();
+  }
+  /* the story intro (first start, and from the menu) */
+  function playStory(done) {
+    if (!G.story) { done(); return; }
+    save.storySeen = 1; persist(); hideAll(); A().stopMusic(); S.mode = 'story';
+    G.story.start(() => { if (S.mode === 'story') done(); });
+  }
   function letterFor(wkey) {
     const st = G.LETTER_STORY[wkey]; if (!st) return null;
     const pz = Object.values(G.PZ.defs).filter(d => d.world === wkey).sort((a, b) => a.slot - b.slot);
-    const tips = pz.map((d, i) => (i === 0 ? 'Erstes Tor, „' : 'Zweites Tor, „') + d.title + '“: ' + d.letter).join('\n\n');
-    return {title: st.title, text: st.text + (tips ? '\n\n' + tips : '') + '\n\nDeine Pookie\n\nP.S. ' + st.ps};
+    const tips = pz.map((d, i) => (i === 0 ? tr('Erstes Tor, „', 'First gate, “') : tr('Zweites Tor, „', 'Second gate, “')) + d.title + tr('“: ', '”: ') + d.letter).join('\n\n');
+    return {title: st.title, text: st.text + (tips ? '\n\n' + tips : '') + tr('\n\nDeine Mallo', '\n\nLove, Mallo') + '\n\nP.S. ' + st.ps};
   }
   const allLetters = () => G.WORLDS.map(W => letterFor(W.key)).filter(Boolean);
-  function showLetter(wi) { const W = G.WORLDS[wi], L = W && letterFor(W.key); if (!L) return; $('#letter-title').textContent = L.title; $('#letter-text').textContent = L.text; $('#letter').hidden = false; save.letters[W.key] = true; persist(); if (G.hub) G.hub.letterRead = true; G.flow.speak('A letter from Pookie!', {happy: true}); }
+  function showLetter(wi) { const W = G.WORLDS[wi], L = W && letterFor(W.key); if (!L) return; $('#letter-title').textContent = L.title; $('#letter-text').textContent = L.text; $('#letter').hidden = false; save.letters[W.key] = true; persist(); if (G.hub) G.hub.letterRead = true; G.flow.speak('A letter from Mallo!', {happy: true}); }
 
   /* ---------------- puzzles: the overlay pauses whatever runs underneath ---------------- */
   let pzFrom = null;
@@ -130,14 +206,14 @@
     if (G.PZ.isOpen()) return; const def = G.PZ.defs[id]; if (!def) { onSolved && onSolved(); return; }
     pzFrom = S.mode; S.mode = 'pzpause'; resetInput(); G.flow.speak('A puzzle! Let me think...');
     const wIdx = G.WORLDS.findIndex(w => w.key === def.world);
-    G.PZ.open(id, {label: 'Rätsel ' + (def.slot + 1) + ' von 2 · ' + (G.WORLDS[wIdx] ? G.WORLDS[wIdx].name : ''), isTouch,
+    G.PZ.open(id, {label: tr('Rätsel ', 'Puzzle ') + (def.slot + 1) + tr(' von 2 · ', ' of 2 · ') + (G.WORLDS[wIdx] ? G.WORLDS[wIdx].name : ''), isTouch,
       pay: n => { if ((S.money || 0) < n) return false; G.eco.add(-n, 0, 0, true); return true; }, letters: allLetters,
-      onSolved: () => { save.solved[id] = true; G.eco.add(250, 0, 0, true); persist(); achieve('puzzle'); if (Object.keys(save.solved).length >= 20) achieve('allpuzzles'); S.mode = pzFrom === 'pause' ? 'play' : pzFrom; pzFrom = null; G.flow.speak('I solved it!', {happy: true}); E.toast && G.L && E.toast('+250 Taler'); onSolved && onSolved(); },
+      onSolved: () => { save.solved[id] = true; G.eco.add(250, 0, 0, true); persist(); achieve('puzzle'); if (Object.keys(save.solved).length >= 20) achieve('allpuzzles'); S.mode = pzFrom === 'pause' ? 'play' : pzFrom; pzFrom = null; G.flow.speak('I solved it!', {happy: true}); E.toast && G.L && E.toast(tr('+250 Taler', '+250 coins')); onSolved && onSolved(); },
       onClose: () => { S.mode = pzFrom === 'pause' ? 'play' : pzFrom; pzFrom = null; }});
   };
   /* ---------------- level, hub, globe flow ---------------- */
   function startLevel(idx, custom) {
-    S.wi = Math.floor(idx / 4); S.li = idx % 4; mapSel = idx; S.hits = 0;
+    S.wi = Math.floor(idx / 4); S.li = idx % 4; mapSel = idx; S.hits = 0; curCustom = custom || null;
     const W = G.WORLDS[S.wi];
     /* worlds whose levels are self-contained modes (submarine, finale) */
     if (W.modes && !custom) { startMode(W.modes[S.li], idx); return; }
@@ -145,16 +221,16 @@
     if (W.rocket && !custom && (S.li === 0 || S.li >= 2) && !G.rocket.skipFlight) { startFlight(idx); return; }
     G.rocket.skipFlight = false;
     E.load(S.wi, S.li, false, custom); S.mode = 'card'; cardT = 0; if (assist) G.gad.give('bubble', true); applyCostume();
-    $('#card').hidden = false; $('#card-world').textContent = custom && custom.daily ? 'Tageslevel · ' + custom.daily : 'Welt ' + (S.wi + 1) + ' · ' + W.name; $('#card-title').textContent = custom && custom.daily ? custom.sub : (S.li + 1) + '. ' + W.levels[S.li]; $('#card-lives').textContent = 'Wookie × ' + S.lives;
-    $('#card').style.background = `linear-gradient(${W.sky[0]}, ${W.sky[1]})`;
-    hideAll(['card']); A().stopMusic(); $('#btnPause').textContent = 'Pause';
+    $('#card').hidden = false; $('#card-world').textContent = custom && custom.daily ? tr('Tageslevel · ', 'Daily Level · ') + custom.daily : (custom && custom.event ? custom.worldDef.name + ' · ' + tr('Halloween-Event', 'Halloween event') : tr('Welt ', 'World ') + (S.wi + 1) + ' · ' + W.name); $('#card-title').textContent = custom && (custom.daily || custom.event) ? custom.sub : (S.li + 1) + '. ' + W.levels[S.li]; $('#card-lives').textContent = ((heroList().find(h => h.id === (save.hero || 'wookie')) || {}).name || 'Toffo') + ' × ' + S.lives;
+    { const sky = (custom && custom.worldDef ? custom.worldDef : W).sky; $('#card').style.background = `linear-gradient(${sky[0]}, ${sky[1]})`; }
+    hideAll(['card']); A().stopMusic(); $('#btnPause').textContent = tr('Pause', 'Pause');
   }
   function startMode(name, idx) {
     const wi = Math.floor(idx / 4), li = idx % 4, W = G.WORLDS[wi], m = G.modes && G.modes[name];
     S.wi = wi; S.li = li; mapSel = idx; S.hits = 0; S.stars = [false, false, false];
-    if (!m) { console.warn('mode missing: ' + name); G.flow.banner('Bald verfügbar', 2, 'Dieses Level wird gerade gebaut.'); showHub(wi, false); return; }
+    if (!m) { console.warn('mode missing: ' + name); G.flow.banner(tr('Bald verfügbar', 'Coming soon'), 2, tr('Dieses Level wird gerade gebaut.', 'This level is being built.')); showHub(wi, false); return; }
     hideAll(); A().stopMusic(); A().setWorld(W.music); A().setBoss(false); A().startMusic();
-    S.mode = 'mode'; S.modeName = name; S.modeIdx = idx; $('#btnPause').textContent = 'Pause'; S.outfit = S.outfitOverride || W.key;
+    S.mode = 'mode'; S.modeName = name; S.modeIdx = idx; $('#btnPause').textContent = tr('Pause', 'Pause'); S.outfit = S.outfitOverride || W.key;
     try {
       m.start({wi, li, world: W, name: W.levels[li], isTouch, autoplay: false,
         done: (result, info) => setTimeout(() => modeDone(name, idx, result, info || {}), 0),
@@ -170,48 +246,60 @@
     if (result === 'dead') { S.lives--; if (S.lives <= 0) { gameOver(); return; } startMode(name, idx); return; }
     if (result === 'quit') { showHub(wi, false); return; }
     /* finale: the ranch flows straight into the ending film, the film ends the game */
+    if ((name === 'sub' && li === 3) || name === 'cinema') info.stars = [true, true, true];   /* the Kraken arena and the film have no star cookies to pick up */
     const k = key(wi, li); save.done[k] = true; const prev = save.stars[k] || [false, false, false]; save.stars[k] = prev.map((b, i) => b || !!(info.stars && info.stars[i]));
     S.score += info.score || 0; G.eco.add(60 + (li === 3 ? 100 : 0), 0, 0, true); persist(); achieve('first');
     if (W.key === 'finale' && name === 'ranch') { startMode('cinema', idx + 1); return; }
     if (W.key === 'finale' && name === 'cinema') { win(); return; }
     S.mode = 'clear'; A().stopMusic(); A().sfx.clear(); G.flow.speak('Yay! I did it!', {happy: true});
-    $('#clear').hidden = false; $('#clear-title').textContent = W.levels[li] + ' geschafft';
+    $('#clear').hidden = false; $('#clear-title').textContent = tr(W.levels[li] + ' geschafft', W.levels[li] + ' complete');
     $('#clear-stars').textContent = (info.stars || [false, false, false]).map(b => b ? '★' : '☆').join(' ');
-    $('#clear-stats').innerHTML = `<div class="row"><dt>Punkte</dt><dd>${S.score.toLocaleString('de-DE')}</dd></div><div class="row"><dt>Taler gesamt</dt><dd>${S.money.toLocaleString('de-DE')}</dd></div><div class="row"><dt>Leben</dt><dd>${S.lives}</dd></div>`;
-    $('#clear-next').hidden = idx + 1 >= N; $('#clear-next').textContent = li === 3 ? 'Nächste Welt' : 'Nächstes Level';
+    $('#clear-stats').innerHTML = `<div class="row"><dt>${tr('Punkte', 'Points')}</dt><dd>${S.score.toLocaleString(LOC)}</dd></div><div class="row"><dt>${tr('Taler gesamt', 'Coins in total')}</dt><dd>${S.money.toLocaleString(LOC)}</dd></div><div class="row"><dt>${tr('Leben', 'Lives')}</dt><dd>${S.lives}</dd></div>`;
+    $('#clear-next').hidden = idx + 1 >= N; $('#clear-next').textContent = li === 3 ? tr('Nächste Welt', 'Next world') : tr('Nächstes Level', 'Next level');
     mapSel = Math.min(N - 1, idx + 1);
   }
   function startFlight(idx) {
     S.wi = Math.floor(idx / 4); S.li = idx % 4; mapSel = idx;
     const li = idx % 4, full = li === 0, from = ['erde', 'erde', 'mond', 'mars'][li], target = ['mond', 'mond', 'mars', 'saturn'][li];
-    E.load(S.wi, li, false); hideAll(); A().stopMusic(); A().setWorld(G.WORLDS[S.wi].music); A().startMusic(); $('#btnPause').textContent = 'Pause';
+    E.load(S.wi, li, false); hideAll(); A().stopMusic(); A().setWorld(G.WORLDS[S.wi].music); A().startMusic(); $('#btnPause').textContent = tr('Pause', 'Pause');
     S.mode = 'dive'; G.dive.rocketMode = true; G.dive.launching = false;
     G.rocket.start({full, from, target, title: full ? 'Raketenflug' : 'Weiterflug', done: res => {
       G.dive.rocketMode = false;
       if (res === 'dead') { S.lives--; if (S.lives <= 0) { gameOver(); return; } startFlight(idx); return; }
       S.score += G.rocket.score;
-      if (full) { S.time = Math.max(0, S.time - Math.round(G.rocket.t)); G.flow.levelClear(); }
+      if (full) { const sh = G.rocket.ship || {hp: 1, maxHp: 1}; S.stars = [true, sh.hp >= Math.ceil(sh.maxHp / 2), sh.hp >= sh.maxHp]; S.time = Math.max(0, S.time - Math.round(G.rocket.t)); G.flow.levelClear(); }   /* stars: landed, half the hull left, no scratch */
       else { G.rocket.skipFlight = true; startLevel(idx); }
     }});
   }
+  /* ---------------- seasonal event: Halloween "Spooky Night" (three levels; finishing all three unlocks Hollo) ---------------- */
+  const EVW = G.EVENT && G.EVENT_WORLDS ? G.EVENT_WORLDS[G.EVENT.key] : null;
+  function eventActive() { if (!EVW || !G.buildEventLevel) return false; if (/^#event/.test(HASH)) return true; const d = G.dailyKey(); return d >= G.EVENT.from && d <= G.EVENT.to; }
+  function eventDone() { const e = save.event[G.EVENT.key] = save.event[G.EVENT.key] || {done: {}}; e.done = e.done || {}; return e.done; }
+  const eventDaysLeft = () => Math.max(0, Math.ceil((new Date(G.EVENT.to + 'T23:59:59') - new Date()) / 864e5));
+  function startEvent(li) {
+    const dn = eventDone(); if (li === undefined) { li = [0, 1, 2].find(i => !dn[i]); if (li === undefined) li = (save.event.last + 1 || 0) % 3; }
+    save.event.last = li; persist();
+    const lv = G.buildEventLevel(EVW, EVW.diff, li, 7000 + li * 131); lv.name = EVW.name + ' ' + (li + 1); lv.sub = EVW.levels[li];
+    A().init(); hideAll(); startLevel(EVW.diff * 4 + li, lv);
+  }
   function startDaily() { const lv = G.buildDaily(); hideAll(); startLevel(lv.world * 4 + lv.index, lv); }
-  function refreshDaily() { const k = G.dailyKey(), best = save.daily[k]; $('#btnDaily').textContent = 'Tageslevel ' + (best !== undefined ? '✓ ' + best + 's' : '(' + k.slice(5) + ')') + (save.streak > 1 ? ' · Serie ' + save.streak : ''); }
+  function refreshDaily() { const k = G.dailyKey(), best = save.daily[k]; $('#btnDaily').textContent = tr('Tageslevel ', 'Daily Level ') + (best !== undefined ? '✓ ' + best + 's' : '(' + k.slice(5) + ')') + (save.streak > 1 ? tr(' · Serie ', ' · streak ') + save.streak : ''); if ($('#mDailyS')) $('#mDailyS').textContent = (best !== undefined ? tr('Heute ✓ ', 'Today ✓ ') + best + tr(' s · neu in ', ' s · new in ') + (() => { const n = new Date(), m = 1440 - n.getHours() * 60 - n.getMinutes(); return Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') + ' min'; })() : tr('Neues Level wartet!', 'A new level awaits!')) + (save.streak > 1 ? ' · 🔥 ' + save.streak + tr(' Tage', ' days') : ''); }
   function beginPlay() { $('#card').hidden = true; S.mode = 'play'; A().startMusic(); S.voiceT = 1.2; }
-  function gameOver() { S.mode = 'over'; S.lives = 4; $('#over').hidden = false; $('#over-score').textContent = S.score.toLocaleString('de-DE') + ' Punkte'; A().stopMusic(); }
-  function win() { S.mode = 'win'; achieve('rescue'); const total = Object.values(save.stars).reduce((a, s) => a + s.filter(Boolean).length, 0); $('#win').hidden = false; $('#win-score').textContent = S.score.toLocaleString('de-DE') + ' Punkte · ' + total + ' von ' + (N * 3) + ' Sternkeksen'; A().stopMusic(); A().sfx.rescue(); }
+  function gameOver() { S.mode = 'over'; S.lives = 4; $('#over').hidden = false; $('#over-score').textContent = S.score.toLocaleString(LOC) + tr(' Punkte', ' points'); A().stopMusic(); }
+  function win() { S.mode = 'win'; achieve('rescue'); const total = Object.values(save.stars).reduce((a, s) => a + s.filter(Boolean).length, 0); $('#win').hidden = false; $('#win-score').textContent = S.score.toLocaleString(LOC) + tr(' Punkte · ', ' points · ') + total + tr(' von ', ' of ') + (N * 3) + tr(' Sternkeksen', ' star cookies'); A().stopMusic(); A().sfx.rescue(); }
   function hideAll(except) { for (const id of OVERLAYS) $('#' + id).hidden = !(except || []).includes(id); if (globeOk && !(except || []).includes('globe')) G.globe.hide(); }
-  function showTitle() { S.mode = 'title'; hideAll(['title']); A().stopMusic(); A().fast = false; A().slow = false; }
+  function showTitle() { S.mode = 'title'; hideAll(['title']); A().stopMusic(); A().fast = false; A().slow = false; A().setWorld(MENU_MUSIC); A().setBoss(false); if (S.frames > 0 || HASH !== '#title') A().startMusic(); menuIdx = Math.max(0, heroList().findIndex(h => h.id === (save.hero || 'wookie'))); renderMenu(); }
   function worldProgress(wi) { let done = 0, stars = 0; for (let li = 0; li < 4; li++) { const k = key(wi, li); if (save.done[k]) done++; stars += (save.stars[k] || []).filter(Boolean).length; } return {done, stars}; }
   function showGlobe(wi) {
     if (!globeOk) { showMap(); return; }
     S.mode = 'globe'; hideAll(['globe']); G.globe.show(wi !== undefined ? wi : S.wi);
     const totalStars = Object.values(save.stars).reduce((a, s) => a + s.filter(Boolean).length, 0);
-    $('#gprog').textContent = `${Object.keys(save.done).length} von ${N} Leveln geschafft · ${totalStars} von ${N * 3} Sternkeksen · ${Object.keys(save.solved).length} von 20 Rätseln · ${S.money.toLocaleString('de-DE')} Taler`;
+    $('#gprog').textContent = tr(`${Object.keys(save.done).length} von ${N} Leveln geschafft · ${totalStars} von ${N * 3} Sternkeksen · ${Object.keys(save.solved).length} von 20 Rätseln · ${S.money.toLocaleString(LOC)} Taler`, `${Object.keys(save.done).length} of ${N} levels done · ${totalStars} of ${N * 3} star cookies · ${Object.keys(save.solved).length} of 20 puzzles · ${S.money.toLocaleString(LOC)} coins`);
     refreshDaily();
     A().stopMusic(); A().fast = false; A().slow = false; A().setWorld(GLOBE_MUSIC); A().setBoss(false); A().startMusic();
   }
   function showHub(wi, fromSky) {
-    hideAll(); A().stopMusic(); G.hub.letterRead = !!save.letters[G.WORLDS[wi].key]; G.hub.enter(wi, fromSky); applyCostume(); $('#btnPause').textContent = 'Globus';
+    hideAll(); A().stopMusic(); G.hub.letterRead = !!save.letters[G.WORLDS[wi].key]; G.hub.enter(wi, fromSky); applyCostume(); $('#btnPause').textContent = tr('Globus', 'Globe');
     if (!save.letters[G.WORLDS[wi].key]) setTimeout(() => { if (S.mode === 'hub' && S.wi === wi && $('#letter').hidden) showLetter(wi); }, fromSky ? 2600 : 700);
   }
   if (globeOk) { G.globe.progress = worldProgress; G.globe.onPick = wi => { S.mode = 'dive'; A().stopMusic(); G.dive.start(wi, () => showHub(wi, true)); }; }
@@ -225,10 +313,10 @@
   function renderMap() {
     const box = $('#worlds'); box.innerHTML = '';
     const totalStars = Object.values(save.stars).reduce((a, s) => a + s.filter(Boolean).length, 0);
-    $('#map-progress').textContent = `${Object.keys(save.done).length} von ${N} Leveln geschafft · ${totalStars} von ${N * 3} Sternkeksen`;
+    $('#map-progress').textContent = tr(`${Object.keys(save.done).length} von ${N} Leveln geschafft · ${totalStars} von ${N * 3} Sternkeksen`, `${Object.keys(save.done).length} of ${N} levels done · ${totalStars} of ${N * 3} star cookies`);
     G.WORLDS.forEach((W, wi) => {
       const sec = document.createElement('section'); sec.className = 'world'; sec.style.background = `linear-gradient(135deg, ${W.sky[0]}, ${W.sky[1]} 60%, ${W.sky[2]})`;
-      sec.innerHTML = `<h3><span>Welt ${wi + 1}</span>${W.name}</h3><div class="nodes"></div>`;
+      sec.innerHTML = `<h3><span>${tr('Welt', 'World')} ${wi + 1}</span>${W.name}</h3><div class="nodes"></div>`;
       const nodes = sec.querySelector('.nodes');
       W.levels.forEach((name, li) => {
         const idx = wi * 4 + li, k = key(wi, li), st = save.stars[k] || [false, false, false];
@@ -249,18 +337,18 @@
   function pauseGame() {
     if (S.mode !== 'play' && S.mode !== 'card' && S.mode !== 'mode' && !(S.mode === 'dive' && G.dive.rocketMode)) return;
     pausedFrom = S.mode; S.mode = 'pause'; A().stopMusic(); A().sfx.pause(); resetInput(); const dp = $('#dpad'); if (dp) dp.classList.remove('l', 'r');
-    $('#pause-level').textContent = 'Welt ' + (S.wi + 1) + '-' + (S.li + 1) + ' · ' + G.WORLDS[S.wi].levels[S.li];
-    $('#pause').hidden = false; $('#btnResume').focus(); $('#btnPause').textContent = 'Weiter';
+    $('#pause-level').textContent = G.L && (G.L.daily || G.L.event) && pausedFrom !== 'mode' ? (G.L.event ? G.L.world.name + ' · ' + G.L.sub : tr('Tageslevel', 'Daily Level')) : tr('Welt ', 'World ') + (S.wi + 1) + '-' + (S.li + 1) + ' · ' + G.WORLDS[S.wi].levels[S.li];
+    $('#pause').hidden = false; $('#btnResume').focus(); $('#btnPause').textContent = tr('Weiter', 'Resume');
   }
-  function resumeGame() { if (S.mode !== 'pause') return; $('#pause').hidden = true; S.mode = pausedFrom; $('#btnPause').textContent = 'Pause'; if (S.mode === 'play') A().startMusic(); }
-  function restartLevel() { $('#pause').hidden = true; S.lives = Math.max(S.lives, 1); startLevel(S.wi * 4 + S.li); }
+  function resumeGame() { if (S.mode !== 'pause') return; $('#pause').hidden = true; S.mode = pausedFrom; $('#btnPause').textContent = tr('Pause', 'Pause'); if (S.mode === 'play' || S.mode === 'dive' || (S.mode === 'mode' && S.modeName !== 'cinema')) A().startMusic(); }
+  function restartLevel() { $('#pause').hidden = true; S.lives = Math.max(S.lives, 1); startLevel(S.wi * 4 + S.li, curCustom || undefined); }
   function toggleFull() {
     try {
       if (document.fullscreenElement) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); }
       else { const el = document.documentElement; (el.requestFullscreen || el.webkitRequestFullscreen).call(el).catch(() => {}); }
     } catch (e) {}
   }
-  const updateFullBtns = () => { const on = !!document.fullscreenElement; document.querySelectorAll('.btnFull').forEach(b => b.textContent = on ? 'Vollbild aus' : 'Vollbild'); };
+  const updateFullBtns = () => { const on = !!document.fullscreenElement; document.querySelectorAll('.btnFull').forEach(b => b.textContent = on ? tr('Vollbild aus', 'Exit fullscreen') : tr('Vollbild', 'Fullscreen')); };
   document.addEventListener('fullscreenchange', () => { updateFullBtns(); setTimeout(fit, 50); setTimeout(fit, 400); });
 
   /* ---------------- settings ---------------- */
@@ -271,7 +359,7 @@
   $('#selStyle').addEventListener('change', e => { S.bearStyle = e.target.value; try { localStorage.setItem('pookie-style', S.bearStyle); } catch (err) {} });
   $('#chkAssist').checked = assist;
   $('#chkAssist').addEventListener('change', e => { assist = e.target.checked; try { localStorage.setItem('pookie-assist', assist ? '1' : '0'); } catch (err) {} });
-  const updateVoiceBtns = () => { document.querySelectorAll('.btnVoiceToggle').forEach(b => b.textContent = A().voiceCfg.on ? 'Stimme aus' : 'Stimme an'); };
+  const updateVoiceBtns = () => { document.querySelectorAll('.btnVoiceToggle').forEach(b => b.textContent = A().voiceCfg.on ? tr('Stimme aus', 'Voice off') : tr('Stimme an', 'Voice on')); };
   document.querySelectorAll('.btnVoiceToggle').forEach(b => b.addEventListener('click', () => { A().voiceCfg.on = !A().voiceCfg.on; A().saveVoiceCfg(); $('#chkVoice').checked = A().voiceCfg.on; updateVoiceBtns(); }));
   updateVoiceBtns();
 
@@ -280,6 +368,7 @@
     S.frames++;
     if (S.mode === 'card') { cardT += 1 / 60; input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false; if (cardT > 2) beginPlay(); return; }
     if (S.mode === 'brand') { G.brand.update(); return; }
+    if (S.mode === 'story') { if (G.story) G.story.update(); return; }
     if (S.mode === 'mode') { const m = G.modes && G.modes[S.modeName]; if (m) { try { m.update(); } catch (e) { console.error('MODE_UPDATE_ERROR ' + e.message); } } input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false; return; }
     if (S.mode === 'dive') { G.dive.update(); input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false; return; }
     if (S.mode === 'hub' || S.mode === 'play') { if (P.combo >= 5) achieve('combo5'); if (S.room === 1) achieve('bonus'); }
@@ -288,8 +377,8 @@
     if (G.goalSeq) E.updateGoal(); else E.updatePlayer();
     G.entsMod.update(); E.updateParts();
     if (!P.dead && !G.goalSeq) {
-      S.timeAcc += 1 / 60; if (S.timeAcc >= 1) { S.timeAcc -= 1; S.time--; if (S.time === 60) { A().sfx.time(); E.toast('Schnell!'); } if (S.time <= 0) { S.time = 0; E.die('time'); } }
-      S.voiceT -= 1 / 60; if (S.voiceT <= 0) { S.voiceT = 16 + Math.random() * 12; const lines = G.L.world.lines; G.flow.speak(S.frames < 400 ? 'I need to find my Pookie!' : lines[Math.floor(Math.random() * lines.length)]); }
+      S.timeAcc += 1 / 60; if (S.timeAcc >= 1) { S.timeAcc -= 1; S.time--; if (S.time === 60) { A().sfx.time(); E.toast(tr('Schnell!', 'Hurry!')); } if (S.time <= 0) { S.time = 0; E.die('time'); } }
+      S.voiceT -= 1 / 60; if (S.voiceT <= 0) { S.voiceT = 16 + Math.random() * 12; const lines = G.L.world.lines; G.flow.speak(S.frames < 400 ? 'I need to find my Mallo!' : lines[Math.floor(Math.random() * lines.length)]); }
       if (G.L.world.wind && S.frames % 300 === 0) A().sfx.wind();
     }
     E.updateCamera();
@@ -308,12 +397,19 @@
   }
   document.addEventListener('keydown', e => {
     if (e.target && (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT')) return;
+    if (S.mode === 'title' && e.target && e.target.tagName === 'BUTTON' && (e.code === 'Enter' || e.code === 'Space')) return;
+    if (G.PZ && G.PZ.isOpen && G.PZ.isOpen()) return;   /* an open puzzle owns the keyboard (e.g. typing F into the wormhole console) */   /* the focused menu button handles it */
     const n = KEYMAP[e.code]; if (n && (S.mode === 'play' || S.mode === 'card' || S.mode === 'hub' || S.mode === 'mode' || (S.mode === 'dive' && G.dive.rocketMode))) { press(n, true); e.preventDefault(); }
     if (!$('#letter').hidden && (e.code === 'Enter' || e.code === 'Escape' || e.code === 'Space')) { $('#letter').hidden = true; return; }
     if (!$('#keks').hidden && (e.code === 'Enter' || e.code === 'Escape')) { $('#keks').hidden = true; return; }
+    if (!$('#shop').hidden) { if (e.code === 'Escape') { $('#shop').hidden = true; if (S.mode === 'title') renderMenu(); } return; }   /* keys must not reach the globe, menu or pause menu behind the shop */
+    if (!$('#settings').hidden) { if (e.code === 'Escape') { $('#settings').hidden = true; renderMenu(); } return; }
     if (e.repeat) return;
     if (S.mode === 'boot') { startBrand(); return; }
     if (S.mode === 'brand') { G.brand.skip(); return; }
+    if (S.mode === 'story') { G.story.skip(); return; }
+    if (S.mode === 'title' && $('#shop').hidden && $('#settings').hidden && $('#keks').hidden) { if (e.code === 'ArrowLeft' || e.code === 'KeyA') { menuHeroStep(-1); return; } if (e.code === 'ArrowRight' || e.code === 'KeyD') { menuHeroStep(1); return; } }
+
     if (e.code === 'KeyF') { toggleFull(); return; }
     if (S.mode === 'globe') { if (e.code === 'ArrowLeft' || e.code === 'KeyA' || e.code === 'ArrowUp') G.globe.move(-1); else if (e.code === 'ArrowRight' || e.code === 'KeyD' || e.code === 'ArrowDown') G.globe.move(1); else if (e.code === 'Enter' || e.code === 'Space') { A().init(); G.globe.pick(); } else if (e.code === 'Escape') showTitle(); e.preventDefault(); return; }
     if (S.mode === 'dive') { if (G.dive.rocketMode) { if (e.code === 'Escape' || e.code === 'KeyP') pauseGame(); return; } if (G.dive.launching) { if (e.code === 'Enter' || e.code === 'Space') G.rocket.lt = Math.max(G.rocket.lt, 3.0); return; } if (e.code === 'Enter' || e.code === 'Space') G.dive.t = Math.max(G.dive.t, 2.15); return; }
@@ -325,6 +421,28 @@
   });
   document.addEventListener('keyup', e => { const n = KEYMAP[e.code]; if (n) press(n, false); });
   window.addEventListener('blur', resetInput);
+  /* app sent to the background (phone call, home button): pause the level and silence the audio until it comes back */
+  document.addEventListener('visibilitychange', () => {
+    const ac = A().ctx;
+    if (document.hidden) { resetInput(); if ((S.mode === 'play' && !P.dead && !G.goalSeq) || S.mode === 'mode' || (S.mode === 'dive' && G.dive.rocketMode)) pauseGame(); A().stopMusic(); try { if (ac && ac.state === 'running') ac.suspend(); } catch (e) {} }
+    else { try { if (ac && ac.state === 'suspended') ac.resume(); } catch (e) {} if (!A().muted && (S.mode === 'hub' || S.mode === 'globe' || S.mode === 'title' || (S.mode === 'pzpause' && pzFrom !== 'mode'))) A().startMusic(); }
+  });
+  /* game controllers (Bluetooth pads on phones, tablets, PCs): stick/d-pad, A = jump, B/X = shoot, Start = pause */
+  let padPrev = {};
+  function pollPad() {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : null; let gp = null; if (pads) for (const q of pads) if (q && q.connected) { gp = q; break; } if (!gp) return;
+    const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed), ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
+    const st = {left: b(14) || ax < -0.45, right: b(15) || ax > 0.45, up: b(12) || ay < -0.6, down: b(13) || ay > 0.6, jumpkey: b(0), run: b(1) || b(2), start: b(9)};
+    const edge = k => st[k] && !padPrev[k];
+    const ingame = S.mode === 'play' || S.mode === 'card' || S.mode === 'hub' || S.mode === 'mode' || (S.mode === 'dive' && G.dive.rocketMode);
+    if (ingame) for (const k of ['left', 'right', 'up', 'down', 'jumpkey', 'run']) if (st[k] !== !!padPrev[k]) press(k, st[k]);
+    if (edge('start')) { if (S.mode === 'pause') resumeGame(); else if (ingame && S.mode !== 'card') pauseGame(); else advance(); }
+    else if (S.mode === 'card' && edge('jumpkey') && cardT > 0.4) beginPlay();
+    else if (S.mode === 'globe') { if (edge('left')) G.globe.move(-1); if (edge('right')) G.globe.move(1); if (edge('jumpkey')) { A().init(); G.globe.pick(); } }
+    else if (S.mode === 'title' && $('#shop').hidden && $('#settings').hidden && $('#keks').hidden) { if (edge('left')) menuHeroStep(-1); if (edge('right')) menuHeroStep(1); if (edge('jumpkey')) advance(); }
+    else if (!ingame && edge('jumpkey')) { if (S.mode === 'boot') startBrand(); else if (S.mode === 'brand') G.brand.skip(); else if (S.mode === 'story') G.story.skip(); else if (S.mode === 'pause') resumeGame(); else advance(); }
+    padPrev = st;
+  }
   document.querySelectorAll('#touch button').forEach(b => { const n = b.dataset.k; const on = e => { e.preventDefault(); A().init(); press(n, true); if (S.mode === 'card' && cardT > 0.4 && n === 'jumpkey') beginPlay(); }; const off = () => press(n, false); b.addEventListener('pointerdown', on); ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => b.addEventListener(ev, off)); b.addEventListener('contextmenu', e => e.preventDefault()); });
   /* the run pad: direction follows the thumb's position; sliding across switches sides without lifting */
   { const pad = $('#dpad'); let padId = null;
@@ -334,43 +452,71 @@
     pad.addEventListener('pointermove', e => { if (e.pointerId === padId) setDir(e.clientX); });
     pad.addEventListener('pointerup', release); pad.addEventListener('pointercancel', release); pad.addEventListener('lostpointercapture', release); pad.addEventListener('contextmenu', e => e.preventDefault()); }
   /* taps on the stage: skip the dive, start after the level card */
-  $('#stage').addEventListener('pointerdown', () => { if (S.mode === 'boot') startBrand(); else if (S.mode === 'brand') G.brand.skip(); else if (S.mode === 'dive') { if (G.dive.launching) G.rocket.lt = Math.max(G.rocket.lt || 0, 3.0); else if (!G.dive.rocketMode) G.dive.t = Math.max(G.dive.t, 2.15); } else if (S.mode === 'card' && cardT > 0.4) beginPlay(); });
+  $('#stage').addEventListener('pointerdown', () => { if (S.mode === 'boot') startBrand(); else if (S.mode === 'brand') G.brand.skip(); else if (S.mode === 'story') G.story.skip(); else if (S.mode === 'dive') { if (G.dive.launching) G.rocket.lt = Math.max(G.rocket.lt || 0, 3.0); else if (!G.dive.rocketMode) G.dive.t = Math.max(G.dive.t, 2.15); } else if (S.mode === 'card' && cardT > 0.4) beginPlay(); });
   $('#card').addEventListener('pointerdown', () => { if (S.mode === 'card' && cardT > 0.4) beginPlay(); });
   /* touch browsers only grant fullscreen on pointerup/touchend: try again there, and on the first title button */
   if (isTouch) ['pointerup', 'touchend'].forEach(ev => document.addEventListener(ev, () => { if (!document.fullscreenElement && S.mode !== 'boot') goFullscreen(); }, {passive: true}));
   function advance() {
-    if (S.mode === 'title') { A().init(); hideAll(); showGlobe(); if (isTouch) goFullscreen(); }
+    if (S.mode === 'title') { if (!$('#shop').hidden || !$('#settings').hidden || !$('#keks').hidden) return; A().init(); A().sfx.select(); hideAll(); showGlobe(); if (isTouch) goFullscreen(); }
     else if (S.mode === 'card' && cardT > 0.4) beginPlay();
-    else if (S.mode === 'clear') { $('#clear').hidden = true; const idx = S.wi * 4 + S.li + 1; if (G.L && G.L.daily) showGlobe(); else if (S.li === 3) showGlobe(Math.min(G.WORLDS.length - 1, S.wi + 1)); else if (idx < N) startLevel(idx); else showGlobe(); }
-    else if (S.mode === 'over' || S.mode === 'win') { $('#over').hidden = true; $('#win').hidden = true; showGlobe(); }
+    else if (S.mode === 'clear' && !$('#clear').hidden) { $('#clear').hidden = true; const idx = S.wi * 4 + S.li + 1; if (G.L && G.L.event) { const dn = eventDone(); if (dn[0] && dn[1] && dn[2]) showTitle(); else startEvent(); } else if (G.L && G.L.daily) showGlobe(); else if (S.li === 3) showGlobe(Math.min(G.WORLDS.length - 1, S.wi + 1)); else if (idx < N) startLevel(idx); else showGlobe(); }
+    else if (S.mode === 'over' || S.mode === 'win') { $('#over').hidden = true; $('#win').hidden = true; if (G.L && G.L.event) showTitle(); else showGlobe(); }
   }
   $('#btnStart').addEventListener('click', advance);
   $('#clear-next').addEventListener('click', advance);
-  $('#clear-map').addEventListener('click', () => { $('#clear').hidden = true; if (G.L && G.L.daily) showGlobe(); else showHub(S.wi, false); });
+  $('#clear-map').addEventListener('click', () => { $('#clear').hidden = true; if (G.L && G.L.event) showTitle(); else if (G.L && G.L.daily) showGlobe(); else showHub(S.wi, false); });
   $('#btnOver').addEventListener('click', advance);
   $('#btnWin').addEventListener('click', advance);
   $('#btnMapBack').addEventListener('click', showTitle);
   $('#btnGlobeBack').addEventListener('click', showTitle);
-  $('#btnReset').addEventListener('click', () => { if (!resetArmed) { resetArmed = true; $('#btnReset').textContent = 'Wirklich löschen?'; setTimeout(() => { resetArmed = false; $('#btnReset').textContent = 'Spielstand löschen'; }, 3000); return; } save = {unlocked: 0, stars: {}, best: {}, done: {}}; persist(); mapSel = 0; resetArmed = false; $('#btnReset').textContent = 'Spielstand löschen'; if (globeOk) G.globe.refreshMarkers(); showGlobe(0); });
-  $('#btnMute').addEventListener('click', () => { A().init(); A().muted = !A().muted; $('#btnMute').textContent = A().muted ? 'Ton an' : 'Ton aus'; if (A().muted) A().stopMusic(); else if (S.mode === 'play' || S.mode === 'hub' || S.mode === 'globe') A().startMusic(); });
-  $('#btnVoice').addEventListener('click', () => { A().init(); G.flow.speak('Hello! I am Wookie.', {happy: true}); });
+  $('#btnReset').addEventListener('click', () => { if (!resetArmed) { resetArmed = true; $('#btnReset').textContent = tr('Wirklich löschen?', 'Really delete?'); setTimeout(() => { resetArmed = false; $('#btnReset').textContent = tr('Spielstand löschen', 'Delete progress'); }, 3000); return; } save = {unlocked: 0, stars: {}, best: {}, done: {}, coins: {}, letters: {}, ach: {}, daily: {}, streak: 0, dailyLast: '', costume: '', gad: 0, money: 0, owned: {}, solved: {}, hero: 'wookie', storySeen: 1, version: 2, coinsPaid: true, event: {}}; S.money = 0; G.eco.owned = save.owned; setHero('wookie'); refreshCostumes(); persist(); mapSel = 0; $('#settings').hidden = true; resetArmed = false; $('#btnReset').textContent = tr('Spielstand löschen', 'Delete progress'); if (globeOk) G.globe.refreshMarkers(); showTitle(); });
+  const setMuted = m => { A().init(); A().muted = m; try { localStorage.setItem('pookie-muted', m ? '1' : '0'); } catch (e) {} ['#btnMute', '#btnPauseMute', '#mMute'].forEach(id => { if ($(id)) $(id).textContent = m ? tr('Ton an', 'Sound on') : tr('Ton aus', 'Sound off'); }); $('#chkSound').checked = !m; if (m) A().stopMusic(); else if (S.mode === 'play' || S.mode === 'hub' || S.mode === 'globe' || S.mode === 'title' || S.mode === 'mode') A().startMusic(); };
+  try { if (localStorage.getItem('pookie-muted') === '1') { A().muted = true; ['#btnMute', '#btnPauseMute', '#mMute'].forEach(id => { if ($(id)) $(id).textContent = tr('Ton an', 'Sound on'); }); $('#chkSound').checked = false; } } catch (e) {}
+  $('#btnMute').addEventListener('click', () => setMuted(!A().muted));
+  $('#mMute').addEventListener('click', () => setMuted(!A().muted));
+  $('#chkSound').addEventListener('change', e => setMuted(!e.target.checked));
+  $('#btnVoice').addEventListener('click', () => { A().init(); G.flow.speak('Hello! I am Toffo.', {happy: true}); });
   $('#btnPause').addEventListener('click', () => { if (S.mode === 'pause') resumeGame(); else if (S.mode === 'hub') showGlobe(S.wi); else pauseGame(); });
   $('#btnResume').addEventListener('click', resumeGame);
   $('#btnRestart').addEventListener('click', restartLevel);
-  $('#btnPauseMap').addEventListener('click', () => { $('#pause').hidden = true; showHub(S.wi, false); });
+  $('#btnPauseMap').addEventListener('click', () => { $('#pause').hidden = true; if (pausedFrom !== 'mode' && G.L && G.L.event) showTitle(); else if (pausedFrom !== 'mode' && G.L && G.L.daily) showGlobe(); else showHub(S.wi, false); });
   $('#btnPauseGlobe').addEventListener('click', () => { $('#pause').hidden = true; showGlobe(S.wi); });
   $('#btnPauseTitle').addEventListener('click', () => { $('#pause').hidden = true; showTitle(); });
-  $('#btnPauseMute').addEventListener('click', () => { $('#btnMute').click(); $('#btnPauseMute').textContent = A().muted ? 'Ton an' : 'Ton aus'; });
+  $('#btnPauseMute').addEventListener('click', () => setMuted(!A().muted));
   $('#btnDaily').addEventListener('click', () => { A().init(); A().sfx.select(); startDaily(); });
-  $('#btnKeks').addEventListener('click', () => { renderKeks(); $('#keks').hidden = false; });
+  $('#btnKeks').addEventListener('click', () => { A().init(); A().sfx.select(); renderKeks(); $('#keks').hidden = false; });
+  $('#mDaily').addEventListener('click', () => { A().init(); A().sfx.select(); startDaily(); });
+  $('#mEvent').addEventListener('click', () => { A().init(); A().sfx.select(); startEvent(); });
+  $('#mLang').addEventListener('click', () => G.setLang(G.lang === 'en' ? 'de' : 'en'));
+  $('#selLang').value = G.lang; $('#selLang').addEventListener('change', e => G.setLang(e.target.value));
+  $('#mShop').addEventListener('click', () => { A().sfx.select(); openShop(save.heroesSeen ? undefined : 'heroes'); });
+  $('#mMoney').addEventListener('click', () => { A().sfx.select(); openShop('heroes'); });
+  $('#mStory').addEventListener('click', () => { A().init(); A().sfx.select(); playStory(showTitle); });
+  $('#mSettings').addEventListener('click', () => { A().init(); A().sfx.select(); refreshCostumes(); $('#settings').hidden = false; });
+  $('#btnSettingsClose').addEventListener('click', () => { $('#settings').hidden = true; renderMenu(); });
+  $('#mPrev').addEventListener('click', () => menuHeroStep(-1));
+  $('#mNext').addEventListener('click', () => menuHeroStep(1));
+  $('#mHeroBtn').addEventListener('click', () => { A().init(); menuHeroAction(); });
+  $('#mHeroTap').addEventListener('click', () => { A().init(); if (G.menu && !$('#mHeroTap').swiped) G.menu.poke(); });
+  /* swipe over the hero to flip through the heroes */
+  { let sx = null; $('#mHeroTap').addEventListener('pointerdown', e => { sx = e.clientX; $('#mHeroTap').swiped = false; }); $('#mHeroTap').addEventListener('pointerup', e => { if (sx !== null && Math.abs(e.clientX - sx) > 40) { $('#mHeroTap').swiped = true; menuHeroStep(e.clientX < sx ? 1 : -1); } sx = null; }); }
   $('#btnKeksClose').addEventListener('click', () => { $('#keks').hidden = true; });
   $('#btnLetterClose').addEventListener('click', () => { $('#letter').hidden = true; });
   $('#selCostume').addEventListener('change', e => { save.costume = e.target.value; persist(); applyCostume(); });
   $('#shop-list').addEventListener('click', e => { const b = e.target.closest('button[data-act]'); if (b) shopAction(b.dataset.act, b.dataset.id); });
   document.querySelectorAll('#shop .tab').forEach(b => b.addEventListener('click', () => { A().sfx.select(); renderShop(b.dataset.tab); }));
-  $('#btnShopClose').addEventListener('click', () => { $('#shop').hidden = true; });
+  $('#btnShopClose').addEventListener('click', () => { $('#shop').hidden = true; if (S.mode === 'title') renderMenu(); });
   document.querySelectorAll('.btnShop').forEach(b => b.addEventListener('click', () => openShop()));
   refreshCostumes();
+  if (/github\.io$/.test(location.hostname)) $('#lnkPrivacy').hidden = false;   /* the privacy page ships with the app build */
+  /* Android: short vibrations on hits, stomps and boss blows (iPhones have no vibration API, the row hides there) */
+  { let haptic = true; try { haptic = localStorage.getItem('pookie-haptic') !== '0'; } catch (e) {}
+    const can = !!navigator.vibrate; $('#rowHaptic').hidden = !can; $('#chkHaptic').checked = haptic;
+    $('#chkHaptic').addEventListener('change', e => { haptic = e.target.checked; try { localStorage.setItem('pookie-haptic', haptic ? '1' : '0'); } catch (err) {} if (haptic && can) navigator.vibrate(30); });
+    const buzz = ms => { if (haptic && can && document.hasFocus()) try { navigator.vibrate(ms); } catch (e) {} };
+    for (const [n, ms] of [['stomp', 12], ['die', [40, 40, 70]], ['hurt', 40], ['bossHit', 30], ['pound', 22], ['bubblePop', 25], ['bossDown', [30, 40, 30, 40, 90]], ['cannon', 30], ['rocketHit', 35]]) { const f = A().sfx[n]; if (f) A().sfx[n] = function () { buzz(ms); return f.apply(this, arguments); }; } }
+  /* installed app (standalone) or iPhone: no fullscreen API needed, hide those buttons */
+  if (matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone || !(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)) document.querySelectorAll('.btnFull').forEach(b => b.hidden = true);
   /* gadget counter for the Keksdose */
   { const give0 = G.gad.give.bind(G.gad); G.gad.give = (id, quiet) => { give0(id, quiet); if (!quiet) { save.gad = (save.gad || 0) + 1; persist(); if (save.gad >= 10) achieve('gadgets10'); } }; }
   /* chocolate pen: drawing on the stage (mouse or a second finger) lays down chocolate platforms */
@@ -393,6 +539,7 @@
     document.body.style.height = availH + 'px'; document.body.style.width = availW + 'px';
     if (hd) G.draw.resize(w, h);
     if (globeOk) G.globe.resize(w, h);
+    { const tl = $('#title'), u = h / VH; tl.style.setProperty('--u', u + 'px'); if (G.menu) { const lay = G.menu.layout(); tl.style.setProperty('--heroW', ((G.VW - lay.side - 3 * lay.pad) * u) + 'px'); tl.style.setProperty('--heroTapL', ((lay.heroX - 45) * u) + 'px'); } }
     document.body.classList.toggle('sidebars', availW - w >= 130);   /* phones in landscape: room for the corner buttons beside the canvas */
   }
   window.addEventListener('resize', fit); window.addEventListener('orientationchange', () => { setTimeout(fit, 100); setTimeout(fit, 600); });
@@ -402,12 +549,16 @@
   function frame(now) {
     requestAnimationFrame(frame);
     const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now; acc += dt;
+    pollPad();
     let n = 0; while (acc >= 1 / 60 && n++ < 4) { step(); acc -= 1 / 60; }
     if (isTouch) { document.body.classList.toggle('playing', S.mode === 'play' || S.mode === 'card' || S.mode === 'hub' || S.mode === 'dive' || S.mode === 'mode'); document.body.classList.toggle('onglobe', S.mode === 'globe'); }
+    document.body.classList.toggle('inmenu', S.mode === 'title' || S.mode === 'story' || S.mode === 'boot' || S.mode === 'brand');
     if (S.mode === 'globe' && globeOk) G.globe.frame();
-    else if (S.mode === 'boot' || S.mode === 'brand' || S.mode === 'dive' || S.mode === 'mode' || (S.mode === 'pause' && (pausedFrom === 'dive' || pausedFrom === 'mode')) || (S.mode === 'pzpause' && (pzFrom === 'mode' || pzFrom === 'dive'))) {
+    else if (S.mode === 'boot' || S.mode === 'brand' || S.mode === 'story' || S.mode === 'title' || S.mode === 'dive' || S.mode === 'mode' || (S.mode === 'pause' && (pausedFrom === 'dive' || pausedFrom === 'mode')) || (S.mode === 'pzpause' && (pzFrom === 'mode' || pzFrom === 'dive'))) {
       const c = G.draw.ctx || canvas.getContext('2d'), kk = G.draw.k || (canvas.height / VH); c.setTransform(kk, 0, 0, kk, 0, 0); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
       if (S.mode === 'boot' || S.mode === 'brand') G.brand.frame(c, kk);
+      else if (S.mode === 'story') { if (G.story) G.story.frame(c); }
+      else if (S.mode === 'title') { if (G.menu) G.menu.frame(c); else { c.fillStyle = '#2b1d33'; c.fillRect(0, 0, G.VW, VH); } }
       else if (S.mode === 'mode' || (S.mode === 'pause' && pausedFrom === 'mode') || (S.mode === 'pzpause' && pzFrom === 'mode')) { const m = G.modes && G.modes[S.modeName]; if (m) m.frame(c); }
       else G.dive.frame(c, kk);
     }
@@ -418,6 +569,10 @@
     const brandM = /^#brand(?:=([\d.]+))?$/.exec(HASH);
     if (brandM) { S.mode = 'boot'; startBrand(); const n = Math.round((+brandM[1] || 0) * 60); for (let i = 0; i < n; i++) step(); }   /* headless: step the intro synchronously to a time point */
     if (HASH === '#title') showTitle();
+    const storyM = /^#story(?:=([\d.]+))?$/.exec(HASH);
+    if (storyM) { playStory(showTitle); const n = Math.round((+storyM[1] || 0) * 60); for (let i = 0; i < n; i++) step(); console.log('STORY_BOOT t=' + (G.story ? G.story.t.toFixed(1) : 'none') + ' mode=' + S.mode); }
+    const menuM = /^#menu(\w*)$/.exec(HASH);
+    if (menuM) { document.body.classList.add('noanim'); if (menuM[1]) { S.money = 2000; save.done['wiese-0'] = true; save.done['wiese-1'] = true; save.stars['wiese-0'] = [true, true, false]; const i2 = heroList().findIndex(h => h.id === menuM[1]); if (i2 >= 0) menuIdx = i2; } showTitle(); if (menuM[1]) { menuIdx = Math.max(0, heroList().findIndex(h => h.id === menuM[1])); renderMenu(); } if (G.menu) G.menu.dropT = -1; console.log('MENU_BOOT heroes=' + heroList().map(h => h.id).join(',')); }
     const stM = /^#station(\d+)(open)?$/.exec(HASH);
     if (stM) { const idx = +stM[1] - 1; S.wi = Math.floor(idx / 4); S.li = idx % 4; hideAll(); S.lives = 4; E.load(S.wi, S.li, false); S.mode = 'play'; const pz = G.L.pz; if (pz) { P.x = (pz.stationCol - 1) * T; P.y = 13 * T - P.h; S.cam = Math.max(0, Math.min(G.L.mainW * T - G.VW, P.x - G.VW * 0.45)); for (let i = 0; i < 4; i++) step(); if (stM[2]) G.flow.openPuzzle(pz.id, () => console.log('STATION_SOLVED ' + pz.id)); } console.log('STATION_BOOT ' + G.L.name + ' pz=' + (pz ? pz.id + ' col=' + pz.stationCol + ' gate=' + pz.gateCol : 'none')); }
     const bossM = /^#boss(\d+)(fight)?$/.exec(HASH);
@@ -451,6 +606,9 @@
       startLevel(fi * 4); setTimeout(tick, 200);
     }
     if (HASH === '#worlds') console.log('WORLDS ' + G.WORLDS.map((w, i) => i + ':' + w.key + (w.modes ? '(' + w.modes.join('/') + ')' : '')).join(' ') + ' N=' + N + ' puzzles=' + Object.keys(G.PZ.defs).length + ' modes=' + Object.keys(G.modes || {}).join(','));
+    if (HASH === '#settings') { showTitle(); document.body.classList.add('noanim'); refreshCostumes(); $('#settings').hidden = false; }
+    if (HASH === '#shopheroes') { S.money = 1234; save.owned.h_flitz = true; showTitle(); document.body.classList.add('noanim'); openShop('heroes'); }
+    const evM = /^#event(\d)?$/.exec(HASH); if (evM) { if (evM[1]) { S.lives = 4; startEvent(+evM[1] - 1); if (S.mode === 'card') beginPlay(); console.log('EVENT_BOOT ' + G.L.name + ' world=' + G.L.world.key + ' w=' + G.L.w); } else { document.body.classList.add('noanim'); showTitle(); console.log('EVENT_MENU active=' + eventActive()); } }
     const shopM = /^#shop(outfits)?$/.exec(HASH); if (shopM) { S.money = 1234; G.eco.owned.shield = true; G.eco.owned.o_insel = true; hideAll(); showGlobe(0); refreshCostumes(); openShop(shopM[1] ? 'outfits' : 'rocket'); }
     const rocketM = /^#rocket(?:=([\d.]+))?(i)?$/.exec(HASH);
     if (rocketM) { S.lives = 4; startFlight(24); const n = Math.round((+rocketM[1] || 0) * 60); for (let i = 0; i < n; i++) { if (rocketM[2] && G.rocket.ship) G.rocket.ship.inv = 9; step(); } console.log('ROCKET_BOOT t=' + G.rocket.t.toFixed(1) + ' phase=' + G.rocket.phase + ' enemies=' + G.rocket.enemies.length + ' hp=' + G.rocket.ship.hp); }
