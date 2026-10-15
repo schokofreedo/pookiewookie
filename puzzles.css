@@ -1,0 +1,27 @@
+/* The Starway Home: puzzle overlay. The box fills the screen on phones (landscape) and is a large card on desktop.
+   #pz-root is the puzzle's own area: about 880x400 px on desktop, about 800x255 px on a phone in landscape. */
+#puzzle{z-index:7;padding:8px;background:rgba(20,10,25,.78);backdrop-filter:blur(3px);place-items:center}
+#puzzle .pzbox{width:min(920px,100%);height:min(600px,calc(100vh - 16px));height:min(600px,calc(100dvh - 16px));box-sizing:border-box;display:flex;flex-direction:column;background:var(--panel,rgba(74,34,58,.94));border:4px solid var(--pink,#ff9eb0);border-radius:22px;box-shadow:0 10px 0 rgba(0,0,0,.25);overflow:hidden;transition:border-color .2s,box-shadow .2s}
+#puzzle .pzhead{padding:10px 16px 6px;text-align:center;flex:0 0 auto}
+#pz-world{font:600 11px/1.2 var(--font,'Fredoka',sans-serif);letter-spacing:.14em;text-transform:uppercase;color:var(--gold,#ffd84a)}
+#pz-title{margin:2px 0 2px;font:700 clamp(18px,3.4vw,26px)/1.15 var(--font,'Fredoka',sans-serif);color:var(--pink,#ff9eb0)}
+#pz-intro{margin:0;font:500 13px/1.35 var(--font,'Fredoka',sans-serif);color:var(--muted,#e6c9d6)}
+#pz-root{flex:1 1 auto;min-height:0;position:relative;overflow:hidden;margin:4px 10px;border-radius:14px;background:rgba(0,0,0,.18);color:var(--fg,#fff7ef);font-family:var(--font,'Fredoka',sans-serif);touch-action:none;-webkit-user-select:none;user-select:none}
+#puzzle .pzfoot{flex:0 0 auto;display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap;padding:6px 10px 10px}
+#puzzle .pzfoot .btn{margin:0;padding:8px 12px;font-size:13px}
+#pz-msg{flex:1 1 220px;min-width:0;font:600 13px/1.3 var(--font,'Fredoka',sans-serif);text-align:left;color:var(--muted,#e6c9d6)}
+#pz-msg.bad{color:#ff8fa8}#pz-msg.good{color:#9be7a5}#pz-msg.info{color:#ffe9a8}
+#puzzle .pzbox.shake{animation:pzshake .35s}
+@keyframes pzshake{20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+#puzzle .pzbox.won{border-color:var(--mint,#9be7a5);box-shadow:0 0 0 4px rgba(155,231,165,.5),0 10px 0 rgba(0,0,0,.25)}
+@media (max-height:480px){
+  #puzzle{padding:4px}
+  #puzzle .pzbox{height:calc(100vh - 8px);height:calc(100dvh - 8px);border-width:3px;border-radius:16px}
+  #puzzle .pzhead{padding:5px 12px 2px}
+  #pz-title{font-size:16px;display:inline}
+  #pz-world{display:none}
+  #pz-intro{font-size:11px;line-height:1.25}
+  #puzzle .pzfoot{padding:3px 8px 5px;gap:4px}
+  #puzzle .pzfoot .btn{padding:5px 9px;font-size:11px;box-shadow:none}
+  #pz-msg{font-size:11px;flex-basis:160px}
+}
