@@ -1198,7 +1198,7 @@
       else if (camY < T * 3) drawWeather(W, fr, s);
       grade(W, s);
       if (G.fx && G.fx.overlay) G.fx.overlay(ctx, fr);
-      if (s.mode !== 'hub') drawHUD(s, lv, W, fr);
+      if (s.mode !== 'hub' && !lv.run) drawHUD(s, lv, W, fr);   /* the Star Run draws its own HUD (p/run.js via G.fx.hud) */
       if (G.fx && G.fx.hud) G.fx.hud(ctx, fr);
     },
     drawBear, drawBearAt, drawEnt, drawTile, sprite: spr, get ctx() { return ctx; }, get k() { return k; },

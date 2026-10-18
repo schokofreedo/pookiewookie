@@ -207,7 +207,7 @@
       }
       const W = L.world, icy = P.ground === 'ice' && P.onGround, honey = P.ground === 'honey' && P.onGround;
       /* movement feel: snappy stops, quick turnarounds, real air control; ice stays slippery on purpose */
-      const max = (input.touchMode ? 2.15 : (input.run ? 2.3 : 1.5)) * (honey ? 0.5 : 1) * (P.coffee ? 1.12 : 1) * (S.hero === 'flitz' ? 1.1 : 1);
+      const max = (input.touchMode ? 2.15 : (input.run ? 2.3 : 1.5)) * (honey ? 0.5 : 1) * (P.coffee ? 1.12 : 1) * (S.hero === 'flitz' ? 1.1 : 1) * (G.run && G.run.active ? G.run.speedMul : 1);   /* the Star Run gets faster the further Toffo gets */
       const dir = P.wallJumpT > 0 ? 0 : (input.right ? 1 : 0) - (input.left ? 1 : 0);
       const turning = dir !== 0 && Math.sign(P.vx) === -dir;
       const acc = P.onGround ? (icy ? 0.05 : (turning ? 0.5 : 0.24)) : (turning ? 0.34 : 0.22), fr = P.onGround ? (icy ? 0.012 : (honey ? 0.25 : 0.34)) : 0.05;

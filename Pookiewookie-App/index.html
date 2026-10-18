@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Starway Home">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192-202610182024.png">
-<link rel="apple-touch-icon" href="icon-180-202610182024.png">
+<link rel="icon" href="icon-192-202610182258.png">
+<link rel="apple-touch-icon" href="icon-180-202610182258.png">
 <title>The Starway Home</title>
 <link rel="preload" href="p/fonts/fredoka-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="p/brand/logo.png" as="image">
@@ -198,6 +198,24 @@ body.touch #globeUI .gfoot p{display:none}
 .m-event .ev-ico{grid-row:span 2;font-size:calc(var(--u)*17);line-height:1;filter:drop-shadow(0 0 calc(var(--u)*4) rgba(255,160,40,.8));animation:badge 1.6s ease-in-out infinite}
 .m-event .ev-t{display:grid;min-width:0}.m-event b{font:700 calc(var(--u)*8.4)/1.1 var(--font)}.m-event small{font:600 calc(var(--u)*5.8)/1.2 var(--font);opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .m-event .ev-bar{grid-column:2;height:calc(var(--u)*3);border-radius:99px;background:rgba(0,0,0,.3);overflow:hidden}.m-event .ev-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffd84a,#ff8a2a);border-radius:inherit}
+/* the Star Run bar: the endless mode, right under Play */
+.m-run{background:linear-gradient(120deg,#081a4a 0%,#1f4fd8 48%,#5ff6ff 100%);box-shadow:0 calc(var(--u)*2.4) 0 #06102e,0 0 calc(var(--u)*12) rgba(95,246,255,.45),inset 0 1px 0 rgba(255,255,255,.35);animation-delay:.18s}
+.m-run .ev-ico{filter:drop-shadow(0 0 calc(var(--u)*4) rgba(95,246,255,.9))}
+.m-run .ev-bar i{background:linear-gradient(90deg,#5ff6ff,#ffd84a)}
+body.runmode #touch{display:none!important}
+.card.runover{max-width:540px;padding:18px 22px}
+.card.runover h2{margin-bottom:0}
+.ro-dist{margin:0 0 2px;font:700 clamp(40px,9vw,64px)/1.05 var(--font);color:var(--gold);text-shadow:4px 4px 0 var(--plum)}
+.ro-dist small{font-size:.42em;margin-left:5px;color:#fff6c0}
+.ro-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 10px;margin:0 0 10px;text-align:left}
+.ro-stats .row dd{font-size:17px}
+.missions{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:5px;text-align:left}
+.missions li{display:grid;grid-template-columns:20px 1fr auto;gap:4px 8px;align-items:center;padding:5px 10px;border-radius:12px;background:rgba(0,0,0,.2);font:600 13px/1.25 var(--font);color:var(--muted)}
+.missions li.done{color:#fff;background:rgba(155,231,165,.16)}
+.missions li b{font-size:15px;text-align:center;color:var(--mint)}
+.missions li em{font-style:normal;font-size:12px;color:var(--gold)}
+.missions .mbar{grid-column:2/4;height:4px;border-radius:99px;background:rgba(0,0,0,.3);overflow:hidden}.missions .mbar i{display:block;height:100%;background:linear-gradient(90deg,#5ff6ff,#ffd84a)}
+@media(max-height:480px){.card.runover{padding:10px 14px}.card.runover h2{font-size:19px}.ro-dist{font-size:34px}.ro-stats{margin-bottom:6px}.ro-stats .row dd{font-size:15px}.missions{margin-bottom:8px;gap:3px}.missions li{padding:3px 8px;font-size:12px}.card.runover .btn{padding:9px 16px;font-size:14px}}
 .m-tiles{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:calc(var(--u)*6);flex:1;min-height:0}
 .m-tile{pointer-events:auto;position:relative;overflow:hidden;min-height:0;border-radius:calc(var(--u)*12);border:1px solid rgba(255,255,255,.24);background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.05) 60%);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#fff;text-align:left;padding:calc(var(--u)*5) calc(var(--u)*8);display:flex;flex-direction:column;justify-content:flex-end;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 calc(var(--u)*3) calc(var(--u)*10) rgba(20,0,30,.3);transition:transform .15s,background .2s;animation:mIn .6s cubic-bezier(.2,1.4,.4,1) both}
 .m-tile:nth-child(1){animation-delay:.22s}.m-tile:nth-child(2){animation-delay:.28s}.m-tile:nth-child(3){animation-delay:.34s}.m-tile:nth-child(4){animation-delay:.4s}
@@ -271,6 +289,7 @@ body.noanim #title *{animation:none!important}
     <button class="m-herotap" id="mHeroTap" type="button" aria-label="Held springen lassen" data-en-aria="Make the hero jump"></button>
     <div class="m-side">
       <button class="m-play" id="btnStart" type="button"><span class="pi"><svg viewBox="0 0 24 24"><path d="M8 4.8v14.4l11.6-7.2z"/></svg></span><b data-en="PLAY">SPIELEN</b><small id="mNextLvl">Welt 1 · Zuckerwattewiese</small><span class="m-bar"><i id="mBar"></i></span></button>
+      <button class="m-event m-run" id="mRun" type="button"><span class="ev-ico">🌠</span><span class="ev-t"><b data-en="Star Run: endless mode">Sternenlauf: Endlos-Modus</b><small id="mRunS" data-en="Run forever · 3 missions every day">Endlos laufen · jeden Tag 3 Missionen</small></span><span class="ev-bar"><i id="mRunBar"></i></span></button>
       <button class="m-event" id="mEvent" type="button" hidden><span class="ev-ico">🎃</span><span class="ev-t"><b data-en="Halloween event: Spooky Night">Halloween-Event: Gruselnacht</b><small id="mEventS"></small></span><span class="ev-bar"><i id="mEventBar"></i></span></button>
       <div class="m-tiles">
         <button class="m-tile t-daily" id="mDaily" type="button"><span class="ti"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></svg></span><b data-en="Daily Level">Tageslevel</b><small id="mDailyS" data-en="New every day">Jeden Tag neu</small></button>
@@ -284,7 +303,7 @@ body.noanim #title *{animation:none!important}
   <div id="globeUI" hidden>
     <div class="ghead"><h2 data-en="Choose a world">Wähle eine Welt</h2><p id="gprog"></p></div>
     <div id="markers"></div>
-    <div class="gfoot"><button id="btnGlobeBack" class="btn ghost" type="button" data-en="‹ Menu">‹ Menü</button><button id="btnDaily" class="btn" type="button">Tageslevel</button><button class="btn btnShop" type="button">Shop</button><p data-en="Drag = rotate · ← → choose · Enter or click = fly in">Ziehen = drehen · ← → wählen · Enter oder Klick = reinfliegen</p></div>
+    <div class="gfoot"><button id="btnGlobeBack" class="btn ghost" type="button" data-en="‹ Menu">‹ Menü</button><button id="btnDaily" class="btn" type="button">Tageslevel</button><button id="btnRun" class="btn" type="button" data-en="Star Run">Sternenlauf</button><button class="btn btnShop" type="button">Shop</button><p data-en="Drag = rotate · ← → choose · Enter or click = fly in">Ziehen = drehen · ← → wählen · Enter oder Klick = reinfliegen</p></div>
   </div>
 </div>
 <div id="bubble">Where is my Mallo?</div>
@@ -310,7 +329,7 @@ body.noanim #title *{animation:none!important}
     </div>
     <p class="touchhelp" data-en="Left ◀ ▶ run (just slide your thumb across). Right: A jump, A again in the air = somersault, B shoot, ▼ ground pound. To start a level: jump and stomp the sign with ▼.">Links ◀ ▶ laufen (Daumen einfach rüberschieben). Rechts: A springen, in der Luft nochmal A = Salto, B schießen, ▼ Stampfer. Level starten: springen und mit ▼ aufs Schild stampfen.</p>
     <div class="btnrow"><button id="btnSettingsClose" class="btn" type="button" data-en="Done">Fertig</button><button id="btnReset" class="btn ghost" type="button" data-en="Delete progress">Spielstand löschen</button></div>
-    <p class="sub" style="margin:10px 0 0;font-size:12px">Schokofreedo Games · The Starway Home · Version 17<a id="lnkPrivacy" href="privacy.html" target="_blank" rel="noopener" style="color:var(--pink);margin-left:10px" hidden data-en="Privacy">Datenschutz</a></p>
+    <p class="sub" style="margin:10px 0 0;font-size:12px">Schokofreedo Games · The Starway Home · Version 20<a id="lnkPrivacy" href="privacy.html" target="_blank" rel="noopener" style="color:var(--pink);margin-left:10px" hidden data-en="Privacy">Datenschutz</a></p>
   </div>
 </div>
 
@@ -410,6 +429,17 @@ body.noanim #title *{animation:none!important}
   </div>
 </div>
 
+<div id="runover" class="ov" hidden>
+  <div class="card runover">
+    <h2 id="ro-title" data-en="Run over!">Lauf vorbei!</h2>
+    <p class="ro-dist" id="ro-dist">0<small>m</small></p>
+    <p class="sub" id="ro-sub"></p>
+    <dl class="ro-stats" id="ro-stats"></dl>
+    <ul class="missions" id="ro-missions"></ul>
+    <div class="btnrow"><button id="ro-revive" class="btn" type="button" data-en="Keep running">Weiterlaufen</button><button id="ro-again" class="btn" type="button" data-en="Run again">Nochmal</button><button id="ro-menu" class="btn ghost" type="button" data-en="Menu">Menü</button></div>
+  </div>
+</div>
+
 <div id="touch">
   <div><div id="dpad" class="dpad" aria-label="Laufen: Daumen nach links oder rechts schieben" data-en-aria="Run: slide your thumb left or right"><span><svg viewBox="0 0 20 20"><path d="M15.5 2.8L3.6 10l11.9 7.2z"/></svg></span><i></i><span><svg viewBox="0 0 20 20"><path d="M4.5 2.8L16.4 10 4.5 17.2z"/></svg></span></div></div>
   <div class="rpad"><button type="button" data-k="down" aria-label="Stampfer">▼<small data-en="Stomp">Stampf</small></button><div class="col"><button type="button" data-k="run" aria-label="Schuss">B<small data-en="Shoot">Schuss</small></button><button type="button" class="big" data-k="jumpkey" aria-label="Springen">A<small data-en="Jump">Sprung</small></button></div></div>
@@ -465,6 +495,7 @@ body.noanim #title *{animation:none!important}
 <script src="p/sub.js"></script>
 <script src="p/finale1.js"></script>
 <script src="p/finale2.js"></script>
+<script src="p/run.js"></script>
 <script src="p/game.js"></script>
 <script>
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); }); }

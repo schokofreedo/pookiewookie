@@ -25,7 +25,7 @@
     const migW = o => { const r = {}; for (const k in (o || {})) r[OLD[+k] || k] = o[k]; return r; };
     save.letters = migW(save.letters); save.coins = migW(save.coins); save.version = 2;
   }
-  const OVERLAYS = ['title', 'map', 'card', 'clear', 'over', 'win', 'pause', 'letter', 'keks', 'shop', 'settings'];
+  const OVERLAYS = ['title', 'map', 'card', 'clear', 'over', 'win', 'pause', 'letter', 'keks', 'shop', 'settings', 'runover'];
   const MENU_MUSIC = {bpm: 100, pattern: 1, transpose: 0, lead: 'bell', bass: 'sine', perc: 1};
   const GLOBE_MUSIC = {bpm: 84, pattern: 2, transpose: 2, lead: 'bell', bass: 'sine', perc: 0};
   const globeOk = G.globe && G.globe.init($('#globe'), $('#globeUI'));
@@ -102,7 +102,7 @@
     achieve(id) { achieve(id); },
   };
   /* ---------------- Keksdose (achievements), coins and costumes ---------------- */
-  const ACH = {hero: tr('Einen neuen Helden freigeschaltet', 'Unlocked a new hero'), shop: tr('Etwas im Shop gekauft', 'Bought something in the shop'), allpuzzles: tr('Alle 20 Rätsel gelöst', 'Solved all 20 puzzles'), first: tr('Erstes Level geschafft', 'Finished your first level'), stars3: tr('Alle drei Sternkekse in einem Level', 'All three star cookies in one level'), world: tr('Eine ganze Welt geschafft', 'Finished a whole world'), combo5: tr('Fünffach-Combo', 'Five-hit combo'), nohit: tr('Ein Level ohne einen Treffer', 'A level without getting hit'), gadgets10: tr('Zehn Gadgets gezogen', 'Collected ten gadgets'), puzzle: tr('Eine Rätselkammer gelöst', 'Solved a puzzle gate'), bonus: tr('Einen Bonusraum entdeckt', 'Found a bonus room'), pirate: tr("Käpt'n Bitterbart besiegt", 'Defeated Captain Bitterbeard'), rescue: tr('Mallo gerettet', 'Rescued Mallo'), daily: tr('Ein Tageslevel geschafft', 'Finished a Daily Level'), halloween: tr('Die Gruselnacht überstanden', 'Survived the Spooky Night')};
+  const ACH = {hero: tr('Einen neuen Helden freigeschaltet', 'Unlocked a new hero'), shop: tr('Etwas im Shop gekauft', 'Bought something in the shop'), allpuzzles: tr('Alle 20 Rätsel gelöst', 'Solved all 20 puzzles'), first: tr('Erstes Level geschafft', 'Finished your first level'), stars3: tr('Alle drei Sternkekse in einem Level', 'All three star cookies in one level'), world: tr('Eine ganze Welt geschafft', 'Finished a whole world'), combo5: tr('Fünffach-Combo', 'Five-hit combo'), nohit: tr('Ein Level ohne einen Treffer', 'A level without getting hit'), gadgets10: tr('Zehn Gadgets gezogen', 'Collected ten gadgets'), puzzle: tr('Eine Rätselkammer gelöst', 'Solved a puzzle gate'), bonus: tr('Einen Bonusraum entdeckt', 'Found a bonus room'), pirate: tr("Käpt'n Bitterbart besiegt", 'Defeated Captain Bitterbeard'), rescue: tr('Mallo gerettet', 'Rescued Mallo'), daily: tr('Ein Tageslevel geschafft', 'Finished a Daily Level'), halloween: tr('Die Gruselnacht überstanden', 'Survived the Spooky Night'), run500: tr('500 m im Sternenlauf', '500 m in the Star Run'), run3: tr('Drei Welten in einem Sternenlauf', 'Three worlds in one Star Run')};
   function achieve(id) { if (!ACH[id] || save.ach[id]) return; save.ach[id] = true; persist(); A().sfx.gadget(); E.toast(tr('Keksdose: ', 'Cookie Jar: ') + ACH[id]); if (globeOk) G.globe.refreshMarkers(); }
   function renderKeks() { const n = Object.keys(ACH).filter(id => save.ach[id]).length; $('#keks-list').innerHTML = Object.entries(ACH).map(([id, t]) => `<li class="${save.ach[id] ? 'done' : ''}"><b>${save.ach[id] ? '🍪' : '○'}</b>${t}</li>`).join(''); $('#keks-count').textContent = tr(n + ' von ' + Object.keys(ACH).length + ' Keksen', n + ' of ' + Object.keys(ACH).length + ' cookies'); }
   /* outfits are bought in the shop; the settings list shows the owned ones */
@@ -175,6 +175,7 @@
     if (h.event && !own && eventActive()) { b.className = 'm-hbtn pick'; b.textContent = '🎃 ' + tr('Gratis im Halloween-Event', 'Free in the Halloween event'); }
     if ($('#mLang')) $('#mLang').textContent = G.lang === 'en' ? 'EN' : 'DE';
     $('#mMute').textContent = A().muted ? tr('Ton an', 'Sound on') : tr('Ton aus', 'Sound off');
+    if (G.run) G.run.renderMenu();
     refreshDaily();
   }
   function menuHeroStep(d) { menuIdx += d; A().sfx.select(); renderMenu(); }
@@ -307,9 +308,10 @@
   function gameOver() { S.mode = 'over'; S.lives = 4; $('#over').hidden = false; $('#over-score').textContent = S.score.toLocaleString(LOC) + tr(' Punkte', ' points'); A().stopMusic(); }
   function win() { S.mode = 'win'; achieve('rescue'); const total = Object.values(save.stars).reduce((a, s) => a + s.filter(Boolean).length, 0); $('#win').hidden = false; $('#win-score').textContent = S.score.toLocaleString(LOC) + tr(' Punkte · ', ' points · ') + total + tr(' von ', ' of ') + (N * 3) + tr(' Sternkeksen', ' star cookies'); A().stopMusic(); A().sfx.rescue(); }
   function hideAll(except) { for (const id of OVERLAYS) $('#' + id).hidden = !(except || []).includes(id); if (globeOk && !(except || []).includes('globe')) G.globe.hide(); }
-  function showTitle() { S.mode = 'title'; hideAll(['title']); A().stopMusic(); A().fast = false; A().slow = false; A().setWorld(MENU_MUSIC); A().setBoss(false); if (S.frames > 0 || HASH !== '#title') A().startMusic(); menuIdx = Math.max(0, heroList().findIndex(h => h.id === (save.hero || 'wookie'))); renderMenu(); }
+  function showTitle() { if (G.run && G.run.active) G.run.end(true); S.mode = 'title'; hideAll(['title']); A().stopMusic(); A().fast = false; A().slow = false; A().setWorld(MENU_MUSIC); A().setBoss(false); if (S.frames > 0 || HASH !== '#title') A().startMusic(); menuIdx = Math.max(0, heroList().findIndex(h => h.id === (save.hero || 'wookie'))); renderMenu(); }
   function worldProgress(wi) { let done = 0, stars = 0; for (let li = 0; li < 4; li++) { const k = key(wi, li); if (save.done[k]) done++; stars += (save.stars[k] || []).filter(Boolean).length; } return {done, stars}; }
   function showGlobe(wi) {
+    if (G.run && G.run.active) G.run.end(true);
     if (!globeOk) { showMap(); return; }
     S.mode = 'globe'; hideAll(['globe']); G.globe.show(wi !== undefined ? wi : S.wi);
     const totalStars = Object.values(save.stars).reduce((a, s) => a + s.filter(Boolean).length, 0);
@@ -323,6 +325,8 @@
   }
   if (globeOk) { G.globe.progress = worldProgress; G.globe.onPick = wi => { S.mode = 'dive'; A().stopMusic(); G.dive.start(wi, () => showHub(wi, true)); }; }
   G.hub.onStart = idx => { A().sfx.select(); G.flow.speak("Let's go!", {happy: true}); startLevel(idx); };
+  /* the Star Run (p/run.js) needs the save, the overlays and the costume logic from here */
+  if (G.run && G.run.attach) G.run.attach({save: () => save, persist, achieve, showTitle, hideAll, resetInput, applyCostume, isTouch});
   G.hub.onLetter = wi => showLetter(wi);
   G.hub.starsFor = idx => save.stars[key(Math.floor(idx / 4), idx % 4)] || [false, false, false];
   G.hub.doneFor = idx => !!save.done[key(Math.floor(idx / 4), idx % 4)];
@@ -356,11 +360,11 @@
   function pauseGame() {
     if (S.mode !== 'play' && S.mode !== 'card' && S.mode !== 'mode' && !(S.mode === 'dive' && G.dive.rocketMode)) return;
     pausedFrom = S.mode; S.mode = 'pause'; A().stopMusic(); A().sfx.pause(); resetInput(); const dp = $('#dpad'); if (dp) dp.classList.remove('l', 'r');
-    $('#pause-level').textContent = G.L && (G.L.daily || G.L.event) && pausedFrom !== 'mode' ? (G.L.event ? G.L.world.name + ' · ' + G.L.sub : tr('Tageslevel', 'Daily Level')) : tr('Welt ', 'World ') + (S.wi + 1) + '-' + (S.li + 1) + ' · ' + G.WORLDS[S.wi].levels[S.li];
+    $('#pause-level').textContent = G.run && G.run.active ? tr('Sternenlauf · ', 'Star Run · ') + G.run.dist + ' m' : G.L && (G.L.daily || G.L.event) && pausedFrom !== 'mode' ? (G.L.event ? G.L.world.name + ' · ' + G.L.sub : tr('Tageslevel', 'Daily Level')) : tr('Welt ', 'World ') + (S.wi + 1) + '-' + (S.li + 1) + ' · ' + G.WORLDS[S.wi].levels[S.li];
     $('#pause').hidden = false; $('#btnResume').focus(); $('#btnPause').textContent = tr('Weiter', 'Resume');
   }
   function resumeGame() { if (S.mode !== 'pause') return; $('#pause').hidden = true; S.mode = pausedFrom; $('#btnPause').textContent = tr('Pause', 'Pause'); if (S.mode === 'play' || S.mode === 'dive' || (S.mode === 'mode' && S.modeName !== 'cinema')) A().startMusic(); }
-  function restartLevel() { $('#pause').hidden = true; S.lives = Math.max(S.lives, 1); startLevel(S.wi * 4 + S.li, curCustom || undefined); }
+  function restartLevel() { $('#pause').hidden = true; if (G.run && G.run.active) { G.run.again(); return; } S.lives = Math.max(S.lives, 1); startLevel(S.wi * 4 + S.li, curCustom || undefined); }
   function toggleFull() {
     try {
       if (document.fullscreenElement) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); }
@@ -385,6 +389,7 @@
   /* ---------------- step ---------------- */
   function step() {
     S.frames++;
+    if (G.run && G.run.active && G.run.step()) return;   /* Star Run: the warp between worlds and the run-over card own their frames */
     if (S.mode === 'card') { cardT += 1 / 60; input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false; if (cardT > 2) beginPlay(); return; }
     if (S.mode === 'brand') { G.brand.update(); return; }
     if (S.mode === 'story') { if (G.story) G.story.update(); return; }
@@ -394,6 +399,7 @@
     if (S.mode === 'hub' || S.mode === 'play') { if (P.combo >= 5) achieve('combo5'); if (S.room === 1) achieve('bonus'); }
     if (S.mode === 'hub') { E.updatePlayer(); E.updateParts(); E.updateCamera(); G.hub.update(); input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false; return; }
     if (S.mode !== 'play') return;
+    const inRun = !!(G.run && G.run.active); if (inRun) G.run.preStep();   /* Toffo runs by himself */
     if (G.goalSeq) E.updateGoal(); else E.updatePlayer();
     G.entsMod.update(); E.updateParts();
     if (!P.dead && !G.goalSeq) {
@@ -402,6 +408,7 @@
       if (G.L.world.wind && S.frames % 300 === 0) A().sfx.wind();
     }
     E.updateCamera();
+    if (inRun) G.run.postStep();
     input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false;
   }
 
@@ -501,7 +508,7 @@
   $('#btnPause').addEventListener('click', () => { if (S.mode === 'pause') resumeGame(); else if (S.mode === 'hub') showGlobe(S.wi); else pauseGame(); });
   $('#btnResume').addEventListener('click', resumeGame);
   $('#btnRestart').addEventListener('click', restartLevel);
-  $('#btnPauseMap').addEventListener('click', () => { $('#pause').hidden = true; if (pausedFrom !== 'mode' && G.L && G.L.event) showTitle(); else if (pausedFrom !== 'mode' && G.L && G.L.daily) showGlobe(); else showHub(S.wi, false); });
+  $('#btnPauseMap').addEventListener('click', () => { $('#pause').hidden = true; if (G.run && G.run.active) showTitle(); else if (pausedFrom !== 'mode' && G.L && G.L.event) showTitle(); else if (pausedFrom !== 'mode' && G.L && G.L.daily) showGlobe(); else showHub(S.wi, false); });
   $('#btnPauseGlobe').addEventListener('click', () => { $('#pause').hidden = true; showGlobe(S.wi); });
   $('#btnPauseTitle').addEventListener('click', () => { $('#pause').hidden = true; showTitle(); });
   $('#btnPauseMute').addEventListener('click', () => setMuted(!A().muted));
@@ -509,6 +516,8 @@
   $('#btnKeks').addEventListener('click', () => { A().init(); A().sfx.select(); renderKeks(); $('#keks').hidden = false; });
   $('#mDaily').addEventListener('click', () => { A().init(); A().sfx.select(); startDaily(); });
   $('#mEvent').addEventListener('click', () => { A().init(); A().sfx.select(); startEvent(); });
+  $('#mRun').addEventListener('click', () => { A().init(); A().sfx.select(); G.run.start(); });
+  $('#btnRun').addEventListener('click', () => { A().init(); A().sfx.select(); G.run.start(); });
   $('#mLang').addEventListener('click', () => G.setLang(G.lang === 'en' ? 'de' : 'en'));
   $('#selLang').value = G.lang; $('#selLang').addEventListener('change', e => G.setLang(e.target.value));
   $('#mShop').addEventListener('click', () => { A().sfx.select(); openShop(save.heroesSeen ? undefined : 'heroes'); });
@@ -675,6 +684,7 @@
     if (diveM) { const wi = Math.max(0, Math.min(G.WORLDS.length - 1, +diveM[1] - 1)); hideAll(); S.mode = 'dive'; G.dive.start(wi, () => showHub(wi, true)); }
     if (hubM) { const wi = Math.max(0, Math.min(G.WORLDS.length - 1, +hubM[1] - 1)); save.done['0-0'] = true; save.stars['0-0'] = [true, false, true]; hideAll(); showHub(wi, !!hubM[2]); if (!hubM[2]) { P.x = 10 * T + 2; S.cam = 0; } console.log('HUB_BOOT w=' + G.L.w + ' hub=' + G.L.hub + ' mode=' + S.mode); }
     if (HASH === '#pause') { S.wi = 0; S.li = 1; hideAll(); E.load(0, 1, false); S.mode = 'play'; pauseGame(); }
+    if (G.run && G.run.boot) G.run.boot(HASH);   /* #run, #run=<s>[,s=<seed>], #runover */
     if (HASH === '#voicetest') { A().init(); A().voiceCfg.on = true; const files = Object.values(G.VOICE_FILES || {}); Promise.all(files.map(f => A().loadVoice(f))).then(bufs => { const ok = bufs.filter(Boolean).length; console.log('VOICE_TEST decoded=' + ok + '/' + files.length + ' dur=' + bufs.filter(Boolean).reduce((a, b) => a + b.duration, 0).toFixed(1) + 's'); }); }
     (document.fonts ? document.fonts.load('bold 10px "Fredoka"').catch(() => {}) : Promise.resolve()).then(() => requestAnimationFrame(frame));
   }
