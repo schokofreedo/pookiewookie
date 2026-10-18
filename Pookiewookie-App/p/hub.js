@@ -1,5 +1,5 @@
 /* The Starway Home: after picking a world on the globe, Toffo skydives through the clouds (the dive) and lands in that world's hub,
-   a small themed scene with four signposts; walk to a sign and press up to start the level. */
+   a themed warp room with four portals (drawn by p/hubart.js); walk to a portal and stomp into it (or press up) to start the level. */
 (function () {
   const G = window.PW = window.PW || {}, T = 16, VH = 270, MH = 15;
   const S = () => G.S, P = () => G.P, A = () => G.audio, E = () => G.eng;
@@ -56,36 +56,60 @@
     },
   };
 
-  /* ---------------- the hub ---------------- */
+  /* ---------------- the hub: the warp room ---------------- */
+  const WARP_T = 0.72;   /* seconds Toffo is pulled into the portal before the level starts */
   const hub = G.hub = {
-    wi: 0, near: -1, onStart: null, signCols: [], landed: false, labelT: 0,
+    wi: 0, near: -1, onStart: null, signCols: [], signRows: [], landed: false, labelT: 0, warp: null, sel: [0, 0, 0, 0],
     build(wi) {
       const W = G.WORLDS[wi], cols = [], empty = () => Array(MH).fill('-');
-      const deco = ['p', 'h', 'd', 'h', 'p', 'd'];
-      for (let x = 0; x < 52; x++) { const c = empty(); c[13] = '#'; c[14] = '#'; cols.push(c); }
-      cols[3][12] = 'R'; cols[1][12] = 'Q'; cols[6][12] = 'Y';   /* Mallo's mailbox */
-      this.signCols = [10, 20, 30, 40]; this.signCols.forEach((cx, i) => { cols[cx][12] = String(i + 1); });
-      let di = 0; for (let x = 8; x < 50; x += 3) { if (this.signCols.some(s => Math.abs(s - x) < 2) || x === 46) continue; if ((x * 7) % 5 < 3) cols[x][12] = deco[di++ % deco.length]; }
-      cols[46][12] = 'U';
+      const lay = (G.hubart && G.hubart.layout) ? G.hubart.layout(W.key) : {tops: Array(52).fill(13), signCols: [10, 20, 30, 40], deco: [[8, 'p'], [14, 'h'], [25, 'd'], [35, 'p'], [44, 'h']]};
+      const tops = lay.tops;
+      for (let x = 0; x < 52; x++) { const c = empty(); for (let y = tops[x]; y < MH; y++) c[y] = '#'; cols.push(c); }
+      cols[3][tops[3] - 1] = 'R'; cols[1][tops[1] - 1] = 'Q'; cols[6][tops[6] - 1] = 'Y';   /* start, cottage / station module, Mallo's mailbox */
+      this.signCols = lay.signCols.slice(); this.signRows = this.signCols.map(cx => tops[cx] - 1); this.signCols.forEach((cx, i) => { cols[cx][tops[cx] - 1] = String(i + 1); });
+      for (const [x, ch] of lay.deco) { if (cols[x][tops[x] - 1] === '-') cols[x][tops[x] - 1] = ch; }
+      cols[46][tops[46] - 1] = 'U';
       return {world: wi, index: 0, name: 'Hub ' + W.name, sub: W.name, par: 999, tower: false, cols, bonus: null, hub: true};
     },
     enter(wi, fromSky) {
-      this.wi = wi; this.near = -1; this.landed = !fromSky; this.labelT = 0;
+      this.wi = wi; this.near = -1; this.landed = !fromSky; this.labelT = 0; this.warp = null; this.sel = [0, 0, 0, 0]; this.wasPound = false; this.prevGround = false;
       const S0 = S(); S0.wi = wi; const W = G.WORLDS[wi];
-      if (W.rocket && fromSky) { fromSky = false; this.landed = true; G.flow.banner(tr('Welt ', 'World ') + (wi + 1) + ' · ' + W.name, 2.4, tr('Raumstation: Schild 1 startet die Rakete', 'Space station: sign 1 launches the rocket')); }
+      if (W.rocket && fromSky) { fromSky = false; this.landed = true; G.flow.banner(tr('Welt ', 'World ') + (wi + 1) + ' · ' + W.name, 2.4, tr('Raumstation: Teleporter 1 startet die Rakete', 'Space station: teleporter 1 launches the rocket')); }
       E().load(wi, 0, false, this.build(wi)); S0.mode = 'hub'; S0.time = 999; S0.outfit = S0.outfitOverride || W.key;
       const p = P(); if (fromSky) { p.x = 3 * T + 2; p.y = -70; p.vy = 2.5; p.skydive = true; } else { p.skydive = false; }
       S0.cam = 0; if (A()) { A().setWorld(G.WORLDS[wi].music); A().startMusic(); }
     },
+    /* the warp: Toffo is pulled into the portal (p/hubart.js draws it), input is ignored, then the level starts */
+    startWarp(i) {
+      const p = P(), input = G.input; input.up = false; input.jump = false; input.jumpEdge = false; input.jumpKeyEdge = false; input.downEdge = false;
+      this.warp = {i, idx: this.wi * 4 + i, t: 0, dur: WARP_T, x: p.x, y: p.y, cx: p.x + p.w / 2, fy: p.y + p.h, facing: p.facing || 1};
+      p.hidden = true; p.vx = 0; p.vy = 0; p.pound = false; p.poundT = 0; p.flip = 0; this.near = i;
+      if (A()) { A().sfx.select(); this.warpSfx(); }
+    },
+    warpSfx() {
+      const a = A(); if (!a || !a.ctx) return;
+      a.noise(WARP_T, {type: 'bandpass', freq: 240, freqTo: 3600, q: 0.9, gain: 0.16});
+      a.tone(170, WARP_T, {type: 'sawtooth', slide: 1500, slideDur: WARP_T - 0.08, gain: 0.05}); a.tone(340, WARP_T, {type: 'triangle', slide: 3000, slideDur: WARP_T - 0.08, gain: 0.05});
+      [1047, 1319, 1568, 2093, 2637].forEach((f, i) => a.bell(f, 0.35, 0.08, 0.4 + i * 0.05));
+      a.noise(0.3, {type: 'highpass', freq: 3000, gain: 0.12, delay: WARP_T - 0.1}); a.tone(1300, 0.3, {type: 'sine', slide: 260, gain: 0.1, delay: WARP_T - 0.06});
+    },
     update() {
       const p = P(), s = S(), input = G.input;
-      if (p.skydive) { if (p.onGround) { p.skydive = false; s.shake = 4; A().sfx.land(); E().puff(p.x + 6, p.y + p.h, 10, '#fff'); this.landed = true; G.flow.banner(tr('Welt ', 'World ') + (this.wi + 1) + ' · ' + G.WORLDS[this.wi].name, 2.2, tr('Lauf zu einem Schild und drück ↑', 'Walk to a sign and press ↑')); } return; }
+      if (p.skydive) { if (p.onGround) { p.skydive = false; s.shake = 4; A().sfx.land(); E().puff(p.x + 6, p.y + p.h, 10, '#fff'); this.landed = true; G.flow.banner(tr('Welt ', 'World ') + (this.wi + 1) + ' · ' + G.WORLDS[this.wi].name, 2.2, input.touchMode ? tr('Lauf zu einem Portal und stampf hinein', 'Walk to a portal and stomp into it') : tr('Lauf zu einem Portal und drück ↑', 'Walk to a portal and press ↑')); } return; }
       this.labelT += 1 / 60;
-      let near = -1; this.signCols.forEach((cx, i) => { if (Math.abs(p.x + 6 - (cx * T + 8)) < 16 && (p.onGround || p.pound)) near = i; });
+      if (this.warp) {
+        const w = this.warp; w.t += 1 / 60; p.x = w.x; p.y = w.y; p.vx = 0; p.vy = 0; p.hidden = true; p.pound = false; p.flip = 0;
+        input.left = false; input.right = false; input.up = false; input.down = false; input.jump = false; input.jumpEdge = false; input.jumpKeyEdge = false; input.downEdge = false; input.runEdge = false;
+        if (w.t >= w.dur) { this.warp = null; p.hidden = false; if (this.onStart) this.onStart(w.idx); }
+        return;
+      }
+      /* in front of a portal (they are wider than the old signs); prevGround lets ↑ warp in the very frame the key also starts a hop */
+      let near = -1; this.signCols.forEach((cx, i) => { if (Math.abs(p.x + 6 - (cx * T + 8)) < 22 && (p.onGround || p.pound || this.prevGround)) near = i; }); this.prevGround = p.onGround;
       if (near !== this.near) { this.near = near; if (near >= 0 && p.onGround) A().sfx.tick(); }
-      /* a ground pound onto the signpost starts the level (↑ on a keyboard works too) */
+      for (let i = 0; i < 4; i++) this.sel[i] += ((near === i ? 1 : 0) - this.sel[i]) * 0.16;
+      /* a ground pound into the portal starts the warp (↑ on a keyboard works too) */
       const pounded = this.wasPound && !p.pound && p.onGround; this.wasPound = p.pound;
-      if (near >= 0 && this.onStart && (pounded || (input.up && !input.touchMode))) { const idx = this.wi * 4 + near; input.up = false; input.jump = false; input.jumpEdge = false; input.jumpKeyEdge = false; this.onStart(idx); }
+      if (near >= 0 && this.onStart && (pounded || (input.up && !input.touchMode))) { this.startWarp(near); return; }
       /* the mailbox: read Mallo's letter */
       const nearMail = Math.abs(p.x + 6 - (6 * T + 8)) < 14 && p.onGround; this.nearMail = nearMail;
       if (nearMail && this.onLetter && (pounded || (input.up && !input.touchMode)) && !this.mailCd) { this.mailCd = 30; input.up = false; this.onLetter(this.wi); }
@@ -93,8 +117,9 @@
     },
     tile(ctx, ch, cx, cy, x, y, fr) {
       const i = +ch - 1; if (!(i >= 0 && i < 4)) return false;
-      const W = G.WORLDS[this.wi], tower = i === 3, sel = this.near === i, bob = sel ? Math.sin(fr * 0.2) * 1.5 : 0;
-      /* wooden signpost with a number plate */
+      if (G.hubart) return true;   /* the portals are drawn by p/hubart.js behind Toffo (G.art.world) */
+      /* fallback without the art file: the old wooden signpost */
+      const tower = i === 3, sel = this.near === i, bob = sel ? Math.sin(fr * 0.2) * 1.5 : 0;
       ctx.fillStyle = '#8a5a2b'; ctx.fillRect(x + 7, y + 2, 3, 14);
       rr(ctx, x - 6, y - 12 + bob, 28, 16, 4); ctx.fillStyle = tower ? '#7a3b57' : (sel ? '#ff6f9c' : '#ffb3c6'); ctx.fill(); ctx.strokeStyle = '#7a3b57'; ctx.lineWidth = 1; ctx.stroke();
       font(ctx, 10); ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText(tower ? '♜' : String(i + 1), x + 8, y - 4 + bob);
@@ -108,13 +133,18 @@
       const ty = G.input.touchMode ? 30 : 6;   /* below the pause button on phones */
       rr(ctx, G.VW / 2 - 110, ty, 220, 22, 11); ctx.fillStyle = 'rgba(74,34,58,.72)'; ctx.fill();
       { const tt = tr('Welt ', 'World ') + (this.wi + 1) + ' · ' + W.name; outlined(ctx, tt, G.VW / 2, ty + 11, fitPx(ctx, tt, 11, 206), '#ffd84a'); }
-      if (this.near >= 0) {
+      if (this.warp) {
+        const name = W.levels[this.warp.i], k = Math.min(1, this.warp.t / 0.2);
+        rr(ctx, G.VW / 2 - 100, ty + 28, 200, 30, 10); ctx.fillStyle = 'rgba(255,255,255,' + 0.92 * k + ')'; ctx.fill(); ctx.strokeStyle = 'rgba(255,158,176,' + k + ')'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.globalAlpha = k; const nt = (this.warp.i + 1) + '. ' + name; font(ctx, fitPx(ctx, nt, 10, 188)); ctx.textAlign = 'center'; ctx.fillStyle = '#7a3b57'; ctx.fillText(nt, G.VW / 2, ty + 37);
+        const wt = tr('Warp! Los geht’s …', 'Warp! Here we go …'); font(ctx, fitPx(ctx, wt, 7.5, 188)); ctx.fillStyle = '#b06a85'; ctx.fillText(wt, G.VW / 2, ty + 49); ctx.globalAlpha = 1;
+      } else if (this.near >= 0) {
         const name = W.levels[this.near], done = hub.doneFor ? hub.doneFor(this.wi * 4 + this.near) : false;
         rr(ctx, G.VW / 2 - 100, ty + 28, 200, 30, 10); ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill(); ctx.strokeStyle = '#ff9eb0'; ctx.lineWidth = 1.5; ctx.stroke();
         const nt = (this.near + 1) + '. ' + name + (done ? '  ✓' : ''); font(ctx, fitPx(ctx, nt, 10, 188)); ctx.textAlign = 'center'; ctx.fillStyle = '#7a3b57'; ctx.fillText(nt, G.VW / 2, ty + 37);
-        const ht = G.input.touchMode ? tr('Springen, dann ▼ Stampfer auf das Schild', 'Jump, then ▼ stomp on the sign') : tr('↑ oder Stampfer (Sprung + ↓) auf das Schild', '↑ or stomp (jump + ↓) on the sign'); font(ctx, fitPx(ctx, ht, 7.5, 188)); ctx.fillStyle = '#b06a85'; ctx.fillText(ht, G.VW / 2, ty + 49);
+        const ht = G.input.touchMode ? tr('Springen, dann ▼ Stampfer ins Portal', 'Jump, then ▼ stomp into the portal') : tr('↑ oder Stampfer (Sprung + ↓) ins Portal', '↑ or stomp (jump + ↓) into the portal'); font(ctx, fitPx(ctx, ht, 7.5, 188)); ctx.fillStyle = '#b06a85'; ctx.fillText(ht, G.VW / 2, ty + 49);
       } else if (this.nearMail) { rr(ctx, G.VW / 2 - 90, ty + 28, 180, 24, 10); ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill(); ctx.strokeStyle = '#ff9eb0'; ctx.lineWidth = 1.5; ctx.stroke(); const mt = tr('Mallos Brief: ', "Mallo's letter: ") + (G.input.touchMode ? tr('springen + ▼ stampfen', 'jump + ▼ stomp') : tr('↑ oder stampfen', '↑ or stomp')); font(ctx, fitPx(ctx, mt, 9, 168)); ctx.textAlign = 'center'; ctx.fillStyle = '#7a3b57'; ctx.fillText(mt, G.VW / 2, ty + 40); }
-      else if (this.landed) { const h = G.input.touchMode ? tr('◀ ▶ laufen · auf ein Schild stampfen = Level', '◀ ▶ walk · stomp on a sign = level') : tr('← → laufen · Schild = Level · Esc = Globus', '← → walk · sign = level · Esc = globe'); font(ctx, 7.5); ctx.textAlign = 'center'; ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(74,34,58,.7)'; ctx.strokeText(h, G.VW / 2, ty + 34); ctx.fillStyle = '#fff'; ctx.fillText(h, G.VW / 2, ty + 34); }
+      else if (this.landed) { const h = G.input.touchMode ? tr('◀ ▶ laufen · ins Portal stampfen = Level', '◀ ▶ walk · stomp into a portal = level') : tr('← → laufen · Portal = Level · Esc = Globus', '← → walk · portal = level · Esc = globe'); font(ctx, 7.5); ctx.textAlign = 'center'; ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(74,34,58,.7)'; ctx.strokeText(h, G.VW / 2, ty + 34); ctx.fillStyle = '#fff'; ctx.fillText(h, G.VW / 2, ty + 34); }
     },
   };
 })();

@@ -14,9 +14,9 @@
   "theme_color": "#2b1d33",
   "lang": "de",
   "icons": [
-    {"src": "icon-192-202610160000.png", "sizes": "192x192", "type": "image/png"},
-    {"src": "icon-512-202610160000.png", "sizes": "512x512", "type": "image/png"},
-    {"src": "icon-maskable-512-202610160000.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+    {"src": "icon-192-202610182024.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512-202610182024.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon-maskable-512-202610182024.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
   ],
   "screenshots": [
     {"src": "shots/menu.jpg", "sizes": "1280x720", "type": "image/jpeg", "form_factor": "wide", "label": "Hauptmenü mit Heldenauswahl"},

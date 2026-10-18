@@ -87,13 +87,14 @@
       const prev = save.stars[k] || [false, false, false]; save.stars[k] = prev.map((b, i) => b || S.stars[i]);
       save.best[k] = Math.max(save.best[k] || 0, S.score); persist();
       achieve('first'); if (S.stars.every(Boolean)) achieve('stars3'); if (worldProgress(S.wi).done >= 4) achieve('world'); if (!S.hits) achieve('nohit');
-      if (L.world.boss.final && L.rescued) { const fi = G.WORLDS.findIndex(w => w.key === 'finale'); if (fi >= 0) { $('#clear').hidden = true; G.flow.banner(tr('Frei!', 'Free!'), 2.6, tr('Doch das Raumschiff gerät in ein Schwarzes Loch ...', 'But the spaceship is drawn into a black hole ...')); setTimeout(() => startLevel(fi * 4), 2600); S.mode = 'clear'; return; } win(); return; }
-      $('#clear').hidden = false; $('#clear-title').textContent = (L.rocket ? tr('Flug geschafft', 'Flight complete') : (L.tower ? tr('Turm geschafft', 'Tower complete') : tr(L.sub + ' geschafft', L.sub + ' complete')));
+      if (L.world.boss.final && L.rescued) { const fi = G.WORLDS.findIndex(w => w.key === 'finale'); if (fi >= 0) { $('#clear').hidden = true; S.mode = 'clear'; const go = () => startLevel(fi * 4); if (hasCut(L.world.key, 'outro')) playCut(L.world.key, 'outro', go); else { G.flow.banner(tr('Frei!', 'Free!'), 2.6, tr('Doch das Raumschiff gerät in ein Schwarzes Loch ...', 'But the spaceship is drawn into a black hole ...')); setTimeout(go, 2600); } return; } win(); return; }
+      $('#clear-title').textContent = (L.rocket ? tr('Flug geschafft', 'Flight complete') : (L.tower ? tr('Turm geschafft', 'Tower complete') : tr(L.sub + ' geschafft', L.sub + ' complete')));
       $('#clear-stars').textContent = S.stars.map(b => b ? '★' : '☆').join(' ');
       $('#clear-stats').innerHTML = `<div class="row"><dt>${tr('Zeitbonus', 'Time bonus')}</dt><dd>${bonus}</dd></div><div class="row"><dt>${tr('Punkte', 'Points')}</dt><dd>${S.score.toLocaleString(LOC)}</dd></div><div class="row"><dt>${tr('Taler für das Level', 'Coins for this level')}</dt><dd>+${pay}</dd></div><div class="row"><dt>${tr('Taler gesamt', 'Coins in total')}</dt><dd>${S.money.toLocaleString(LOC)}</dd></div>`;
       $('#clear-next').hidden = idx + 1 >= N; $('#clear-next').textContent = S.li === 3 ? tr('Nächste Welt', 'Next world') : tr('Nächstes Level', 'Next level');
       mapSel = Math.min(N - 1, idx + 1);
       G.flow.speak('Yay! I did it!', {happy: true});
+      if (L.tower && !L.daily && !L.event && hasCut(L.world.key, 'outro')) playCut(L.world.key, 'outro', () => { S.mode = 'clear'; $('#clear').hidden = false; }); else $('#clear').hidden = false;
     },
     coin(wi) { save.coins[wi] = true; G.eco.add(200, 0, 0, true); persist(); achieve('coin'); },
     moneyChanged() { save.money = S.money; clearTimeout(moneyTimer); moneyTimer = setTimeout(persist, 400); const sm = $('#shop-money'); if (sm) sm.textContent = S.money.toLocaleString(LOC); },
@@ -211,6 +212,15 @@
       onSolved: () => { save.solved[id] = true; G.eco.add(250, 0, 0, true); persist(); achieve('puzzle'); if (Object.keys(save.solved).length >= 20) achieve('allpuzzles'); S.mode = pzFrom === 'pause' ? 'play' : pzFrom; pzFrom = null; G.flow.speak('I solved it!', {happy: true}); E.toast && G.L && E.toast(tr('+250 Taler', '+250 coins')); onSolved && onSolved(); },
       onClose: () => { S.mode = pzFrom === 'pause' ? 'play' : pzFrom; pzFrom = null; }});
   };
+  /* ---------------- story cutscenes (p/cutscene.js + p/cutscenes.js): before every boss and after every beaten boss ---------------- */
+  let cutFrom = null, cutHold = 0;
+  const hasCut = (wkey, kind) => !!(G.cut && G.CUTS && G.CUTS[wkey] && G.CUTS[wkey][kind]);
+  function playCut(wkey, kind, done) {
+    if (!hasCut(wkey, kind)) { done(); return; }
+    hideAll(); A().stopMusic(); resetInput(); S.mode = 'cut'; cutFrom = kind; cutHold = 0;
+    let fired = false; const fin = () => { if (fired) return; fired = true; if (S.mode === 'cut') done(); };
+    try { G.cut.play(wkey, kind, fin); } catch (e) { console.error('CUT_ERROR ' + e.message); fin(); }
+  }
   /* ---------------- level, hub, globe flow ---------------- */
   function startLevel(idx, custom) {
     S.wi = Math.floor(idx / 4); S.li = idx % 4; mapSel = idx; S.hits = 0; curCustom = custom || null;
@@ -220,7 +230,13 @@
     /* space: the first level is the rocket flight, Mars and Saturn begin with a short flight from the previous planet */
     if (W.rocket && !custom && (S.li === 0 || S.li >= 2) && !G.rocket.skipFlight) { startFlight(idx); return; }
     G.rocket.skipFlight = false;
-    E.load(S.wi, S.li, false, custom); S.mode = 'card'; cardT = 0; if (assist) G.gad.give('bubble', true); applyCostume();
+    E.load(S.wi, S.li, false, custom); applyCostume();
+    if (S.li === 3 && !custom && hasCut(W.key, 'boss') && !startLevel.noCut) { playCut(W.key, 'boss', () => showCard(idx, custom)); return; }
+    startLevel.noCut = false; showCard(idx, custom);
+  }
+  function showCard(idx, custom) {
+    const W = G.WORLDS[S.wi];
+    S.mode = 'card'; cardT = 0; if (assist) G.gad.give('bubble', true);
     $('#card').hidden = false; $('#card-world').textContent = custom && custom.daily ? tr('Tageslevel · ', 'Daily Level · ') + custom.daily : (custom && custom.event ? custom.worldDef.name + ' · ' + tr('Halloween-Event', 'Halloween event') : tr('Welt ', 'World ') + (S.wi + 1) + ' · ' + W.name); $('#card-title').textContent = custom && (custom.daily || custom.event) ? custom.sub : (S.li + 1) + '. ' + W.levels[S.li]; $('#card-lives').textContent = ((heroList().find(h => h.id === (save.hero || 'wookie')) || {}).name || 'Toffo') + ' × ' + S.lives;
     { const sky = (custom && custom.worldDef ? custom.worldDef : W).sky; $('#card').style.background = `linear-gradient(${sky[0]}, ${sky[1]})`; }
     hideAll(['card']); A().stopMusic(); $('#btnPause').textContent = tr('Pause', 'Pause');
@@ -229,6 +245,8 @@
     const wi = Math.floor(idx / 4), li = idx % 4, W = G.WORLDS[wi], m = G.modes && G.modes[name];
     S.wi = wi; S.li = li; mapSel = idx; S.hits = 0; S.stars = [false, false, false];
     if (!m) { console.warn('mode missing: ' + name); G.flow.banner(tr('Bald verfügbar', 'Coming soon'), 2, tr('Dieses Level wird gerade gebaut.', 'This level is being built.')); showHub(wi, false); return; }
+    if (li === 3 && hasCut(W.key, 'boss') && !startMode.noCut) { startMode.noCut = true; playCut(W.key, 'boss', () => startMode(name, idx)); return; }
+    startMode.noCut = false;
     hideAll(); A().stopMusic(); A().setWorld(W.music); A().setBoss(false); A().startMusic();
     S.mode = 'mode'; S.modeName = name; S.modeIdx = idx; $('#btnPause').textContent = tr('Pause', 'Pause'); S.outfit = S.outfitOverride || W.key;
     try {
@@ -243,7 +261,7 @@
   function modeDone(name, idx, result, info) {
     if (S.mode !== 'mode') return;
     const wi = Math.floor(idx / 4), li = idx % 4, W = G.WORLDS[wi];
-    if (result === 'dead') { S.lives--; if (S.lives <= 0) { gameOver(); return; } startMode(name, idx); return; }
+    if (result === 'dead') { S.lives--; if (S.lives <= 0) { gameOver(); return; } startMode.noCut = true; startMode(name, idx); return; }
     if (result === 'quit') { showHub(wi, false); return; }
     /* finale: the ranch flows straight into the ending film, the film ends the game */
     if ((name === 'sub' && li === 3) || name === 'cinema') info.stars = [true, true, true];   /* the Kraken arena and the film have no star cookies to pick up */
@@ -252,11 +270,12 @@
     if (W.key === 'finale' && name === 'ranch') { startMode('cinema', idx + 1); return; }
     if (W.key === 'finale' && name === 'cinema') { win(); return; }
     S.mode = 'clear'; A().stopMusic(); A().sfx.clear(); G.flow.speak('Yay! I did it!', {happy: true});
-    $('#clear').hidden = false; $('#clear-title').textContent = tr(W.levels[li] + ' geschafft', W.levels[li] + ' complete');
+    $('#clear-title').textContent = tr(W.levels[li] + ' geschafft', W.levels[li] + ' complete');
     $('#clear-stars').textContent = (info.stars || [false, false, false]).map(b => b ? '★' : '☆').join(' ');
     $('#clear-stats').innerHTML = `<div class="row"><dt>${tr('Punkte', 'Points')}</dt><dd>${S.score.toLocaleString(LOC)}</dd></div><div class="row"><dt>${tr('Taler gesamt', 'Coins in total')}</dt><dd>${S.money.toLocaleString(LOC)}</dd></div><div class="row"><dt>${tr('Leben', 'Lives')}</dt><dd>${S.lives}</dd></div>`;
     $('#clear-next').hidden = idx + 1 >= N; $('#clear-next').textContent = li === 3 ? tr('Nächste Welt', 'Next world') : tr('Nächstes Level', 'Next level');
     mapSel = Math.min(N - 1, idx + 1);
+    if (li === 3 && hasCut(W.key, 'outro')) playCut(W.key, 'outro', () => { S.mode = 'clear'; $('#clear').hidden = false; }); else $('#clear').hidden = false;
   }
   function startFlight(idx) {
     S.wi = Math.floor(idx / 4); S.li = idx % 4; mapSel = idx;
@@ -369,6 +388,7 @@
     if (S.mode === 'card') { cardT += 1 / 60; input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false; if (cardT > 2) beginPlay(); return; }
     if (S.mode === 'brand') { G.brand.update(); return; }
     if (S.mode === 'story') { if (G.story) G.story.update(); return; }
+    if (S.mode === 'cut') { if (G.cut) { try { G.cut.update(); } catch (e) { console.error('CUT_UPDATE_ERROR ' + e.message); } } if (cutHold > 0 && ++cutHold > 36) { cutHold = -1; G.cut.skip(); } return; }
     if (S.mode === 'mode') { const m = G.modes && G.modes[S.modeName]; if (m) { try { m.update(); } catch (e) { console.error('MODE_UPDATE_ERROR ' + e.message); } } input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false; return; }
     if (S.mode === 'dive') { G.dive.update(); input.jumpEdge = false; input.runEdge = false; input.jumpKeyEdge = false; input.downEdge = false; return; }
     if (S.mode === 'hub' || S.mode === 'play') { if (P.combo >= 5) achieve('combo5'); if (S.room === 1) achieve('bonus'); }
@@ -408,6 +428,7 @@
     if (S.mode === 'boot') { startBrand(); return; }
     if (S.mode === 'brand') { G.brand.skip(); return; }
     if (S.mode === 'story') { G.story.skip(); return; }
+    if (S.mode === 'cut') { if (e.code === 'Escape') G.cut.skip(); else G.cut.next(); return; }
     if (S.mode === 'title' && $('#shop').hidden && $('#settings').hidden && $('#keks').hidden) { if (e.code === 'ArrowLeft' || e.code === 'KeyA') { menuHeroStep(-1); return; } if (e.code === 'ArrowRight' || e.code === 'KeyD') { menuHeroStep(1); return; } }
 
     if (e.code === 'KeyF') { toggleFull(); return; }
@@ -440,7 +461,7 @@
     else if (S.mode === 'card' && edge('jumpkey') && cardT > 0.4) beginPlay();
     else if (S.mode === 'globe') { if (edge('left')) G.globe.move(-1); if (edge('right')) G.globe.move(1); if (edge('jumpkey')) { A().init(); G.globe.pick(); } }
     else if (S.mode === 'title' && $('#shop').hidden && $('#settings').hidden && $('#keks').hidden) { if (edge('left')) menuHeroStep(-1); if (edge('right')) menuHeroStep(1); if (edge('jumpkey')) advance(); }
-    else if (!ingame && edge('jumpkey')) { if (S.mode === 'boot') startBrand(); else if (S.mode === 'brand') G.brand.skip(); else if (S.mode === 'story') G.story.skip(); else if (S.mode === 'pause') resumeGame(); else advance(); }
+    else if (!ingame && edge('jumpkey')) { if (S.mode === 'boot') startBrand(); else if (S.mode === 'brand') G.brand.skip(); else if (S.mode === 'story') G.story.skip(); else if (S.mode === 'cut') G.cut.next(); else if (S.mode === 'pause') resumeGame(); else advance(); }
     padPrev = st;
   }
   document.querySelectorAll('#touch button').forEach(b => { const n = b.dataset.k; const on = e => { e.preventDefault(); A().init(); press(n, true); if (S.mode === 'card' && cardT > 0.4 && n === 'jumpkey') beginPlay(); }; const off = () => press(n, false); b.addEventListener('pointerdown', on); ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => b.addEventListener(ev, off)); b.addEventListener('contextmenu', e => e.preventDefault()); });
@@ -452,7 +473,8 @@
     pad.addEventListener('pointermove', e => { if (e.pointerId === padId) setDir(e.clientX); });
     pad.addEventListener('pointerup', release); pad.addEventListener('pointercancel', release); pad.addEventListener('lostpointercapture', release); pad.addEventListener('contextmenu', e => e.preventDefault()); }
   /* taps on the stage: skip the dive, start after the level card */
-  $('#stage').addEventListener('pointerdown', () => { if (S.mode === 'boot') startBrand(); else if (S.mode === 'brand') G.brand.skip(); else if (S.mode === 'story') G.story.skip(); else if (S.mode === 'dive') { if (G.dive.launching) G.rocket.lt = Math.max(G.rocket.lt || 0, 3.0); else if (!G.dive.rocketMode) G.dive.t = Math.max(G.dive.t, 2.15); } else if (S.mode === 'card' && cardT > 0.4) beginPlay(); });
+  $('#stage').addEventListener('pointerup', () => { if (S.mode === 'cut' && cutHold > 0) { cutHold = 0; G.cut.next(); } });
+  $('#stage').addEventListener('pointerdown', () => { if (S.mode === 'boot') startBrand(); else if (S.mode === 'brand') G.brand.skip(); else if (S.mode === 'story') G.story.skip(); else if (S.mode === 'cut') { cutHold = 1; } else if (S.mode === 'dive') { if (G.dive.launching) G.rocket.lt = Math.max(G.rocket.lt || 0, 3.0); else if (!G.dive.rocketMode) G.dive.t = Math.max(G.dive.t, 2.15); } else if (S.mode === 'card' && cardT > 0.4) beginPlay(); });
   $('#card').addEventListener('pointerdown', () => { if (S.mode === 'card' && cardT > 0.4) beginPlay(); });
   /* touch browsers only grant fullscreen on pointerup/touchend: try again there, and on the first title button */
   if (isTouch) ['pointerup', 'touchend'].forEach(ev => document.addEventListener(ev, () => { try { const ac = A().ctx; if (ac && ac.state !== 'running') ac.resume(); } catch (e) {} if (!document.fullscreenElement && S.mode !== 'boot') goFullscreen(); }, {passive: true}));   /* iOS unlocks audio on touchend */
@@ -560,14 +582,16 @@
     if (isTouch) { document.body.classList.toggle('playing', S.mode === 'play' || S.mode === 'card' || S.mode === 'hub' || S.mode === 'dive' || S.mode === 'mode'); document.body.classList.toggle('onglobe', S.mode === 'globe'); }
     document.body.classList.toggle('inmenu', S.mode === 'title' || S.mode === 'story' || S.mode === 'boot' || S.mode === 'brand');
     if (S.mode === 'globe' && globeOk) G.globe.frame();
-    else if (S.mode === 'boot' || S.mode === 'brand' || S.mode === 'story' || S.mode === 'title' || S.mode === 'dive' || S.mode === 'mode' || (S.mode === 'pause' && (pausedFrom === 'dive' || pausedFrom === 'mode')) || (S.mode === 'pzpause' && (pzFrom === 'mode' || pzFrom === 'dive'))) {
+    else if (S.mode === 'boot' || S.mode === 'brand' || S.mode === 'story' || S.mode === 'cut' || S.mode === 'title' || S.mode === 'dive' || S.mode === 'mode' || (S.mode === 'pause' && (pausedFrom === 'dive' || pausedFrom === 'mode')) || (S.mode === 'pzpause' && (pzFrom === 'mode' || pzFrom === 'dive'))) {
       const c = G.draw.ctx || canvas.getContext('2d'), kk = G.draw.k || (canvas.height / VH); c.setTransform(kk, 0, 0, kk, 0, 0); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
       if (S.mode === 'boot' || S.mode === 'brand') G.brand.frame(c, kk);
       else if (S.mode === 'story') { if (G.story) G.story.frame(c); }
+      else if (S.mode === 'cut') { if (G.cut) { try { G.cut.frame(c); } catch (e) { if (!frame.cutErr) { frame.cutErr = true; console.error('CUT_FRAME_ERROR ' + e.message); } } } }
       else if (S.mode === 'title') { if (G.menu) G.menu.frame(c); else { c.fillStyle = '#2b1d33'; c.fillRect(0, 0, G.VW, VH); } }
       else if (S.mode === 'mode' || (S.mode === 'pause' && pausedFrom === 'mode') || (S.mode === 'pzpause' && pzFrom === 'mode')) { const m = G.modes && G.modes[S.modeName]; if (m) m.frame(c); }
       else G.dive.frame(c, kk);
     }
+    else if (!(G.L && G.L.cols && G.L.cols.length)) { const c = G.draw.ctx || canvas.getContext('2d'), kk = G.draw.k || (canvas.height / VH); c.setTransform(kk, 0, 0, kk, 0, 0); c.fillStyle = '#2b1d33'; c.fillRect(0, 0, G.VW, VH); }   /* no level loaded (a mode level reached straight from a test hash): a plain backdrop under the overlays */
     else G.draw.frame();
   }
   function boot() {
@@ -575,6 +599,8 @@
     const brandM = /^#brand(?:=([\d.]+))?$/.exec(HASH);
     if (brandM) { S.mode = 'boot'; startBrand(); const n = Math.round((+brandM[1] || 0) * 60); for (let i = 0; i < n; i++) step(); }   /* headless: step the intro synchronously to a time point */
     if (HASH === '#title') showTitle();
+    const cutM = /^#cut=(\w+),(boss|outro)(?:,([\d.]+))?$/.exec(HASH);
+    if (cutM) { const wi = G.WORLDS.findIndex(w => w.key === cutM[1]); if (wi >= 0) { S.wi = wi; S.li = 3; if (!G.WORLDS[wi].modes) E.load(wi, 3, false); else G.L = {world: G.WORLDS[wi], cols: [], w: 0, h: 15}; playCut(cutM[1], cutM[2], () => console.log('CUT_DONE')); const n = Math.round((+cutM[3] || 0) * 60); for (let i = 0; i < n; i++) step(); console.log('CUT_BOOT ' + cutM[1] + ' ' + cutM[2] + ' mode=' + S.mode + ' t=' + n / 60); } }
     const storyM = /^#story(?:=([\d.]+))?$/.exec(HASH);
     if (storyM) { playStory(showTitle); const n = Math.round((+storyM[1] || 0) * 60); for (let i = 0; i < n; i++) step(); console.log('STORY_BOOT t=' + (G.story ? G.story.t.toFixed(1) : 'none') + ' mode=' + S.mode); }
     const menuM = /^#menu(\w*)$/.exec(HASH);
@@ -587,7 +613,7 @@
     const wfM = /^#wf(\d+)$/.exec(HASH);
     if (wfM) { const wi = G.WORLDS.findIndex(w => w.key === 'schoko'), li = G.WORLDS[wi].waterfall; S.wi = wi; S.li = li; hideAll(); S.lives = 4; E.load(wi, li, false); S.mode = 'play'; const wf = G.L.waterfall; const ch = G.ents.find(e => e.kind === 'chute'); P.x = ch.x - 40; P.y = 13 * T - P.h; P.inv = 99999; S.cam = Math.max(0, P.x - 200); const n = +wfM[1]; for (let i = 0; i < n; i++) { for (const k in input) input[k] = false; if (P.x < wf.x0 + 6 * T) input.right = true; step(); } console.log('WF_BOOT frames=' + n + ' x=' + P.x.toFixed(0) + ' y=' + P.y.toFixed(0) + ' chute=' + P.chute + ' camY=' + S.camY.toFixed(0)); }
     const playM = /^#play(\d+)(?:t=([\d.]+))?$/.exec(HASH);
-    if (playM) { hideAll(); S.lives = 4; startLevel(+playM[1] - 1); if (S.mode === 'card') beginPlay(); const n = Math.round((+playM[2] || 0) * 60); for (let i = 0; i < n; i++) step(); console.log('PLAY_BOOT idx=' + playM[1] + ' mode=' + S.mode + ' modeName=' + (S.modeName || '-') + ' world=' + G.WORLDS[S.wi].key + ' li=' + S.li); }
+    if (playM) { hideAll(); S.lives = 4; startLevel.noCut = true; startMode.noCut = true; startLevel(+playM[1] - 1); if (S.mode === 'card') beginPlay(); const n = Math.round((+playM[2] || 0) * 60); for (let i = 0; i < n; i++) step(); console.log('PLAY_BOOT idx=' + playM[1] + ' mode=' + S.mode + ' modeName=' + (S.modeName || '-') + ' world=' + G.WORLDS[S.wi].key + ' li=' + S.li); }
     if (HASH === '#pzall') {
       /* every registered puzzle in the real page: open, auto-solve, wait for the solve, next */
       const ids = Object.keys(G.PZ.defs).sort(); let i = 0, ok = 0; const per = {};
@@ -716,8 +742,8 @@
       log('double-jump', dj && P.jumps === 2, 'jumps=' + P.jumps + ' flip=' + P.flip.toFixed(2) + ' vyBefore=' + vyBefore.toFixed(1));
       /* hub: land from the sky, walk to sign 2, start it */
       hideAll(); showHub(2, true); clearIn(); let landedHub = false; for (let i = 0; i < 120; i++) { step(); if (!P.skydive && P.onGround) { landedHub = true; break; } }
-      const sx = G.hub.signCols[1] * T + 2; P.x = sx; run(3); const nearOk = G.hub.near === 1; let started = null; G.hub.onStart = idx => { started = idx; }; input.up = true; run(2);
-      log('hub', landedHub && nearOk && started === 9, 'landed=' + landedHub + ' near=' + G.hub.near + ' started=' + started + ' mode=' + S.mode);
+      const sx = G.hub.signCols[1] * T + 2; P.x = sx; run(3); const nearOk = G.hub.near === 1; let started = null; G.hub.onStart = idx => { started = idx; }; input.up = true; run(2); const warping = !!G.hub.warp && started === null; run(50);   /* the warp animation (0.72 s) pulls Toffo into the portal before onStart */
+      log('hub', landedHub && nearOk && warping && started === 9, 'landed=' + landedHub + ' near=' + G.hub.near + ' warp=' + warping + ' started=' + started + ' mode=' + S.mode);
       G.hub.onStart = idx => { A().sfx.select(); startLevel(idx); };
       /* dive runs to its end */
       hideAll(); S.mode = 'dive'; let hubEntered = false; G.dive.start(1, () => { hubEntered = true; showHub(1, true); }); for (let i = 0; i < 200 && !hubEntered; i++) step();
@@ -926,9 +952,11 @@
       if (P.dead && !wasDead) { deaths++; if (deaths <= 5) console.log('SIM_DEATH #' + deaths + ' ' + JSON.stringify(S.lastDeath)); if (deaths === 1 && HASH.endsWith('t')) console.log('SIM_TRACE ' + runSim.trace.join(' | ')); }
       if (S.mode === 'clear' || S.mode === 'over' || S.mode === 'win') break;
       if (S.mode === 'card') beginPlay();
+      if (S.mode === 'cut' && G.cut) G.cut.skip();   /* the bot skips story cutscenes */
     }
     const bz = G.ents.find(e => e.kind === 'boss'), pcx = Math.floor((P.x + 6) / T);
     console.log('SIM_DONE level=' + G.L.name + ' t=' + t.toFixed(0) + ' mode=' + S.mode + ' maxX=' + maxX.toFixed(0) + '/' + (G.L.mainW * T) + ' deaths=' + deaths + ' score=' + S.score + ' stars=' + S.stars.filter(Boolean).length + ' launches=' + launches + ' gadgets=' + gadgets.join(',') + ' gate=' + S.gateOpen + ' bossActive=' + S.bossActive + ' boss=' + (bz ? bz.hp + '/' + bz.maxHp + ' act=' + bz.active + ' alive=' + bz.alive + ' x=' + bz.x.toFixed(0) : 'none') + ' pcol=' + pcx + ' tiles=' + [5, 8, 11, 12, 13].map(r => tileAt(pcx, r)).join('') + ' arenaX=' + G.L.arenaX);
   }
+  G.dbg = {step, startLevel, startMode, showHub, showTitle, beginPlay, levelClear: () => G.flow.levelClear()};
   boot();
 })();
